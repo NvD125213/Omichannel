@@ -54,7 +54,7 @@ export function DashboardHeader() {
       <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl">
         <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
         <div className="ml-auto flex items-center gap-1">
-          <Separator orientation="vertical" className="mx-2 h-6 bg-border/50" />
+          <Separator orientation="vertical" className="mx-2 h-6" />
         </div>
       </header>
     );
@@ -63,7 +63,7 @@ export function DashboardHeader() {
   return (
     <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl">
       <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
-      <Separator orientation="vertical" className="mx-2 h-6 bg-border/50" />
+      <Separator orientation="vertical" className="mx-2 h-6" />
       <SearchTrigger onClick={() => setCommandSearchOpen(true)} />
       <CommandSearch
         open={commandSearchOpen}
@@ -71,7 +71,6 @@ export function DashboardHeader() {
       />
       <div className="ml-auto flex items-center gap-1">
         <ToggleTheme />
-
         <Button
           variant="ghost"
           size="icon"
@@ -81,14 +80,12 @@ export function DashboardHeader() {
           <Settings className="h-[1.2rem] w-[1.2rem]" />
           <span className="sr-only">Open theme customizer</span>
         </Button>
-
         <ThemeCustomizer
           open={themeCustomizerOpen}
           onOpenChange={setThemeCustomizerOpen}
         />
-
-        <Separator orientation="vertical" className="mx-2 h-6 bg-border/50" />
-
+        {/* <Separator orientation="vertical" className="mx-2 h-6" /> */}
+        <div className="h-6 w-px bg-border mx-2" />
         <ProfileDropdown />
       </div>
     </header>

@@ -1,116 +1,135 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
+import {
+  clearTokens,
+  getAccessToken,
+  isAuthenticated as checkAuthenticated,
+  setTokens,
+} from "@/lib/auth";
+import { loginApi } from "@/services/auth/sign-in";
 import { User } from "@/lib/types";
+import { useRouter } from "next/navigation";
 import {
   ReactNode,
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
 } from "react";
+import { useNavigationEvents } from "@/hooks/use-navigation-events";
+import { useMe } from "@/hooks/user/use-me";
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  signInSocial: (
-    provider: "google" | "github",
-    callbackUrl?: string,
-  ) => Promise<void>;
-  logout: () => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Helper function to decode JWT and extract user info
+function decodeToken(token: string): Partial<User> | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return {
+      id: payload.sub || payload.user_id || payload.id || "",
+      name: payload.name || payload.username || "User",
+      email: payload.email || "",
+      role: payload.role || "user",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        const { data: session } = await authClient.getSession();
+  // Listen for navigation events (e.g., from api-client interceptors)
+  useNavigationEvents();
 
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            name: session.user.name,
-            email: session.user.email,
-            avatar: session.user.image || "",
-            role: "user",
-          });
-        }
-      } catch (error) {
-        console.error("Failed to get session:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // useMe hook để kiểm tra session từ server
+  const {
+    data: meData,
+    isLoading: isMeLoading,
+    isSuccess: isMeSuccess,
+    isError: isMeError,
+  } = useMe();
 
-    initAuth();
+  const login = useCallback(async (username: string, password: string) => {
+    const response = await loginApi({ username, password });
+
+    // Save tokens
+    setTokens(response.data.access_token, response.data.refresh_token);
+
+    // Decode and set user from token
+    const userData = decodeToken(response.data.access_token);
+    if (userData) {
+      setUser({
+        id: userData.id || "",
+        name: userData.name || username,
+        email: userData.email || "",
+        avatar: "",
+        role: userData.role || "user",
+      });
+    }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { data, error } = await authClient.signIn.email({
-      email,
-      password,
-    });
+  const logout = useCallback(() => {
+    clearTokens();
+    setUser(null);
+    router.push("/sign-in");
+    router.refresh();
+  }, [router]);
 
-    if (error) {
-      throw new Error(error.message || "Failed to sign in");
-    }
+  // Effect để sync state với kết quả của useMe
+  useEffect(() => {
+    // Nếu đang load useMe thì chưa làm gì cả (trừ khi không có token)
+    const token = getAccessToken();
 
-    if (data?.user) {
-      setUser({
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        avatar: data.user.image || "",
-        role: "user",
-      });
-    }
-  };
-
-  const signInSocial = async (
-    provider: "google" | "github",
-    callbackUrl?: string,
-  ) => {
-    const redirectUrl = callbackUrl || "/dashboard";
-    const urlWithParam = redirectUrl.includes("?")
-      ? `${redirectUrl}&auth=success`
-      : `${redirectUrl}?auth=success`;
-
-    await authClient.signIn.social({
-      provider,
-      callbackURL: urlWithParam,
-    });
-  };
-
-  const logout = async () => {
-    try {
-      await authClient.signOut({
-        fetchOptions: {
-          onSuccess: () => {
-            setUser(null);
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Logout failed:", error);
+    if (!token) {
       setUser(null);
+      setIsLoading(false);
+      return;
     }
-  };
+
+    if (isMeLoading) {
+      return;
+    }
+
+    if (isMeSuccess && meData) {
+      // Backend trả về thông tin user hợp lệ -> Update state
+      setUser({
+        id: meData.id,
+        name: meData.fullname || meData.username,
+        email: meData.email,
+        avatar: "", // Bổ sung field avatar nếu API có trả về
+        role: meData.role,
+        tenant_id: meData.tenant_id, // Nếu User interface hỗ trợ
+      } as any);
+      setIsLoading(false);
+    } else if (isMeError) {
+      // Backend trả về lỗi (401, etc) mặc dù có token -> Logout
+      console.error("Session validation failed");
+      toast.error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn");
+      logout();
+      setIsLoading(false);
+    }
+  }, [isMeLoading, isMeSuccess, isMeError, meData, logout]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: !!user && checkAuthenticated(),
         isLoading,
         login,
-        signInSocial,
         logout,
       }}
     >

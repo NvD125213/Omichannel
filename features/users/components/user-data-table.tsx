@@ -3,6 +3,8 @@
 import {
   flexRender,
   getCoreRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -14,39 +16,27 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table";
 import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Download,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   EllipsisVertical,
   Eye,
   Pencil,
-  Search,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
-
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useState, useEffect } from "react";
+// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   Table,
   TableBody,
@@ -55,62 +45,88 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { User, UserFormValues } from "../utils/schema";
-import { UserFormDialog } from "./user-form-modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { User } from "../utils/schema";
+import { DataTablePagination } from "./user-data-table-pagination";
+import { DataTableToolbar } from "./user-data-table-toolbar";
+import {
+  useQueryParam,
+  NumberParam,
+  StringParam,
+  withDefault,
+} from "use-query-params";
+import { getRoleColor } from "@/utils/role-color";
+import { EmptyData } from "@/components/empty-data";
+import { IconMoodEmpty } from "@tabler/icons-react";
 
 interface DataTableProps {
   users: User[];
-  onDeleteUser: (id: number) => void;
+  onDeleteUser: (id: string) => void;
   onEditUser: (user: User) => void;
-  onAddUser: (userData: UserFormValues) => void;
+  pagination?: {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+  };
+  isLoading?: boolean;
 }
 
 export function DataTable({
   users,
   onDeleteUser,
   onEditUser,
-  onAddUser,
+  pagination,
+  isLoading,
 }: DataTableProps) {
+  // Sync URL query params with stable defaults
+  const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
+  const [pageSize, setPageSize] = useQueryParam(
+    "page_size",
+    withDefault(NumberParam, 10),
+  );
+  const [search, setSearch] = useQueryParam("search", StringParam);
+  const [sortBy, setSortBy] = useQueryParam("sort_by", StringParam);
+  const [sortOrder, setSortOrder] = useQueryParam("sort_order", StringParam);
+
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
-  const [globalFilter, setGlobalFilter] = useState("");
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-      case "Pending":
-        return "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20";
-      case "Suspended":
-        return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-      case "Inactive":
-        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
-      default:
-        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
+  // Sync sorting state with URL params
+  useEffect(() => {
+    if (sortBy && sortOrder) {
+      setSorting([{ id: sortBy, desc: sortOrder === "desc" }]);
+    } else {
+      setSorting([]);
+    }
+  }, [sortBy, sortOrder]);
+
+  // Update URL params when sorting changes
+  const handleSortingChange = (
+    updaterOrValue: SortingState | ((old: SortingState) => SortingState),
+  ) => {
+    const newSorting =
+      typeof updaterOrValue === "function"
+        ? updaterOrValue(sorting)
+        : updaterOrValue;
+    setSorting(newSorting);
+
+    if (newSorting.length > 0) {
+      const sort = newSorting[0];
+      setSortBy(sort.id);
+      setSortOrder(sort.desc ? "desc" : "asc");
+    } else {
+      setSortBy(undefined);
+      setSortOrder(undefined);
     }
   };
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case "Admin":
-        return "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-      case "Editor":
-        return "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20";
-      case "Author":
-        return "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20";
-      case "Maintainer":
-        return "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20";
-      case "Subscriber":
-        return "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20";
-      default:
-        return "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-900/20";
-    }
-  };
-
-  const exactFilter = (row: Row<User>, columnId: string, value: string) => {
-    return row.getValue(columnId) === value;
+  const getStatusColor = (isActive: number) => {
+    return isActive === 1
+      ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
+      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
   };
 
   const columns: ColumnDef<User>[] = [
@@ -144,24 +160,31 @@ export function DataTable({
       size: 50,
     },
     {
-      accessorKey: "name",
-      header: "User",
+      accessorKey: "username",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Thông tin tài khoản
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
       cell: ({ row }) => {
         const user = row.original;
         return (
           <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="text-xs font-medium">
-                {user.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
             <div className="flex flex-col">
-              <span className="font-medium">{user.name}</span>
+              <span className="font-medium">{user.username}</span>
               <span className="text-sm text-muted-foreground">
                 {user.email}
               </span>
@@ -171,8 +194,49 @@ export function DataTable({
       },
     },
     {
+      accessorKey: "fullname",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Họ tên người dùng
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      cell: ({ row }) => (
+        <span className="font-medium">{row.original.fullname}</span>
+      ),
+    },
+    {
       accessorKey: "role",
-      header: "Role",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Vai trò
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
       cell: ({ row }) => {
         const role = row.getValue("role") as string;
         return (
@@ -181,41 +245,71 @@ export function DataTable({
           </Badge>
         );
       },
-      filterFn: exactFilter,
     },
     {
-      accessorKey: "plan",
-      header: "Plan",
-      cell: ({ row }) => {
-        const plan = row.getValue("plan") as string;
-        return <span className="font-medium">{plan}</span>;
-      },
-      filterFn: exactFilter,
-    },
-    {
-      accessorKey: "billing",
-      header: "Billing",
-      cell: ({ row }) => {
-        const billing = row.getValue("billing") as string;
-        return <span className="text-sm">{billing}</span>;
-      },
-    },
-    {
-      accessorKey: "status",
-      header: "Status",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
+      accessorKey: "level",
+      header: ({ column }) => {
         return (
-          <Badge variant="secondary" className={getStatusColor(status)}>
-            {status}
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Cấp bậc
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      cell: ({ row }) => <span className="text-sm">{row.original.level}</span>,
+    },
+    // {
+    //   accessorKey: "tenant_id",
+    //   header: "Tenant ID",
+    //   cell: ({ row }) => (
+    //     <span className="text-sm text-muted-foreground">
+    //       {row.original.tenant_id}
+    //     </span>
+    //   ),
+    // },
+    {
+      accessorKey: "is_active",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Trạng thái
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const isActive = row.original.is_active;
+        return (
+          <Badge variant="secondary" className={getStatusColor(isActive)}>
+            {isActive === 1 ? "Active" : "Inactive"}
           </Badge>
         );
       },
-      filterFn: exactFilter,
     },
     {
       id: "actions",
-      header: "Actions",
+      enableSorting: false,
+      header: "Hành động",
       cell: ({ row }) => {
         const user = row.original;
         return (
@@ -224,18 +318,10 @@ export function DataTable({
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer"
-            >
-              <Eye className="size-4" />
-              <span className="sr-only">View user</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 cursor-pointer"
               onClick={() => onEditUser(user)}
             >
               <Pencil className="size-4" />
-              <span className="sr-only">Edit user</span>
+              <span className="sr-only">Sửa</span>
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -245,27 +331,17 @@ export function DataTable({
                   className="h-8 w-8 cursor-pointer"
                 >
                   <EllipsisVertical className="size-4" />
-                  <span className="sr-only">More actions</span>
+                  <span className="sr-only">Hành động</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem className="cursor-pointer">
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Send Email
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Reset Password
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
                   className="cursor-pointer"
-                  onClick={() => onDeleteUser(user.id)}
+                  onClick={() => onDeleteUser(user.id as any)}
                 >
                   <Trash2 className="size-4" />
-                  Delete User
+                  Xóa
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -279,157 +355,31 @@ export function DataTable({
   const table = useReactTable({
     data: users,
     columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    onGlobalFilterChange: setGlobalFilter,
     state: {
       sorting,
-      columnFilters,
       columnVisibility,
       rowSelection,
-      globalFilter,
+      columnFilters,
     },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
+    onSortingChange: handleSortingChange,
+    onColumnFiltersChange: setColumnFilters,
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
-  const roleFilter = table.getColumn("role")?.getFilterValue() as string;
-  const planFilter = table.getColumn("plan")?.getFilterValue() as string;
-  const statusFilter = table.getColumn("status")?.getFilterValue() as string;
-
   return (
-    <div className="w-full space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center space-x-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(String(event.target.value))}
-              className="pl-9"
-            />
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" className="cursor-pointer">
-            <Download className="size-4" />
-            Export
-          </Button>
-          <UserFormDialog onAddUser={onAddUser} />
-        </div>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-4 sm:gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="role-filter" className="text-sm font-medium">
-            Role
-          </Label>
-          <Select
-            value={roleFilter || ""}
-            onValueChange={(value) =>
-              table
-                .getColumn("role")
-                ?.setFilterValue(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="role-filter">
-              <SelectValue placeholder="Select Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Author">Author</SelectItem>
-              <SelectItem value="Editor">Editor</SelectItem>
-              <SelectItem value="Maintainer">Maintainer</SelectItem>
-              <SelectItem value="Subscriber">Subscriber</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="plan-filter" className="text-sm font-medium">
-            Plan
-          </Label>
-          <Select
-            value={planFilter || ""}
-            onValueChange={(value) =>
-              table
-                .getColumn("plan")
-                ?.setFilterValue(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="plan-filter">
-              <SelectValue placeholder="Select Plan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Plans</SelectItem>
-              <SelectItem value="Basic">Basic</SelectItem>
-              <SelectItem value="Professional">Professional</SelectItem>
-              <SelectItem value="Enterprise">Enterprise</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="status-filter" className="text-sm font-medium">
-            Status
-          </Label>
-          <Select
-            value={statusFilter || ""}
-            onValueChange={(value) =>
-              table
-                .getColumn("status")
-                ?.setFilterValue(value === "all" ? "" : value)
-            }
-          >
-            <SelectTrigger className="cursor-pointer w-full" id="status-filter">
-              <SelectValue placeholder="Select Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-              <SelectItem value="Suspended">Suspended</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="column-visibility" className="text-sm font-medium">
-            Column Visibility
-          </Label>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild id="column-visibility">
-              <Button variant="outline" className="cursor-pointer w-full">
-                Columns <ChevronDown className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {table
-                .getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
+    <div className="space-y-4">
+      <DataTableToolbar
+        table={table}
+        search={search}
+        onSearchChange={(value) => setSearch(value ?? undefined)}
+      />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -437,7 +387,7 @@ export function DataTable({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} colSpan={header.colSpan}>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -451,7 +401,17 @@ export function DataTable({
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  {columns.map((column, cellIndex) => (
+                    <TableCell key={cellIndex}>
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -473,76 +433,28 @@ export function DataTable({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  <EmptyData
+                    icon={IconMoodEmpty}
+                    title="Dữ liệu người dùng trống."
+                    description="Hãy thử thêm mới thông tin người dùng hoặc thay đổi thông tin tìm kiếm"
+                    showButton={false}
+                    buttonText=""
+                    onButtonClick={() => console.log("Upload clicked")}
+                  />
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-
-      <div className="flex items-center justify-between px-4">
-        <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-          {table.getFilteredSelectedRowModel().rows.length} of{" "}
-          {table.getFilteredRowModel().rows.length} row(s) selected.
-        </div>
-        <div className="flex w-full items-center gap-8 lg:w-fit">
-          <div className="hidden items-center gap-2 lg:flex">
-            <Label htmlFor="page-size" className="text-sm font-medium">
-              Rows per page
-            </Label>
-            <Select
-              value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value) => {
-                table.setPageSize(Number(value));
-              }}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-20 cursor-pointer"
-                id="page-size"
-              >
-                <SelectValue
-                  placeholder={table.getState().pagination.pageSize}
-                />
-              </SelectTrigger>
-              <SelectContent side="top">
-                {[10, 20, 30, 40, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex w-fit items-center justify-center text-sm font-medium">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </div>
-          <div className="ml-auto flex items-center gap-2 lg:ml-0">
-            <Button
-              variant="outline"
-              className="size-8 cursor-pointer"
-              size="icon"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <span className="sr-only">Go to previous page</span>
-              <ChevronLeft />
-            </Button>
-            <Button
-              variant="outline"
-              className="size-8 cursor-pointer"
-              size="icon"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <span className="sr-only">Go to next page</span>
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
-      </div>
+      <DataTablePagination
+        table={table}
+        pagination={pagination}
+        currentPage={page}
+        currentPageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
     </div>
   );
 }

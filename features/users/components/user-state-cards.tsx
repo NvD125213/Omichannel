@@ -13,28 +13,28 @@ import {
 
 const performanceMetrics = [
   {
-    title: "Total Users",
+    title: "Tổng số users",
     current: "2,847",
     previous: "2,156",
     growth: 32.1,
     icon: Users,
   },
   {
-    title: "Paid Users",
+    title: "Người dùng Pro",
     current: "1,423",
     previous: "1,089",
     growth: 30.7,
     icon: CreditCard,
   },
   {
-    title: "Active Users",
+    title: "Người dùng đang hoạt động",
     current: "2,156",
     previous: "1,834",
     growth: 17.6,
     icon: UserCheck,
   },
   {
-    title: "Pending Users",
+    title: "Người dùng dừng hoạt động",
     current: "234",
     previous: "312",
     growth: -25.0,
@@ -79,7 +79,7 @@ export function UserStateCards() {
               </p>
               <div className="text-2xl font-bold">{metric.current}</div>
               <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                <span>from {metric.previous}</span>
+                <span>trên {metric.previous}</span>
                 <ArrowUpRight className="size-3" />
               </div>
             </div>

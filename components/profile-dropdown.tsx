@@ -17,38 +17,52 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useMe } from "@/hooks/user/use-me";
+
 export function ProfileDropdown() {
-  const { user, logout } = useAuth();
+  const { user: authUser, logout } = useAuth();
+  const { data: userProfile } = useMe();
   const router = useRouter();
 
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success("Logged out successfully", {
-        description: "You have been logged out of your account.",
+      toast.success("Đã đăng xuất thành công", {
+        description: "Bạn đã được đăng xuất khỏi tài khoản của mình.",
       });
       router.push("/sign-in");
     } catch {
-      toast.error("Logout failed", {
-        description: "An error occurred while logging out.",
+      toast.error("Đăng xuất thất bại", {
+        description: "Đã xảy ra lỗi khi đăng xuất.",
       });
     }
   };
 
-  // Mock user for display purposes if no real user maps
-  const mockUser = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    avatar: "https://github.com/shadcn.png",
-  };
-
-  const displayUser = user || mockUser;
+  // Ưu tiên sử dụng thông tin từ API mới nhất, fallback về thông tin trong token (authUser)
+  const displayUser = userProfile
+    ? {
+        name: userProfile.fullname || userProfile.username,
+        email: userProfile.email,
+        avatar: "", // API chưa trả về avatar
+      }
+    : authUser
+      ? {
+          name: authUser.name,
+          email: authUser.email,
+          avatar: authUser.avatar,
+        }
+      : null;
 
   if (!displayUser) return null;
+
   const initials = displayUser.name
-    .split(" ")
-    .map((name) => name[0])
-    .join("");
+    ? displayUser.name
+        .split(" ")
+        .map((name) => name[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "U";
 
   return (
     <DropdownMenu modal={false}>
@@ -75,19 +89,19 @@ export function ProfileDropdown() {
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="#">
-              Profile
+              Thông tin người dùng
               <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="#">
-              Billing
+              Thanh toán
               <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="#">
-              Settings
+              Cài đặt
               <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
@@ -95,7 +109,7 @@ export function ProfileDropdown() {
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
-          Log out
+          Đăng xuất
           <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>

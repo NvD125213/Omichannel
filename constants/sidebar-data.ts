@@ -28,6 +28,10 @@ import {
   IconUserCog,
   IconUserOff,
   IconUsers,
+  IconShieldCheck,
+  IconBuilding,
+  IconTicket,
+  IconTemplate,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -98,22 +102,48 @@ export const sidebarData: SidebarData = {
           badge: "New",
           badgeColor: "green",
         },
-        {
-          title: "Discord",
-          url: "/discord",
-          icon: Icons.discord,
-          badge: "New",
-          badgeColor: "green",
-        },
+        // {
+        //   title: "Discord",
+        //   url: "/discord",
+        //   icon: Icons.discord,
+        //   badge: "New",
+        //   badgeColor: "green",
+        // },
         {
           title: "Tasks",
           url: "/tasks",
           icon: IconChecklist,
         },
         {
-          title: "Users",
+          title: "Quản lý ticket",
+          icon: IconReportMoney,
+          items: [
+            {
+              title: "Danh sách ticket",
+              url: "/tickets",
+              icon: IconTicket,
+            },
+            {
+              title: "Mẫu ticket",
+              url: "/ticket-templates",
+              icon: IconTemplate,
+            },
+          ],
+        },
+        {
+          title: "Quản lý người dùng",
           url: "/users",
           icon: IconUsers,
+        },
+        {
+          title: "Quản lý vai trò",
+          url: "/roles",
+          icon: IconShieldCheck,
+        },
+        {
+          title: "Quản lý phòng ban",
+          url: "/departments",
+          icon: IconBuilding,
         },
         {
           title: "Chats",
@@ -126,113 +156,110 @@ export const sidebarData: SidebarData = {
           url: "/calendar",
           icon: IconCalendar,
         },
-        {
-          title: "AI Chat",
-          url: "/ai-chat",
-          icon: IconBrain,
-          badge: "New",
-          badgeColor: "green",
-        },
-        {
-          title: "Kanban",
-          url: "/kanban",
-          icon: KanbanIcon,
-          badge: "New",
-          badgeColor: "green",
-        },
+        // {
+        //   title: "AI Chat",
+        //   url: "/ai-chat",
+        //   icon: IconBrain,
+        //   badge: "New",
+        //   badgeColor: "green",
+        // },
+        // {
+        //   title: "Kanban",
+        //   url: "/kanban",
+        //   icon: KanbanIcon,
+        //   badge: "New",
+        //   badgeColor: "green",
+        // },
       ],
     },
-    {
-      title: "Pages",
-      items: [
-        {
-          title: "Auth",
-          icon: IconLockAccess,
-          items: [
-            {
-              title: "Sign In 1",
-              url: "/sign-in-1",
-            },
-            {
-              title: "Sign In (2 Col)",
-              url: "/sign-in-2",
-            },
-            {
-              title: "Sign Up 1",
-              url: "/sign-up-1",
-            },
-            {
-              title: "Sign Up 2 (2 Col)",
-              url: "/sign-up-2",
-            },
-            {
-              title: "Reset Password 1",
-              url: "/reset-password-1",
-            },
-            {
-              title: "Reset Password 2",
-              url: "/reset-password-2",
-            },
-          ],
-        },
-        {
-          title: "Pricing",
-          icon: IconCreditCard,
-          // badge: "Coming Soon",
-          items: [
-            {
-              title: "Column Pricing",
-              url: "/pricing/column",
-              icon: IconColumns,
-            },
-            {
-              title: "Table Pricing",
-              url: "/pricing/table",
-              icon: IconTable,
-            },
-            {
-              title: "Single Pricing",
-              url: "/pricing/single",
-              icon: IconCoin,
-            },
-          ],
-        },
-        {
-          title: "Errors",
-          icon: IconBug,
-          items: [
-            {
-              title: "Unauthorized",
-              url: "/unauthorized",
-              icon: IconLock,
-            },
-            {
-              title: "Forbidden",
-              url: "/forbidden",
-              icon: IconUserOff,
-            },
-            {
-              title: "Not Found",
-              url: "/not-found",
-              icon: IconError404,
-            },
-            {
-              title: "Internal Server Error",
-              url: "/internal-server-error",
-              icon: IconServerOff,
-            },
-            {
-              title: "Maintenance Error",
-              url: "/maintenance-error",
-              icon: IconBarrierBlock,
-            },
-          ],
-        },
-      ],
-    },
+    // {
+    //   title: "Pages",
+    //   items: [
+    //     {
+    //       title: "Auth",
+    //       icon: IconLockAccess,
+    //       items: [
+    //         {
+    //           title: "Sign In",
+    //           url: "/sign-in",
+    //         },
+    //         {
+    //           title: "Sign Up",
+    //           url: "/sign-up",
+    //         },
+    //         {
+    //           title: "Reset Password 1",
+    //           url: "/reset-password-1",
+    //         },
+    //         {
+    //           title: "Reset Password 2",
+    //           url: "/reset-password-2",
+    //         },
+    //       ],
+    //     },
+    //     {
+    //       title: "Pricing",
+    //       icon: IconCreditCard,
+    //       // badge: "Coming Soon",
+    //       items: [
+    //         {
+    //           title: "Column Pricing",
+    //           url: "/pricing/column",
+    //           icon: IconColumns,
+    //         },
+    //         {
+    //           title: "Table Pricing",
+    //           url: "/pricing/table",
+    //           icon: IconTable,
+    //         },
+    //         {
+    //           title: "Single Pricing",
+    //           url: "/pricing/single",
+    //           icon: IconCoin,
+    //         },
+    //       ],
+    //     },
+    //     {
+    //       title: "Errors",
+    //       icon: IconBug,
+    //       items: [
+    //         {
+    //           title: "Unauthorized",
+    //           url: "/unauthorized",
+    //           icon: IconLock,
+    //         },
+    //         {
+    //           title: "Forbidden",
+    //           url: "/forbidden",
+    //           icon: IconUserOff,
+    //         },
+    //         {
+    //           title: "Not Found",
+    //           url: "/not-found",
+    //           icon: IconError404,
+    //         },
+    //         {
+    //           title: "Internal Server Error",
+    //           url: "/internal-server-error",
+    //           icon: IconServerOff,
+    //         },
+    //         {
+    //           title: "Maintenance Error",
+    //           url: "/maintenance-error",
+    //           icon: IconBarrierBlock,
+    //         },
+    //       ],
+    //     },
+    //   ],
+    // },
     {
       title: "Other",
       items: [
+        {
+          title: "Phân quyền",
+          url: "/permissions",
+          icon: IconLock,
+        },
         {
           title: "Settings",
           icon: IconSettings,

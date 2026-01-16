@@ -1,3 +1,4 @@
+import { QueryProvider } from "@/components/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/auth-context";
@@ -28,10 +29,10 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Shadcn Admin",
-  description: "Shadcn Admin Dashboard",
+  title: "Hệ thống Onmichannel",
+  description: "Bảng quản trị hệ thống đa kênh Onmichannel của CGV Telecom",
   icons: {
-    icon: "/favicon.png",
+    icon: "/logocon/logo_icon_1.png",
   },
 };
 
@@ -70,10 +71,12 @@ export default function RootLayout({
         >
           <FontProvider>
             <NextToploader color="var(--primary)" showSpinner={false} />
-            <AuthProvider>
-              {children}
-              <Toaster />
-            </AuthProvider>
+            <QueryProvider>
+              <AuthProvider>
+                {children}
+                <Toaster richColors />
+              </AuthProvider>
+            </QueryProvider>
           </FontProvider>
         </ThemeProvider>
       </body>

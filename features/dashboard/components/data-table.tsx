@@ -381,7 +381,9 @@ export function DataTable({
     [focusDocuments],
   );
 
-  {/* eslint-disable-next-line */}
+  {
+    /* eslint-disable-next-line */
+  }
   const pastPerformanceTable = useReactTable({
     data: pastPerformance,
     columns,
@@ -596,7 +598,7 @@ export function DataTable({
         <div className="flex w-full items-center gap-8 lg:w-fit">
           <div className="hidden items-center gap-2 lg:flex">
             <Label htmlFor="rows-per-page" className="text-sm font-medium">
-              Rows per page
+              Số hàng/trang
             </Label>
             <Select
               value={`${currentTable.getState().pagination.pageSize}`}
@@ -815,7 +817,7 @@ export function DataTable({
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
               <Label htmlFor="rows-per-page" className="text-sm font-medium">
-                Rows per page
+                Số hàng/trang
               </Label>
               <Select
                 value={`${table.getState().pagination.pageSize}`}

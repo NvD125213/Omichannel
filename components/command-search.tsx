@@ -25,8 +25,9 @@ import {
   IconUserCog,
   IconUserOff,
   IconUsers,
+  IconBuilding,
 } from "@tabler/icons-react";
-import { KanbanIcon, MailIcon, Search } from "lucide-react";
+import { Building, KanbanIcon, MailIcon, Search } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -82,31 +83,14 @@ const searchItems: SearchItem[] = [
   { title: "Discord", url: "/discord", group: "Apps", icon: Icons.discord },
   { title: "Tasks", url: "/tasks", group: "Apps", icon: IconChecklist },
   { title: "Users", url: "/users", group: "Apps", icon: IconUsers },
+  { title: "Departments", url: "/departments", group: "Apps", icon: Building },
   { title: "Chats", url: "/chats", group: "Apps", icon: IconMessages },
   { title: "Calendar", url: "/calendar", group: "Apps", icon: IconCalendar },
   { title: "AI Chat", url: "/ai-chat", group: "Apps", icon: IconBrain },
   { title: "Kanban", url: "/kanban", group: "Apps", icon: KanbanIcon },
   {
-    title: "Sign In 1",
-    url: "/sign-in-1",
-    group: "Auth Pages",
-    icon: IconLockAccess,
-  },
-  {
-    title: "Sign In 2",
-    url: "/sign-in-2",
-    group: "Auth Pages",
-    icon: IconLockAccess,
-  },
-  {
-    title: "Sign Up 1",
-    url: "/sign-up-1",
-    group: "Auth Pages",
-    icon: IconLockAccess,
-  },
-  {
-    title: "Sign Up 2",
-    url: "/sign-up-2",
+    title: "Sign Up",
+    url: "/sign-up",
     group: "Auth Pages",
     icon: IconLockAccess,
   },

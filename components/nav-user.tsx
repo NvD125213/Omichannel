@@ -108,7 +108,7 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
-                Upgrade To Pro
+                Nâng cấp lên tài khoản Pro
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -116,26 +116,26 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href="/settings/account">
                   <BadgeCheck />
-                  Account
+                  Thông tin tài khoản
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings">
                   <CreditCard />
-                  Billing
+                  Thanh toán
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings/notifications">
                   <Bell />
-                  Notifications
+                  Thông báo
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
-              Log out
+              Đăng xuất
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

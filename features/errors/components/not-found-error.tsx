@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export function NotFoundError() {
@@ -12,16 +12,19 @@ export function NotFoundError() {
       <div className="m-auto flex h-full w-full flex-col items-center justify-center gap-2">
         <FileQuestion className="h-24 w-24 text-muted-foreground" />
         <h1 className="mt-4 text-[7rem] leading-tight font-bold">404</h1>
-        <span className="font-medium">Oops! Page Not Found!</span>
+        <span className="font-medium">Không tìm thấy trang!</span>
         <p className="text-muted-foreground text-center">
-          The page you are looking for does not exist or <br />
-          has been moved to another location.
+          Trang bạn đang tìm kiếm không tồn tại hoặc <br />
+          bạn cần đăng nhập để truy cập.
         </p>
         <div className="mt-6 flex gap-4">
           <Button variant="outline" onClick={() => router.back()}>
-            Go Back
+            Quay lại
           </Button>
-          <Button onClick={() => router.push("/")}>Back to Home</Button>
+          <Button onClick={() => router.push("/sign-in")}>
+            <LogIn className="mr-2 h-4 w-4" />
+            Đăng nhập
+          </Button>
         </div>
       </div>
     </div>

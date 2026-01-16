@@ -1,0 +1,433 @@
+{
+  "status": "success",
+  "status_code": 200,
+  "message": "Lấy danh sách quyền của vai trò thành công",
+  "data": {
+    "view": [
+      {
+        "id": "019b8bea-cb85-7a1b-bf44-a08396819a86",
+        "name": "view_users",
+        "description": "Permission to view_users",
+        "model": "users"
+      },
+      {
+        "id": "019b8bea-cba6-7e10-830c-f437fb7973c4",
+        "name": "view_user_groups",
+        "description": "Permission to view_user_groups",
+        "model": "user_groups"
+      },
+      {
+        "id": "019b8bea-cbb2-74fb-8eae-5b74b799e54e",
+        "name": "view_roles",
+        "description": "Permission to view_roles",
+        "model": "roles"
+      },
+      {
+        "id": "019b8bea-cbc3-72fe-b269-0359a79f5d58",
+        "name": "view_permissions",
+        "description": "Permission to view_permissions",
+        "model": "permissions"
+      },
+      {
+        "id": "019b8bea-cbe1-7015-a7f2-e65a333082fa",
+        "name": "view_logs",
+        "description": "Permission to view_logs",
+        "model": "logs"
+      },
+      {
+        "id": "019b8bea-cbe5-76c3-b582-43156332b324",
+        "name": "view_levels",
+        "description": "Permission to view_levels",
+        "model": "levels"
+      },
+      {
+        "id": "019b8bea-cbf8-7108-9292-f08734405b61",
+        "name": "view_departments",
+        "description": "Permission to view_departments",
+        "model": "departments"
+      },
+      {
+        "id": "019b8bea-cc0a-77d6-9600-811abbb408c3",
+        "name": "view_groups",
+        "description": "Permission to view_groups",
+        "model": "groups"
+      },
+      {
+        "id": "019b8bea-cc26-724b-b852-6b5a74fe8966",
+        "name": "view_role_permissions_by_role_id",
+        "description": "Permission to view_role_permissions_by_role_id",
+        "model": "role_permissions"
+      },
+      {
+        "id": "019ba0b7-fa52-70d9-a520-e482434cb3ee",
+        "name": "view_tags",
+        "description": "Permission to view_tags",
+        "model": "tags"
+      },
+      {
+        "id": "019ba0b7-fa5c-7c8b-a814-d4e64a35f36d",
+        "name": "view_tag_by_id",
+        "description": "Permission to view_tag_by_id",
+        "model": "tags"
+      },
+      {
+        "id": "019baffe-109d-79e4-acdd-9e1ef03a9f4a",
+        "name": "view_ticket_events",
+        "description": "Permission to view_ticket_events",
+        "model": "ticket_events"
+      },
+      {
+        "id": "019bb02e-2a4f-7ede-92ab-7b0d04fd0197",
+        "name": "view_ticket_templates",
+        "description": "Permission to view_ticket_templates",
+        "model": "ticket_events"
+      },
+      {
+        "id": "019bb02e-2a6c-7022-a5aa-461e42115439",
+        "name": "view_ticket_contexts",
+        "description": "Permission to view_ticket_contexts",
+        "model": "ticket_contexts"
+      },
+      {
+        "id": "019bb036-e244-7526-889f-df26d6565ca8",
+        "name": "view_ticket_extensions",
+        "description": "Permission to view_ticket_extensions",
+        "model": "ticket_extensions"
+      },
+      {
+        "id": "019bb582-f87c-7447-b0d9-ce2b87a53f80",
+        "name": "view_tickets",
+        "description": "Permission to view_tickets",
+        "model": "tickets"
+      },
+      {
+        "id": "019bbbc0-e1f9-7e87-aa5d-1258e50035b9",
+        "name": "view_ticket_flows",
+        "description": "Permission to view_ticket_flows",
+        "model": "ticket_flows"
+      },
+      {
+        "id": "019bbbc0-e205-7077-8650-4338ced548e1",
+        "name": "view_ticket_flow_by_id",
+        "description": "Permission to view_ticket_flow_by_id",
+        "model": "ticket_flows"
+      },
+      {
+        "id": "019bbbc0-e21f-76d7-8033-94cecd70bc0f",
+        "name": "view_ticket_flow_instances",
+        "description": "Permission to view_ticket_flow_instances",
+        "model": "ticket_flow_instances"
+      },
+      {
+        "id": "019bbbc0-e226-76a1-9e98-2f18dd3b7828",
+        "name": "view_ticket_flow_instance_by_id",
+        "description": "Permission to view_ticket_flow_instance_by_id",
+        "model": "ticket_flow_instances"
+      },
+      {
+        "id": "65775a9f-2be9-4551-8c38-7a87542c6c2f",
+        "name": "view_department_by_id",
+        "description": null,
+        "model": "departments"
+      }
+    ],
+    "current": [
+      {
+        "id": "019b8bea-cb8e-7a55-9335-717ebc5c1c8e",
+        "name": "current_user",
+        "description": "Permission to current_user",
+        "model": "users"
+      }
+    ],
+    "delete": [
+      {
+        "id": "019b8bea-cb94-7538-8e48-fbd280858d26",
+        "name": "delete_users",
+        "description": "Permission to delete_users",
+        "model": "users"
+      },
+      {
+        "id": "019b8bea-cbb8-7021-a5ae-fff712cb34c7",
+        "name": "delete_roles",
+        "description": "Permission to delete_roles",
+        "model": "roles"
+      },
+      {
+        "id": "019b8bea-cbcd-7ff8-9a55-b708b3b5ec72",
+        "name": "delete_permissions",
+        "description": "Permission to delete_permissions",
+        "model": "permissions"
+      },
+      {
+        "id": "019b8bea-cbdb-772c-93ab-2b5023638943",
+        "name": "delete_permission_from_role",
+        "description": "Permission to delete_permission_from_role",
+        "model": "role_permissions"
+      },
+      {
+        "id": "019b8bea-cbf3-7a3c-9602-f6d34de009a3",
+        "name": "delete_level",
+        "description": "Permission to delete_level",
+        "model": "levels"
+      },
+      {
+        "id": "019b8bea-cc06-7cae-b723-fe6d379391e5",
+        "name": "delete_department",
+        "description": "Permission to delete_department",
+        "model": "departments"
+      },
+      {
+        "id": "019b8bea-cc18-7c92-a187-ce1a052183d5",
+        "name": "delete_group",
+        "description": "Permission to delete_group",
+        "model": "groups"
+      },
+      {
+        "id": "019b8bea-cc22-7714-811b-993165b946fe",
+        "name": "delete_user_group",
+        "description": "Permission to delete_user_group",
+        "model": "user_groups"
+      },
+      {
+        "id": "019ba0b7-fa70-75ec-8321-c1a4166ba24a",
+        "name": "delete_tag",
+        "description": "Permission to delete_tag",
+        "model": "system"
+      },
+      {
+        "id": "019baffe-10b1-7b4c-aa78-6c599afddf21",
+        "name": "delete_ticket_event",
+        "description": "Permission to delete_ticket_event",
+        "model": "ticket_events"
+      },
+      {
+        "id": "019bb02e-2a66-7ad1-a688-4926698ff59d",
+        "name": "delete_ticket_template",
+        "description": "Permission to delete_ticket_template",
+        "model": "ticket_templates"
+      },
+      {
+        "id": "019bb02e-2a7b-7ef8-947f-43d000b9bff2",
+        "name": "delete_ticket_context",
+        "description": "Permission to delete_ticket_context",
+        "model": "ticket_contexts"
+      },
+      {
+        "id": "019bb036-e25b-7a57-8777-df6edc12eb59",
+        "name": "delete_ticket_extension",
+        "description": "Permission to delete_ticket_extension",
+        "model": "ticket_extensions"
+      },
+      {
+        "id": "019bb582-f896-798e-b2bf-949a941586d3",
+        "name": "delete_ticket",
+        "description": "Permission to delete_ticket",
+        "model": "tickets"
+      },
+      {
+        "id": "019bbbc0-e218-7493-947f-0f461f625083",
+        "name": "delete_ticket_flow",
+        "description": "Permission to delete_ticket_flow",
+        "model": "ticket_flows"
+      },
+      {
+        "id": "019bbbc0-e23c-790f-b242-62755f90e89b",
+        "name": "delete_ticket_flow_instance",
+        "description": "Permission to delete_ticket_flow_instance",
+        "model": "ticket_flow_instances"
+      }
+    ],
+    "create": [
+      {
+        "id": "019b8bea-cb9a-7f18-9651-0890b3299aae",
+        "name": "create_users",
+        "description": "Permission to create_users",
+        "model": "users"
+      },
+      {
+        "id": "019b8bea-cbbe-77c2-ab96-d785810ae093",
+        "name": "create_roles",
+        "description": "Permission to create_roles",
+        "model": "roles"
+      },
+      {
+        "id": "019b8bea-cbd2-7e82-abaf-d99338715b0a",
+        "name": "create_permissions",
+        "description": "Permission to create_permissions",
+        "model": "permissions"
+      },
+      {
+        "id": "019b8bea-cbea-7690-920f-a664c3b616de",
+        "name": "create_level",
+        "description": "Permission to create_level",
+        "model": "levels"
+      },
+      {
+        "id": "019b8bea-cbfd-7193-aed4-da3c51408b54",
+        "name": "create_department",
+        "description": "Permission to create_department",
+        "model": "departments"
+      },
+      {
+        "id": "019b8bea-cc0f-73d1-be9c-e563d07ae9f2",
+        "name": "create_group",
+        "description": "Permission to create_group",
+        "model": "groups"
+      },
+      {
+        "id": "019ba0b7-fa63-7f72-92b5-ef3525175580",
+        "name": "create_tag",
+        "description": "Permission to create_tag",
+        "model": "tags"
+      },
+      {
+        "id": "019baffe-10a6-7203-92d0-52154ba9681c",
+        "name": "create_ticket_event",
+        "description": "Permission to create_ticket_event",
+        "model": "ticket_events"
+      },
+      {
+        "id": "019bb02e-2a5a-72b3-84bd-54de3b6ce046",
+        "name": "create_ticket_template",
+        "description": "Permission to create_ticket_template",
+        "model": "ticket_templates"
+      },
+      {
+        "id": "019bb02e-2a71-74ce-a752-f197b956eb41",
+        "name": "create_ticket_context",
+        "description": "Permission to create_ticket_context",
+        "model": "ticket_contexts"
+      },
+      {
+        "id": "019bb036-e24f-7431-aac9-5667f45c39c4",
+        "name": "create_ticket_extension",
+        "description": "Permission to create_ticket_extension",
+        "model": "ticket_extensions"
+      },
+      {
+        "id": "019bb582-f888-7256-8af6-2cc39828a7b7",
+        "name": "create_ticket",
+        "description": "Permission to create_ticket",
+        "model": "tickets"
+      },
+      {
+        "id": "019bbbc0-e20b-76ec-b30f-19c9e30f7f04",
+        "name": "create_ticket_flow",
+        "description": "Permission to create_ticket_flow",
+        "model": "ticket_flows"
+      },
+      {
+        "id": "019bbbc0-e22c-7fd7-b769-53ed23db3834",
+        "name": "create_ticket_flow_instance",
+        "description": "Permission to create_ticket_flow_instance",
+        "model": "ticket_flow_instances"
+      }
+    ],
+    "edit": [
+      {
+        "id": "019b8bea-cba0-7c49-a231-a2d631611d1a",
+        "name": "edit_users",
+        "description": "Permission to edit_users",
+        "model": "users"
+      },
+      {
+        "id": "019b8bea-cbad-7d3c-a50e-ae812867d9f6",
+        "name": "edit_roles",
+        "description": "Permission to edit_roles",
+        "model": "roles"
+      },
+      {
+        "id": "019b8bea-cbc8-7119-afce-535708a1e8f2",
+        "name": "edit_permissions",
+        "description": "Permission to edit_permissions",
+        "model": "permissions"
+      },
+      {
+        "id": "019b8bea-cbee-74c1-875a-a46a47b03619",
+        "name": "edit_level",
+        "description": "Permission to edit_level",
+        "model": "levels"
+      },
+      {
+        "id": "019b8bea-cc01-730a-8696-412f5a4a917a",
+        "name": "edit_department",
+        "description": "Permission to edit_department",
+        "model": "departments"
+      },
+      {
+        "id": "019b8bea-cc13-7970-8e05-cf41a531b874",
+        "name": "edit_group",
+        "description": "Permission to edit_group",
+        "model": "groups"
+      },
+      {
+        "id": "019ba0b7-fa6a-71f0-bfe2-aedbe2360560",
+        "name": "edit_tag",
+        "description": "Permission to edit_tag",
+        "model": "tags"
+      },
+      {
+        "id": "019baffe-10ac-70fc-a02c-18ddfd7a50ec",
+        "name": "edit_ticket_event",
+        "description": "Permission to edit_ticket_event",
+        "model": "ticket_events"
+      },
+      {
+        "id": "019bb02e-2a61-708d-90cc-e7937e35c501",
+        "name": "edit_ticket_template",
+        "description": "Permission to edit_ticket_template",
+        "model": "ticket_templates"
+      },
+      {
+        "id": "019bb02e-2a75-7447-b837-225c824d1e47",
+        "name": "edit_ticket_context",
+        "description": "Permission to edit_ticket_context",
+        "model": "ticket_contexts"
+      },
+      {
+        "id": "019bb036-e255-7fb0-aeff-4c49afa9fd20",
+        "name": "edit_ticket_extension",
+        "description": "Permission to edit_ticket_extension",
+        "model": "ticket_extensions"
+      },
+      {
+        "id": "019bb582-f88e-7896-adfc-2f980015795f",
+        "name": "edit_ticket",
+        "description": "Permission to edit_ticket",
+        "model": "tickets"
+      },
+      {
+        "id": "019bbbc0-e212-7fe1-90da-c6e446546e92",
+        "name": "edit_ticket_flow",
+        "description": "Permission to edit_ticket_flow",
+        "model": "ticket_flows"
+      },
+      {
+        "id": "019bbbc0-e235-722a-9fb8-44c6dca4567a",
+        "name": "edit_ticket_flow_instance",
+        "description": "Permission to edit_ticket_flow_instance",
+        "model": "ticket_flow_instances"
+      }
+    ],
+    "assign": [
+      {
+        "id": "019b8bea-cbd6-739a-ac2f-a6ace2ef2b2c",
+        "name": "assign_permissions_to_role",
+        "description": "Permission to assign_permissions_to_role",
+        "model": "role_permissions"
+      },
+      {
+        "id": "019b8bea-cc1d-792f-8f4a-7f9c5d08cadd",
+        "name": "assign_user_to_group",
+        "description": "Permission to assign_user_to_group",
+        "model": "user_groups"
+      },
+      {
+        "id": "019bb582-f8a3-7382-abcd-0dece42c554f",
+        "name": "assign_ticket",
+        "description": "Permission to assign_ticket",
+        "model": "tickets"
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-// Redirect to dashboard - middleware will handle authentication
+// Redirect to sign-in page for initial visit
 export default function Home() {
-  redirect("/dashboard");
+  redirect("/sign-in");
 }

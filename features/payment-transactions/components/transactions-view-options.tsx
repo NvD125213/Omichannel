@@ -47,7 +47,7 @@ export function TransactionsViewOptions<TData>({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[180px]">
-        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+        <DropdownMenuLabel>Hiện thị cột</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {table
           .getAllColumns()
