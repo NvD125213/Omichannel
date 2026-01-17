@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const signInSchema = z.object({
+  tenant_name: z.string().min(1, { message: "Vui lòng nhập tên doanh nghiệp" }),
   username: z
     .string()
     .min(1, { message: "Vui lòng nhập tên đăng nhập" })

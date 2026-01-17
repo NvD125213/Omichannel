@@ -26,6 +26,7 @@ const REFRESH_TOKEN_COOKIE_OPTIONS: Cookies.CookieAttributes = {
 export interface LoginRequest {
   username: string;
   password: string;
+  tenant_name: string;
 }
 
 export interface LoginResponse {

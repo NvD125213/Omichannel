@@ -32,6 +32,8 @@ import {
   IconBuilding,
   IconTicket,
   IconTemplate,
+  IconTimelineEvent,
+  IconArrowAutofitContent,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -61,7 +63,7 @@ export const sidebarData: SidebarData = {
   ],
   navGroups: [
     {
-      title: "Dashboard",
+      title: "Quản trị hệ thống",
       items: [
         {
           title: "Dashboard",
@@ -92,7 +94,7 @@ export const sidebarData: SidebarData = {
       ],
     },
     {
-      title: "General",
+      title: "Quản lý hệ thống",
       items: [
         {
           title: "Mail",
@@ -120,13 +122,23 @@ export const sidebarData: SidebarData = {
           items: [
             {
               title: "Danh sách ticket",
-              url: "/tickets",
+              url: "/tickets/ticket-list",
               icon: IconTicket,
             },
             {
+              title: "Danh sách event",
+              url: "/tickets/ticket-event",
+              icon: IconTimelineEvent,
+            },
+            {
               title: "Mẫu ticket",
-              url: "/ticket-templates",
+              url: "/tickets/ticket-template",
               icon: IconTemplate,
+            },
+            {
+              title: "Luồng xử lý ticket",
+              url: "/tickets/ticket-flow",
+              icon: IconArrowAutofitContent,
             },
           ],
         },
@@ -253,7 +265,7 @@ export const sidebarData: SidebarData = {
     //   ],
     // },
     {
-      title: "Other",
+      title: "Khác",
       items: [
         {
           title: "Phân quyền",

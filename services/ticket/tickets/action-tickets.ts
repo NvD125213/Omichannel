@@ -10,6 +10,7 @@ export interface ActionTicketRequest {
   priority: string;
   tag_ids: string[];
   template_id: string;
+  extension_data: any;
   title: string;
 }
 

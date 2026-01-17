@@ -1,5 +1,5 @@
 import apiClient from "@/lib/api-client";
-import { TicketTag } from "../ticket_tags/get-tags";
+import { TicketTag } from "../ticket-tags/services";
 
 export interface Ticket {
   id: string;
@@ -21,7 +21,7 @@ export interface Ticket {
   created_by_name: string;
   assigned_to_name: string;
   tags: TicketTag[];
-  extension_data: unknown;
+  extension_data: any;
 }
 
 export interface GetTicketsResponse {
@@ -52,8 +52,10 @@ export interface GetTicketByCodeResponse {
 }
 
 // Lấy danh sách ticket
-export const getTickets = async () => {
-  const response = await apiClient.get<GetTicketsResponse>("/tickets");
+export const getTickets = async (params?: any) => {
+  const response = await apiClient.get<GetTicketsResponse>("/tickets", {
+    params,
+  });
   return response.data;
 };
 
