@@ -3,14 +3,10 @@ import apiClient from "@/lib/api-client";
 export interface ActionTicketRequest {
   assigned_to: string;
   description: string;
-  extension_data: {
-    customer_name: string;
-    phone: string;
-  };
+  extension_data: Record<string, string>;
   priority: string;
   tag_ids: string[];
   template_id: string;
-  extension_data: any;
   title: string;
 }
 
