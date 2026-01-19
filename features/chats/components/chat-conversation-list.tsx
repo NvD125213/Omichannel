@@ -73,7 +73,7 @@ export function ChatConversationList({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="hidden lg:flex items-center justify-between h-16 px-4 border-b shrink-0">
-        <h2 className="text-lg font-semibold">Messages</h2>
+        <h2 className="text-lg font-semibold">Danh sách trò chuyện</h2>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

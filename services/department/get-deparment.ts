@@ -34,6 +34,7 @@ export interface DepartmentDetailResponseApi {
       tenant_id: string;
       description: string;
       is_active: number;
+      member_count: number;
     }[];
   };
 }

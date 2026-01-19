@@ -11,7 +11,6 @@ import {
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
-  type Row,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
@@ -20,13 +19,10 @@ import {
   ArrowUp,
   ArrowDown,
   EllipsisVertical,
-  Eye,
   Pencil,
   Trash2,
-  Component,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-// import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -37,7 +33,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
+
 import {
   Table,
   TableBody,
@@ -47,53 +43,40 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Department } from "../utils/schema";
-import { DataTablePagination } from "./department-data-table-pagination";
-import { DataTableToolbar } from "./department-data-table-toobar";
-import { cn } from "@/lib/utils";
-import { EmptyData } from "@/components/empty-data";
+import type { TicketTag } from "../utils/schema";
+import { DataTablePagination } from "./ticket-tag-data-table-pagination";
+import { DataTableToolbar } from "./ticket-tag-data-table-toolbar";
 import {
   useQueryParam,
   NumberParam,
   StringParam,
   withDefault,
 } from "use-query-params";
+import { EmptyData } from "@/components/empty-data";
 import { IconMoodEmpty } from "@tabler/icons-react";
 
 interface DataTableProps {
-  departments: Department[];
-  onDeleteDepartment: (id: string) => void;
-  onEditDepartment: (department: Department) => void;
+  tags: TicketTag[];
+  onDeleteTag: (id: string) => void;
+  onEditTag: (tag: TicketTag) => void;
   totalPages: number;
   totalRecords: number;
   isLoading?: boolean;
 }
 
-const getOrderBadgeColor = (order?: number) => {
-  if (order === undefined || order === null)
-    return "bg-muted text-muted-foreground";
-
-  if (order <= 10) return "bg-blue-100 text-blue-700";
-  if (order <= 100) return "bg-purple-100 text-purple-700";
-  if (order <= 1000) return "bg-red-100 text-red-500";
-  return "bg-gray-100 text-gray-700";
-};
-
-export function DataTable({
-  departments,
-  onDeleteDepartment,
-  onEditDepartment,
+export function TicketTagDataTable({
+  tags,
+  onDeleteTag,
+  onEditTag,
   totalPages,
   totalRecords,
   isLoading,
 }: DataTableProps) {
-  // Danh sách các query params của api
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
   const [pageSize, setPageSize] = useQueryParam(
     "page_size",
     withDefault(NumberParam, 10),
   );
-
   const [search, setSearch] = useQueryParam("search", StringParam);
   const [sortBy, setSortBy] = useQueryParam("sort_by", StringParam);
   const [sortOrder, setSortOrder] = useQueryParam("sort_order", StringParam);
@@ -103,7 +86,6 @@ export function DataTable({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
 
-  // Sorting theo department
   useEffect(() => {
     if (sortBy && sortOrder) {
       setSorting([{ id: sortBy, desc: sortOrder === "desc" }]);
@@ -112,7 +94,6 @@ export function DataTable({
     }
   }, [sortBy, sortOrder]);
 
-  // Update URL params when sorting changes
   const handleSortingChange = (
     updaterOrValue: SortingState | ((old: SortingState) => SortingState),
   ) => {
@@ -132,13 +113,7 @@ export function DataTable({
     }
   };
 
-  const getStatusColor = (isActive: number) => {
-    return isActive === 1
-      ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
-      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
-  };
-
-  const columns: ColumnDef<Department>[] = [
+  const columns: ColumnDef<TicketTag>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -177,7 +152,7 @@ export function DataTable({
             className="-ml-4 h-8 data-[state=open]:bg-accent"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Tên vai trò
+            Tên Tag
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4" />
             ) : column.getIsSorted() === "desc" ? (
@@ -189,12 +164,14 @@ export function DataTable({
         );
       },
       cell: ({ row }) => {
-        const department = row.original;
+        const tag = row.original;
         return (
           <div className="flex items-center gap-3">
-            <div className="flex flex-col">
-              <span className="font-medium">{department.name}</span>
-            </div>
+            <div
+              className="w-4 h-4 rounded-full border border-gray-200"
+              style={{ backgroundColor: tag.color || "#ccc" }}
+            />
+            <span className="font-medium">{tag.name}</span>
           </div>
         );
       },
@@ -208,7 +185,7 @@ export function DataTable({
             className="-ml-4 h-8 data-[state=open]:bg-accent"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Ghi chú
+            Mô tả
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4" />
             ) : column.getIsSorted() === "desc" ? (
@@ -223,58 +200,32 @@ export function DataTable({
         <span className="font-medium">{row.original.description}</span>
       ),
     },
-
-    // {
-    //   accessorKey: "tenant_id",
-    //   header: "Tenant ID",
-    //   cell: ({ row }) => (
-    //     <span className="text-sm text-muted-foreground">
-    //       {row.original.tenant_id}
-    //     </span>
-    //   ),
-    // },
     {
-      accessorKey: "is_active",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className="-ml-4 h-8 data-[state=open]:bg-accent"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Trạng thái
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
-            ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const isActive = row.original.is_active;
-        return (
-          <Badge variant="secondary" className={getStatusColor(isActive)}>
-            {isActive === 1 ? "Hoạt động" : "Không hoạt động"}
-          </Badge>
-        );
-      },
+      accessorKey: "color",
+      header: "Màu sắc",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div
+            className="w-6 h-6 rounded border border-gray-200"
+            style={{ backgroundColor: row.original.color || "#ccc" }}
+          />
+          <span className="text-sm font-mono">{row.original.color}</span>
+        </div>
+      ),
     },
     {
       id: "actions",
       enableSorting: false,
       header: "Hành động",
       cell: ({ row }) => {
-        const department = row.original;
+        const tag = row.original;
         return (
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer"
-              onClick={() => onEditDepartment(department)}
+              onClick={() => onEditTag(tag)}
             >
               <Pencil className="size-4" />
               <span className="sr-only">Sửa</span>
@@ -294,19 +245,10 @@ export function DataTable({
                 <DropdownMenuItem
                   variant="destructive"
                   className="cursor-pointer"
-                  onClick={() => onDeleteDepartment(department.id as any)}
+                  onClick={() => onDeleteTag(tag.id)}
                 >
                   <Trash2 className="size-4" />
                   Xóa
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link
-                    href={`/departments/${department.id}`}
-                    className="cursor-pointer"
-                  >
-                    <Component className="size-4" />
-                    Chi tiết
-                  </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -316,9 +258,8 @@ export function DataTable({
     },
   ];
 
-  /* eslint-disable-next-line */
   const table = useReactTable({
-    data: departments,
+    data: tags,
     columns,
     state: {
       sorting,
@@ -338,7 +279,6 @@ export function DataTable({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
-  // Tạo pagination object từ props
   const pagination = {
     total: totalRecords,
     page: page,
@@ -408,9 +348,11 @@ export function DataTable({
                 >
                   <EmptyData
                     icon={IconMoodEmpty}
-                    title="Dữ liệu phòng ban trống."
-                    description="Hãy thử thêm mới thông tin phòng ban hoặc thay đổi thông tin tìm kiếm"
+                    title="Dữ liệu tag trống."
+                    description="Hãy thử thêm mới thông tin tag hoặc thay đổi thông tin tìm kiếm"
+                    showButton={false}
                     buttonText=""
+                    onButtonClick={() => {}}
                   />
                 </TableCell>
               </TableRow>

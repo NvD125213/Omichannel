@@ -259,6 +259,55 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="priority"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mức độ ưu tiên</FormLabel>
+
+              <FormControl>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 w-full">
+                  {priorities.map((p) => {
+                    const isActive = field.value === p.value;
+
+                    return (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => field.onChange(p.value)}
+                        className={`
+                  h-10 w-full rounded-md border
+                  flex items-center justify-center gap-2
+                  text-sm font-medium
+                  transition
+                  ${
+                    isActive
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-primary hover:text-primary-foreground"
+                  }
+                `}
+                      >
+                        <span
+                          className={`
+                          relative
+                          w-2 h-2 rounded-full
+                          ${p.color}
+                          transition
+                          ${isActive ? "ring-2 ring-offset-2 ring-primary" : ""}
+                        `}
+                        />
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </FormControl>
+
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -405,34 +454,6 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="priority"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Mức độ ưu tiên</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn mức độ ưu tiên" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {priorities.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${p.color}`} />
-                        {p.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}

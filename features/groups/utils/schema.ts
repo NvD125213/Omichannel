@@ -7,6 +7,7 @@ export const groupSchema = z.object({
   description: z.string(),
   tenant_id: z.string(),
   is_active: z.number(),
+  member_count: z.number().optional(),
 });
 
 export const groupDefaultValues = {

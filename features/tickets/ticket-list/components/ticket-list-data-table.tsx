@@ -70,6 +70,7 @@ import {
 import { EmptyData } from "@/components/empty-data";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { convertDateTime } from "@/utils/convert-time";
+import Link from "next/link";
 
 interface DataTableProps {
   tickets: Ticket[];
@@ -609,13 +610,13 @@ export function DataTable({
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <div
+                <Link
                   className="flex items-center cursor-pointer"
-                  onClick={() => console.log("View ticket", ticket.code)}
+                  href={`/tickets/ticket-list/${ticket.id}`}
                 >
                   <Eye className="mr-2 size-4" />
                   Xem chi tiết
-                </div>
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem

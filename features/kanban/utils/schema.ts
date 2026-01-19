@@ -33,9 +33,33 @@ export type TaskFormData = z.infer<typeof taskFormSchema>;
 
 export const statusConfig: Record<
   ColumnStatus,
-  { label: string; color: string }
+  {
+    label: string;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    textColor: string;
+  }
 > = {
-  todo: { label: "Todo", color: "bg-slate-500" },
-  in_progress: { label: "Progress", color: "bg-blue-500" },
-  done: { label: "Done", color: "bg-green-500" },
+  todo: {
+    label: "To Do",
+    color: "bg-slate-400",
+    bgColor: "bg-slate-50",
+    borderColor: "border-slate-200",
+    textColor: "text-slate-600",
+  },
+  in_progress: {
+    label: "In Progress",
+    color: "bg-amber-500",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+    textColor: "text-amber-700",
+  },
+  done: {
+    label: "Done",
+    color: "bg-emerald-500",
+    bgColor: "bg-emerald-50",
+    borderColor: "border-emerald-200",
+    textColor: "text-emerald-700",
+  },
 };

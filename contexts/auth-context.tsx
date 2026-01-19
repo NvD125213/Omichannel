@@ -26,7 +26,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (
-    tenant_name: string,
+    name_tenant: string,
     username: string,
     password: string,
   ) => Promise<void>;
@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useMe();
 
   const login = useCallback(
-    async (tenant_name: string, username: string, password: string) => {
-      const response = await loginApi({ tenant_name, username, password });
+    async (name_tenant: string, username: string, password: string) => {
+      const response = await loginApi({ name_tenant, username, password });
 
       // Save tokens
       setTokens(response.data.access_token, response.data.refresh_token);

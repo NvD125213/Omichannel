@@ -6,7 +6,7 @@ export interface TicketContext {
   context_type: string;
   context_id: string;
   source_type: string;
-  context_metadata: string;
+  context_metadata: Record<string, any> | null;
   created_at: string;
   tenant_id: string;
 }
@@ -16,7 +16,7 @@ export interface TicketContextRequest {
   context_type: string;
   context_id: string;
   source_type: string;
-  context_metadata: string;
+  context_metadata: Record<string, any> | null;
   tenant_id: string;
 }
 
@@ -25,11 +25,13 @@ export interface GetTicketContextsResponse {
   status_code: number;
   message: string;
   data: {
-    items: TicketContext[];
-    total: number;
-    page: number;
-    page_size: number;
-    total_pages: number;
+    contexts: TicketContext[];
+    pagination: {
+      current_page: number;
+      page_size: number;
+      total_count: number;
+      total_pages: number;
+    };
   };
 }
 
@@ -66,6 +68,12 @@ export const getTicketContextsApi = (params: TicketContextParams) => {
   return apiClient.get<GetTicketContextsResponse>("/ticket-contexts", {
     params,
   });
+};
+
+export const getTicketContextWithTicketIdApi = (ticketId: string) => {
+  return apiClient.get<GetTicketContextsResponse>(
+    `ticket-contexts/ticket/${ticketId}/contexts`,
+  );
 };
 
 export const createTicketContextApi = (data: TicketContextRequest) => {

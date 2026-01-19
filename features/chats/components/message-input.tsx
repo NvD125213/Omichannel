@@ -200,7 +200,7 @@ export function MessageInput({
               )}
             </TooltipTrigger>
             <TooltipContent>
-              <p>{message.trim() ? "Send message" : "Voice message"}</p>
+              <p>{message.trim() ? "Gửi tin nhắn" : "Gửi giọng nói"}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -208,7 +208,7 @@ export function MessageInput({
 
       {isTyping && (
         <div className="text-xs text-muted-foreground mt-2">
-          You are typing...
+          Bạn đang nhập tin nhắn...
         </div>
       )}
     </div>

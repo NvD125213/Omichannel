@@ -31,7 +31,7 @@ export default function SignIn() {
   const form = useForm<SignInSchema>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      tenant_name: "",
+      name_tenant: "",
       username: "",
       password: "",
     },
@@ -40,7 +40,7 @@ export default function SignIn() {
   const onSubmit = async (data: SignInSchema) => {
     try {
       setIsLoading(true);
-      await login(data.tenant_name, data.username, data.password);
+      await login(data.name_tenant, data.username, data.password);
       toast.success("Đăng nhập thành công!");
       const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
       router.push(callbackUrl);
@@ -150,7 +150,7 @@ export default function SignIn() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
                 control={form.control}
-                name="tenant_name"
+                name="name_tenant"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tên doanh nghiệp</FormLabel>

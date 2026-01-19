@@ -12,17 +12,11 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Expand, Pencil, Trash2, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Group } from "../utils/schema";
 import { DataTablePagination } from "./group-data-table-pagination";
@@ -35,6 +29,7 @@ import {
   withDefault,
 } from "use-query-params";
 import { IconMoodEmpty } from "@tabler/icons-react";
+import { GroupUserDetail } from "./group-user-detail";
 
 interface DataTableProps {
   groups: Group[];
@@ -69,6 +64,9 @@ export function GroupDataTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+
+  const [userDetailOpen, setUserDetailOpen] = useState(false);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
   // Sorting theo group
   useEffect(() => {
@@ -172,8 +170,23 @@ export function GroupDataTable({
             <Card key={group.id} className="p-4 transition-all hover:shadow-md">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex flex-col gap-1">
-                  <span className="font-semibold text-base">{group.name}</span>
-                  {/* Optional: Add description if available or department name */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-base">
+                      {group.name}
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="h-5 px-1.5 gap-1 font-medium text-[10px] text-muted-foreground border-muted-foreground/20"
+                    >
+                      <Users className="size-3" />
+                      {group.member_count || 0}
+                    </Badge>
+                  </div>
+                  {group.description && (
+                    <span className="text-sm text-muted-foreground line-clamp-1">
+                      {group.description}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-3 md:gap-6">
@@ -192,12 +205,25 @@ export function GroupDataTable({
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        console.log("Edit clicked:", group);
                         if (onEditGroup) onEditGroup(group);
                       }}
                     >
                       <Pencil className="size-4" />
                       <span className="sr-only">Sửa</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 cursor-pointer text-muted-foreground hover:text-foreground"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedGroup(group);
+                        setUserDetailOpen(true);
+                      }}
+                    >
+                      <Expand className="size-4" />
+                      <span className="sr-only">Mở rộng</span>
                     </Button>
 
                     <Button
@@ -235,6 +261,12 @@ export function GroupDataTable({
         currentPageSize={pageSize}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+      />
+
+      <GroupUserDetail
+        group={selectedGroup}
+        open={userDetailOpen}
+        onOpenChange={setUserDetailOpen}
       />
     </div>
   );

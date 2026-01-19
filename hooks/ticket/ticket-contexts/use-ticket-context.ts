@@ -3,6 +3,7 @@ import {
   createTicketContextApi,
   deleteTicketContextApi,
   getTicketContextsApi,
+  getTicketContextWithTicketIdApi,
   TicketContextParams,
   TicketContextRequest,
   updateTicketContextApi,
@@ -17,12 +18,23 @@ export const useGetTicketContexts = (params: TicketContextParams) => {
   });
 };
 
+export const useGetTicketContextWithTicketId = (ticketId: string) => {
+  return useQuery({
+    queryKey: ["ticket-contexts", ticketId],
+    queryFn: () => getTicketContextWithTicketIdApi(ticketId),
+    placeholderData: (previousData) => previousData,
+  });
+};
+
 export const useCreateTicketContext = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: TicketContextRequest) => createTicketContextApi(data),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success("Tạo context thành công");
+      queryClient.invalidateQueries({
+        queryKey: ["ticket-contexts", variables.ticket_id],
+      });
       queryClient.invalidateQueries({ queryKey: ["ticket-contexts"] });
     },
     onError: (error: any) => {

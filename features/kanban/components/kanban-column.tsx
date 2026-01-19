@@ -10,6 +10,7 @@ import {
 } from "@dnd-kit/sortable";
 import { Plus } from "lucide-react";
 import type { ColumnStatus, KanbanTask } from "../utils/schema";
+import { statusConfig } from "../utils/schema";
 import { KanbanCard } from "./kanban-card";
 
 interface KanbanColumnProps {
@@ -33,24 +34,47 @@ export function KanbanColumn({
     },
   });
 
+  const config = statusConfig[id];
+
   return (
     <div
       className={cn(
-        "bg-muted/40 flex h-full w-80 shrink-0 flex-col rounded-lg border",
-        isOver && "ring-primary ring-2",
+        "flex h-full w-80 shrink-0 flex-col rounded-xl border transition-all duration-200",
+        config.bgColor,
+        config.borderColor,
+        isOver && "ring-primary ring-2 scale-[1.01] shadow-lg",
       )}
     >
-      <div className="flex items-center justify-between border-b p-3">
+      <div
+        className={cn(
+          "flex items-center justify-between border-b p-4 rounded-t-xl",
+          "bg-white/50 backdrop-blur-sm",
+        )}
+      >
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold">{title}</h3>
-          <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
+          <div className={cn("size-2.5 rounded-full", config.color)} />
+          <h3
+            className={cn("text-sm font-bold tracking-tight", config.textColor)}
+          >
+            {title}
+          </h3>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[11px] font-bold shadow-xs",
+              config.color,
+              "text-white",
+            )}
+          >
             {tasks.length}
           </span>
         </div>
         <Button
           variant="ghost"
           size="icon-sm"
-          className="size-7"
+          className={cn(
+            "size-8 rounded-lg hover:bg-white transition-colors",
+            config.textColor,
+          )}
           onClick={() => onAddTask(id)}
         >
           <Plus className="size-4" />
@@ -71,8 +95,29 @@ export function KanbanColumn({
             ))}
           </SortableContext>
           {tasks.length === 0 && (
-            <div className="text-muted-foreground flex h-24 items-center justify-center rounded-lg border-2 border-dashed text-sm">
-              No tasks yet
+            <div
+              className={cn(
+                "flex flex-col items-center justify-center h-32 rounded-lg border-2 border-dashed gap-2 transition-colors",
+                config.borderColor,
+                "bg-white/30",
+              )}
+            >
+              <div
+                className={cn(
+                  "p-2 rounded-full bg-white shadow-sm",
+                  config.textColor,
+                )}
+              >
+                <Plus className="size-4 opacity-50" />
+              </div>
+              <p
+                className={cn(
+                  "text-[11px] font-bold uppercase tracking-wider",
+                  config.textColor,
+                )}
+              >
+                No tasks yet
+              </p>
             </div>
           )}
         </div>

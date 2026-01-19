@@ -85,40 +85,30 @@ export default function DepartmentDetailPage({
   }
 
   return (
-    <div className="flex h-full flex-col p-6">
-      <h1 className="mb-6 text-2xl font-bold">Chi tiết phòng ban</h1>
+    <div className="flex h-full flex-col gap-6 p-6">
+      <DepartmentDetailCard
+        name={department.name}
+        description={department.description}
+        tenant={tenantName}
+      />
 
-      <div className="flex flex-col gap-6 lg:flex-row">
-        {/* Department Detail Card - 30% */}
-        <div className="w-full lg:w-[30%]">
-          <DepartmentDetailCard
-            name={department.name}
-            description={department.description}
-            tenant={tenantName}
-          />
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">Danh sách nhóm</h2>
+          <p className="text-sm text-muted-foreground">
+            Quản lý các nhóm trong phòng ban này
+          </p>
         </div>
 
-        {/* Group Data Table - 70% */}
-        <div className="w-full lg:w-[70%]">
-          <div className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold">Danh sách nhóm</h2>
-              <p className="text-sm text-muted-foreground">
-                Quản lý các nhóm trong phòng ban này
-              </p>
-            </div>
-
-            <GroupDataTable
-              groups={department.groups || []}
-              onDeleteGroup={handleDeleteGroup}
-              onEditGroup={handleEditGroup}
-              totalPages={1}
-              totalRecords={department.groups?.length || 0}
-              isLoading={isLoading}
-              departmentId={department.id}
-            />
-          </div>
-        </div>
+        <GroupDataTable
+          groups={department.groups || []}
+          onDeleteGroup={handleDeleteGroup}
+          onEditGroup={handleEditGroup}
+          totalPages={1}
+          totalRecords={department.groups?.length || 0}
+          isLoading={isLoading}
+          departmentId={department.id}
+        />
       </div>
 
       {/* Edit Group Dialog */}

@@ -12,6 +12,7 @@ export interface GroupResponseApi {
       description: string;
       tenant_id: string;
       group_order: number;
+      member_count: number;
     }[];
     total_pages: number;
     total_records: number;
@@ -19,6 +20,7 @@ export interface GroupResponseApi {
 }
 
 export interface GroupQueryParams {
+  id: string;
   page?: number;
   page_size?: number;
   search?: string;
