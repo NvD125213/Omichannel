@@ -7,11 +7,10 @@ import { ToggleTheme } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Settings } from "lucide-react";
+import { Settings, Phone } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
-import { CallDialog } from "@/components/softphone/call-dialog";
 import { TelesipSDK } from "@/components/softphone/telesip-sdk";
 
 export function DashboardHeader() {
@@ -73,7 +72,15 @@ export function DashboardHeader() {
       />
       <div className="ml-auto flex items-center gap-1">
         <TelesipSDK />
-        <CallDialog />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => window.showWidget?.()}
+          className="text-muted-foreground hover:text-emerald-500 transition-colors"
+        >
+          <Phone className="h-5 w-5" />
+          <span className="sr-only">Mở trình gọi điện</span>
+        </Button>
         <ToggleTheme />
         <Button
           type="button"

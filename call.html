@@ -88,16 +88,20 @@
         let sdkOptions = {
           enableWidget: true,
           sipOnly: true,
-          sipDomain: "tradeint.vn",
+          // sipDomain: 'gtg.vn:50061',
+          // wsServer: "wss://cgvcall.mobilesip.vn:7444",
+          // sipPassword: "NAWfYkHB!N"
+          sipDomain: "gtg.vn:50061",
           wsServer: "wss://cgvcall.mobilesip.vn:7444",
-          sipPassword: "Agent@2025",
+          sipPassword: "NAWfYkHB!N",
         };
-        // Create an instance of the SDK without shadowing the global CGVSDK constructor
 
+        // Create an instance of the SDK without shadowing the global CGVSDK constructor
+        // let cgvSdkInstance = new window.CGVSDK('gtg.vn', 'xxx', '123123', {}, sdkOptions);
         let cgvSdkInstance = new window.CGVSDK(
-          "tradeint.vn",
+          "gtg.vn",
           "xxx",
-          "100",
+          "123123",
           {},
           sdkOptions,
         );

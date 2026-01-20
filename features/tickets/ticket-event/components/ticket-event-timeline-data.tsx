@@ -14,6 +14,10 @@ import {
   HelpCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useGetTicketEvents } from "@/hooks/ticket/ticket-events/use-ticket-event";
+import { useParams } from "next/navigation";
+import { format } from "date-fns";
+import { useListUser } from "@/hooks/user/use-list-user";
 
 import {
   Timeline,
@@ -82,150 +86,106 @@ const getEventBadgeStyles = (type: string) => {
 };
 
 export function TicketEventTimelineData() {
+  const params = useParams();
+  const ticketId = params?.ticketId as string;
+
+  const { data: eventsData } = useGetTicketEvents({
+    ticket_id: ticketId,
+    page: 1,
+    page_size: 50, // Fetch more to show history
+  });
+
+  const events: any[] = eventsData?.data.data.ticket_events || [];
+
+  if (!ticketId) return null;
+
+  if (events.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-slate-500">
+        <p className="text-sm">Chưa có sự kiện nào</p>
+      </div>
+    );
+  }
+
   return (
     <Timeline color="secondary" orientation="vertical" className="w-full">
-      <TimelineItem>
+      {events.map((event) => (
+        <TimelineItem key={event.id}>
+          <TimelineHeader>
+            <TimelineSeparator />
+            <TimelineIcon>{getEventIcon(event.event_type)}</TimelineIcon>
+          </TimelineHeader>
+          <TimelineBody className="-translate-y-1.5 pt-0 pb-8">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant="outline"
+                  className={`${getEventBadgeStyles(event.event_type)} text-[10px] px-2 py-0 h-5 font-semibold`}
+                >
+                  {event.event_type}
+                </Badge>
+                <Badge
+                  variant="outline"
+                  className="bg-slate-50 text-slate-700 border-slate-200 text-[10px] px-2 py-0 h-5 font-semibold uppercase"
+                >
+                  {event.actor_type}
+                </Badge>
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="text-sm leading-none font-bold text-slate-900">
+                  {event.payload?.title || event.event_type}
+                </h3>
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <Clock className="h-3 w-3" />
+                  <span className="text-[11px] font-medium">
+                    {event.created_at
+                      ? format(
+                          new Date(event.created_at),
+                          "hh:mm a, dd/MM/yyyy",
+                        )
+                      : "N/A"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Render dynamic description based on payload if available, or static fallback */}
+              <div>
+                {event.payload?.priority && (
+                  <p className="text-slate-600 text-sm leading-relaxed">
+                    Độ ưu tiên: {event.payload.priority}
+                  </p>
+                )}
+
+                {/* Generic payload display for other fields if needed, simplified for now */}
+                {event.payload?.title && (
+                  <p className="text-slate-600 text-sm leading-relaxed">
+                    {event.payload.title}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <div className="bg-slate-100 p-1.5 rounded-full">
+                  <User className="h-3 w-3 text-slate-600" />
+                </div>
+                <span className="text-xs font-bold text-slate-700">admin</span>
+              </div>
+            </div>
+          </TimelineBody>
+        </TimelineItem>
+      ))}
+
+      <TimelineItem className="min-h-0">
         <TimelineHeader>
-          <TimelineSeparator />
-          <TimelineIcon>{getEventIcon(ActionType.CREATED)}</TimelineIcon>
+          <TimelineIcon>
+            <div className="h-2 w-2 rounded-full bg-slate-300 ring-4 ring-slate-50" />
+          </TimelineIcon>
         </TimelineHeader>
-        <TimelineBody className="-translate-y-1.5 pt-0 pb-8">
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className={`${getEventBadgeStyles(ActionType.CREATED)} text-[10px] px-2 py-0 h-5 font-semibold`}
-              >
-                CREATED
-              </Badge>
-              <Badge
-                variant="outline"
-                className="bg-amber-50 text-amber-700 border-amber-200 text-[10px] px-2 py-0 h-5 font-semibold"
-              >
-                ADMIN
-              </Badge>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-sm leading-none font-bold text-slate-900">
-                Khởi tạo Ticket hỗ trợ
-              </h3>
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <Clock className="h-3 w-3" />
-                <span className="text-[11px] font-medium">
-                  12:30 PM, 20/01/2026
-                </span>
-              </div>
-            </div>
-
-            <p className="text-slate-600 text-sm leading-relaxed">
-              Hệ thống đã tự động tạo ticket từ cuộc hội thoại Facebook
-              Messenger của khách hàng Nguyễn Văn A.
-            </p>
-
-            <div className="flex items-center gap-2 pt-1">
-              <div className="bg-slate-100 p-1.5 rounded-full">
-                <User className="h-3 w-3 text-slate-600" />
-              </div>
-              <span className="text-xs font-bold text-slate-700">
-                Nguyễn Văn A
-              </span>
-            </div>
-          </div>
-        </TimelineBody>
-      </TimelineItem>
-
-      <TimelineItem>
-        <TimelineHeader>
-          <TimelineSeparator />
-          <TimelineIcon>{getEventIcon(ActionType.UPDATED)}</TimelineIcon>
-        </TimelineHeader>
-        <TimelineBody className="-translate-y-1.5 pt-0 pb-8">
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className={`${getEventBadgeStyles(ActionType.UPDATED)} text-[10px] px-2 py-0 h-5 font-semibold`}
-              >
-                UPDATED
-              </Badge>
-              <Badge
-                variant="outline"
-                className="bg-slate-50 text-slate-700 border-slate-200 text-[10px] px-2 py-0 h-5 font-semibold"
-              >
-                SYSTEM
-              </Badge>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-sm leading-none font-bold text-slate-900">
-                Gán người phụ trách
-              </h3>
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <Clock className="h-3 w-3" />
-                <span className="text-[11px] font-medium">
-                  12:45 PM, 20/01/2026
-                </span>
-              </div>
-            </div>
-
-            <p className="text-slate-600 text-sm leading-relaxed">
-              Ticket được gán cho Admin Trần Thị B để xử lý.
-            </p>
-
-            <div className="flex items-center gap-2 pt-1">
-              <div className="bg-slate-100 p-1.5 rounded-full">
-                <User className="h-3 w-3 text-slate-600" />
-              </div>
-              <span className="text-xs font-bold text-slate-700">
-                System Bot
-              </span>
-            </div>
-          </div>
-        </TimelineBody>
-      </TimelineItem>
-
-      <TimelineItem>
-        <TimelineHeader>
-          <TimelineIcon>{getEventIcon(ActionType.CLOSED)}</TimelineIcon>
-        </TimelineHeader>
-        <TimelineBody className="-translate-y-1.5 pt-0">
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className={`${getEventBadgeStyles(ActionType.CLOSED)} text-[10px] px-2 py-0 h-5 font-semibold`}
-              >
-                CLOSED
-              </Badge>
-            </div>
-
-            <div className="space-y-1">
-              <h3 className="text-sm leading-none font-bold text-slate-900">
-                Đóng Ticket
-              </h3>
-              <div className="flex items-center gap-1.5 text-slate-400">
-                <Clock className="h-3 w-3" />
-                <span className="text-[11px] font-medium">
-                  01:15 PM, 20/01/2026
-                </span>
-              </div>
-            </div>
-
-            <p className="text-slate-600 text-sm leading-relaxed">
-              Ticket đã hoàn thành và được đóng lại sau khi khách hàng xác nhận
-              hài lòng.
-            </p>
-
-            <div className="flex items-center gap-2 pt-1">
-              <div className="bg-slate-100 p-1.5 rounded-full">
-                <User className="h-3 w-3 text-slate-600" />
-              </div>
-              <span className="text-xs font-bold text-slate-700">
-                Trần Thị B
-              </span>
-            </div>
-          </div>
+        <TimelineBody className="pt-0 pb-0">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Hết chuỗi sự kiện
+          </span>
         </TimelineBody>
       </TimelineItem>
     </Timeline>

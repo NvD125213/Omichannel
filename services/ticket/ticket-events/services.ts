@@ -56,18 +56,18 @@ export interface DeleteTicketEventResponse {
 }
 
 export interface TicketEventParams {
-  id: string;
-  ticket_id: string;
-  event_type: string;
-  actor_type: string;
-  actor_id: string;
-  page: number;
-  page_size: number;
-  sort_by: string;
-  sort_order: string;
-  tenant_id: string;
-  from_date: string;
-  to_date: string;
+  id?: string;
+  ticket_id?: string;
+  event_type?: string;
+  actor_type?: string;
+  actor_id?: string;
+  page?: number;
+  page_size?: number;
+  sort_by?: string;
+  sort_order?: string;
+  tenant_id?: string;
+  from_date?: string;
+  to_date?: string;
 }
 
 export const getTicketEventsApi = (params: TicketEventParams) => {
