@@ -115,6 +115,7 @@ export function TelesipSDK() {
       const observer = new MutationObserver(() => {
         document.querySelectorAll(selector).forEach((el: any) => {
           if (!el.dataset.masked) {
+            // eslint-disable-next-line prefer-const
             let original = el.textContent || el.innerText;
             el.textContent = maskPhone(original);
             el.dataset.masked = "true";
@@ -127,6 +128,7 @@ export function TelesipSDK() {
       });
       document.querySelectorAll(selector).forEach((el: any) => {
         if (!el.dataset.masked) {
+          // eslint-disable-next-line prefer-const
           let original = el.textContent || el.innerText;
           el.textContent = maskPhone(original);
           el.dataset.masked = "true";
