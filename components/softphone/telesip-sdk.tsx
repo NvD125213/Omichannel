@@ -58,6 +58,7 @@ export function TelesipSDK() {
             // Ensure SDK is ready (though onLoad guarantees script load, this matches the provided logic flow)
             if (!window.CGVSDK) return;
 
+            // eslint-disable-next-line prefer-const
             let sdkOptions = {
               enableWidget: true,
               sipOnly: true,
@@ -67,6 +68,7 @@ export function TelesipSDK() {
             };
 
             // Create an instance of the SDK
+            // eslint-disable-next-line prefer-const
             let cgvSdkInstance = new window.CGVSDK(
               "demo.cgv.vn",
               "xxx",
