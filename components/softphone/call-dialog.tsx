@@ -78,7 +78,6 @@ export function CallDialog() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          onKeyDownCapture={handleKeyDown}
           onKeyDown={handleKeyDown}
           className={`
             sm:max-w-[340px] p-6 
