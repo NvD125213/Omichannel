@@ -32,6 +32,7 @@ import {
 import { useCreateTag, useUpdateTag } from "@/hooks/tag/use-tag-ticket";
 import { useMe } from "@/hooks/user/use-me";
 import { removeEmptyFields } from "@/utils/remove-field-empty";
+import { Sketch } from "@uiw/react-color";
 
 interface TagFormDialogProps {
   tag?: TicketTag | null;
@@ -137,34 +138,6 @@ export function TagFormDialog({
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control}
-                name="color"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Màu sắc</FormLabel>
-                    <FormControl>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="color"
-                          className="h-10 w-20 p-1 cursor-pointer"
-                          {...field}
-                          value={field.value || "#000000"}
-                        />
-                        <Input
-                          placeholder="#000000"
-                          {...field}
-                          value={field.value || "#000000"}
-                          onChange={(e) => field.onChange(e.target.value)}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="description"
@@ -173,6 +146,28 @@ export function TagFormDialog({
                     <FormLabel>Mô tả</FormLabel>
                     <FormControl>
                       <Input placeholder="Nhập mô tả" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="color"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Màu sắc</FormLabel>
+                    <FormControl>
+                      <div className="w-full">
+                        <Sketch
+                          color={field.value}
+                          onChange={(color) => {
+                            field.onChange(color.hex);
+                          }}
+                          style={{ width: "100%", boxShadow: "none" }}
+                        />
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

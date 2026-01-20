@@ -46,9 +46,9 @@ import {
 export const sidebarData: SidebarData = {
   teams: [
     {
-      name: "Shadcn Admin",
+      name: "Omichannel",
       logo: Command,
-      plan: "NextJs + ShadcnUI",
+      plan: "Omichannel",
     },
     {
       name: "Acme Inc",
@@ -125,21 +125,21 @@ export const sidebarData: SidebarData = {
               url: "/tickets/ticket-list",
               icon: IconTicket,
             },
-            {
-              title: "Danh sách event",
-              url: "/tickets/ticket-event",
-              icon: IconTimelineEvent,
-            },
-            {
-              title: "Mẫu ticket",
-              url: "/tickets/ticket-template",
-              icon: IconTemplate,
-            },
-            {
-              title: "Luồng xử lý ticket",
-              url: "/tickets/ticket-flow",
-              icon: IconArrowAutofitContent,
-            },
+            // {
+            //   title: "Danh sách event",
+            //   url: "/tickets/ticket-event",
+            //   icon: IconTimelineEvent,
+            // },
+            // {
+            //   title: "Mẫu ticket",
+            //   url: "/tickets/ticket-template",
+            //   icon: IconTemplate,
+            // },
+            // {
+            //   title: "Luồng xử lý ticket",
+            //   url: "/tickets/ticket-flow",
+            //   icon: IconArrowAutofitContent,
+            // },
           ],
         },
         {

@@ -1,116 +1,74 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import TicketDetailLiveChatContext from "./ticket-detail-live-chat-tab";
-import TicketDetailEvent from "./ticket-detail-event";
+import { TicketEventTimelineData } from "@/features/tickets/ticket-event/components/ticket-event-timeline-data";
 import KabanTicketFlow from "./ticket-flow-chart-tab";
 import { TicketTagMain } from "../../ticket-tag/components/ticket-tag-main";
 
-type TabValue = "context" | "task" | "event" | "note" | "tag";
+const Section = ({
+  title,
+  children,
+  minHeight,
+}: {
+  title?: string;
+  children: React.ReactNode;
+  minHeight?: string;
+}) => {
+  return (
+    <div
+      className={`bg-white rounded-xl border border-slate-100 overflow-hidden ${minHeight ?? ""}`}
+    >
+      {title && (
+        <div className="px-5 py-3 border-b border-slate-100">
+          <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+        </div>
+      )}
+      <div className="p-5">{children}</div>
+    </div>
+  );
+};
 
-interface Tab {
-  name: string;
-  value: TabValue;
-}
+const TicketDetailGrid = () => {
+  return (
+    <div className="w-full bg-slate-50/50 px-4 py-6">
+      <div className="grid grid-cols-1 md:grid-cols-10 gap-4 max-w-[1600px] mx-auto">
+        {/* Context Section */}
+        <div className="md:col-span-10 bg-white rounded-xl border border-slate-100 min-h-[400px]">
+          <TicketDetailLiveChatContext />
+        </div>
 
-const tabs: Tab[] = [
-  { name: "Bối cảnh", value: "context" },
-  { name: "Luồng xử lý", value: "task" },
-  { name: "Sự kiện", value: "event" },
-  { name: "Ghi chú", value: "note" },
-  { name: "Tag", value: "tag" },
-];
+        {/* Flow Section */}
+        <div className="md:col-span-7 bg-white rounded-xl border border-slate-100 min-h-[500px]">
+          <KabanTicketFlow />
+        </div>
 
-const TabsTicketDetail = () => {
-  const [activeTab, setActiveTab] = useState<TabValue>("context");
+        {/* Events Section */}
+        <Section title="Luồng sự kiện" minHeight="md:col-span-3 min-h-[500px]">
+          <TicketEventTimelineData />
+        </Section>
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case "context":
-        return <TicketDetailLiveChatContext />;
-      case "event":
-        return <TicketDetailEvent />;
-      case "task":
-        return <KabanTicketFlow />;
-      case "note":
-        return (
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-3">Ghi Chú</h2>
-            <p className="text-gray-600">
-              Nội dung xử lý task sẽ được hiển thị ở đây
+        {/* Notes Section */}
+        <Section title="Ghi chú" minHeight="md:col-span-3 min-h-[300px]">
+          <div className="flex flex-col items-center justify-center h-full text-center py-10">
+            <div className="bg-slate-100 p-3 rounded-full mb-3">
+              <span className="text-xl">📝</span>
+            </div>
+            <p className="text-slate-500 font-medium text-sm">
+              Chưa có ghi chú nào
+            </p>
+            <p className="text-slate-400 text-xs mt-1">
+              Nội dung xử lý sẽ được lưu trữ tại đây
             </p>
           </div>
-        );
-      case "tag":
-        return (
-          <div className="p-6">
-            <h2 className="text-xl font-semibold mb-3">Quản lý Tag</h2>
-            <TicketTagMain />
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+        </Section>
 
-  return (
-    <div className="w-full bg-white">
-      {/* Tab Navigation - Minimal Style */}
-      <div className="border-b border-gray-200">
-        <div className="flex gap-8 justify-center px-6">
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.value;
-            return (
-              <button
-                key={tab.value}
-                onClick={() => setActiveTab(tab.value)}
-                className="relative py-4 text-sm font-medium transition-colors focus:outline-none"
-              >
-                <span
-                  className={`${
-                    isActive
-                      ? "text-blue-600"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  {tab.name}
-                </span>
-
-                {/* Simple underline indicator */}
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"
-                    transition={{
-                      type: "spring",
-                      stiffness: 380,
-                      damping: 30,
-                    }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Tab Content - Simple Fade Animation */}
-      <div className="min-h-[400px] px-4 py-4">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-          >
-            {renderTabContent()}
-          </motion.div>
-        </AnimatePresence>
+        {/* Tag Section */}
+        <Section title="Quản lý Tag" minHeight="md:col-span-7 min-h-[300px]">
+          <TicketTagMain />
+        </Section>
       </div>
     </div>
   );
 };
 
-export default TabsTicketDetail;
+export default TicketDetailGrid;

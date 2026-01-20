@@ -1,5 +1,5 @@
 import { Send, X, Plus } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useCreateTicketContext } from "@/hooks/ticket/ticket-contexts/use-ticket-context";
-import { useMe } from "@/hooks/user/use-me";
+import { DataTablePagination } from "./ticket-context-pagination";
+import type { Table } from "@tanstack/react-table";
 
 export interface TicketContextFormData {
   context_type: string;
@@ -26,6 +26,18 @@ interface TicketCreateFormProps {
   onSubmit: (data: TicketContextFormData) => void;
   disabled?: boolean;
   tenantId?: string;
+  // Pagination props
+  table: Table<any>;
+  pagination?: {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+  };
+  currentPage?: number;
+  currentPageSize?: number;
+  onPageChange?: (page: number | null | undefined) => void;
+  onPageSizeChange?: (pageSize: number | null | undefined) => void;
 }
 
 interface MetadataTag {
@@ -37,6 +49,12 @@ export default function TicketMessageInput({
   onSubmit,
   disabled = false,
   tenantId = "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  table,
+  pagination,
+  currentPage,
+  currentPageSize,
+  onPageChange,
+  onPageSizeChange,
 }: TicketCreateFormProps) {
   const [metadataTags, setMetadataTags] = useState<MetadataTag[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -131,8 +149,10 @@ export default function TicketMessageInput({
   };
 
   return (
-    <div className="border-t p-4 bg-white">
+    <div className="border-t p-4 bg-white w-full">
       <div className="flex flex-col gap-3">
+        {/* Pagination Row */}
+
         {/* Row 1: Metadata Input */}
         <div
           className={cn(
@@ -194,14 +214,27 @@ export default function TicketMessageInput({
         )}
 
         {/* Row 2: Controls */}
-        <div className="flex items-center justify-end gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-2 whitespace-nowrap">
+          {/* Pagination */}
+          <div className="shrink-0">
+            <DataTablePagination
+              table={table}
+              pagination={pagination}
+              currentPage={currentPage}
+              currentPageSize={currentPageSize}
+              onPageChange={onPageChange}
+              onPageSizeChange={onPageSizeChange}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Context type */}
             <Select
               value={contextType}
               onValueChange={setContextType}
               disabled={disabled}
             >
-              <SelectTrigger className="flex items-center gap-1 w-fit h-9">
+              <SelectTrigger className="h-9 w-auto shrink-0 flex items-center gap-1">
                 <span className="text-xs text-gray-400">Bối cảnh:</span>
                 <SelectValue placeholder="Chọn bối cảnh" />
               </SelectTrigger>
@@ -213,12 +246,13 @@ export default function TicketMessageInput({
               </SelectContent>
             </Select>
 
+            {/* Context ID */}
             <Select
               value={contextId}
               onValueChange={setContextId}
               disabled={disabled}
             >
-              <SelectTrigger className="flex items-center gap-1 w-fit h-9">
+              <SelectTrigger className="h-9 w-auto shrink-0 flex items-center gap-1">
                 <span className="text-xs text-gray-400">Mã bối cảnh:</span>
                 <SelectValue placeholder="Chọn ID" />
               </SelectTrigger>
@@ -229,34 +263,35 @@ export default function TicketMessageInput({
               </SelectContent>
             </Select>
 
+            {/* Source */}
             <Select
               value={sourceType}
               onValueChange={setSourceType}
               disabled={disabled}
             >
-              <SelectTrigger className="flex items-center gap-1 w-fit h-9">
+              <SelectTrigger className="h-9 w-auto shrink-0 flex items-center gap-1">
                 <span className="text-xs text-gray-400">Nguồn:</span>
                 <SelectValue placeholder="Chọn nguồn" />
               </SelectTrigger>
-
               <SelectContent>
                 <SelectItem value="facebook">Hệ thống trượt</SelectItem>
-                <SelectItem value="zalo">ZNS </SelectItem>
+                <SelectItem value="zalo">ZNS</SelectItem>
                 <SelectItem value="email">Email</SelectItem>
                 <SelectItem value="phone">Phone</SelectItem>
                 <SelectItem value="website">Website</SelectItem>
               </SelectContent>
             </Select>
-          </div>
 
-          <Button
-            onClick={handleSubmit}
-            disabled={disabled || !contextType || !sourceType}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Thêm
-          </Button>
+            {/* Submit */}
+            <Button
+              onClick={handleSubmit}
+              disabled={disabled || !contextType || !sourceType}
+              className="h-9 shrink-0 bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              Thêm
+            </Button>
+          </div>
         </div>
       </div>
     </div>

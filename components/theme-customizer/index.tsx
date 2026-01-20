@@ -127,7 +127,7 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
                 <Settings className="size-4" />
               </div>
               <SheetTitle className="text-lg font-semibold">
-                Customizer
+                Bảng tùy chỉnh
               </SheetTitle>
               <div className="ml-auto flex items-center gap-2">
                 <Button

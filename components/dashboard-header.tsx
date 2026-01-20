@@ -11,6 +11,8 @@ import { Settings } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
+import { CallDialog } from "@/components/softphone/call-dialog";
+import { TelesipSDK } from "@/components/softphone/telesip-sdk";
 
 export function DashboardHeader() {
   const [themeCustomizerOpen, setThemeCustomizerOpen] = React.useState(false);
@@ -70,15 +72,18 @@ export function DashboardHeader() {
         onOpenChange={setCommandSearchOpen}
       />
       <div className="ml-auto flex items-center gap-1">
+        <TelesipSDK />
+        <CallDialog />
         <ToggleTheme />
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           onClick={() => setThemeCustomizerOpen(true)}
           className="text-muted-foreground hover:text-foreground"
         >
           <Settings className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Open theme customizer</span>
+          <span className="sr-only">Mở tùy chỉnh giao diện</span>
         </Button>
         <ThemeCustomizer
           open={themeCustomizerOpen}

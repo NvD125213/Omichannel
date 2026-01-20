@@ -53,15 +53,6 @@ export function TicketCreateSheet({
           showExtended ? "sm:max-w-[1200px]" : "sm:max-w-xl"
         }`}
       >
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-10 top-1 z-50 opacity-70 hover:opacity-100"
-          onClick={() => setShowExtended(!showExtended)}
-          title={showExtended ? "Close Extended Form" : "Open Extended Form"}
-        >
-          <Expand className="h-2 w-2" />
-        </Button>
         <div className="flex h-full flex-row gap-6">
           {showExtended && (
             <div className="flex-1 border-r pr-6 pt-1 animate-in slide-in-from-left-5 fade-in duration-300">

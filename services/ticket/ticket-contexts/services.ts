@@ -70,9 +70,13 @@ export const getTicketContextsApi = (params: TicketContextParams) => {
   });
 };
 
-export const getTicketContextWithTicketIdApi = (ticketId: string) => {
+export const getTicketContextWithTicketIdApi = (
+  ticketId: string,
+  params?: TicketContextParams,
+) => {
   return apiClient.get<GetTicketContextsResponse>(
     `ticket-contexts/ticket/${ticketId}/contexts`,
+    { params },
   );
 };
 

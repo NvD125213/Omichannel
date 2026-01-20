@@ -18,10 +18,13 @@ export const useGetTicketContexts = (params: TicketContextParams) => {
   });
 };
 
-export const useGetTicketContextWithTicketId = (ticketId: string) => {
+export const useGetTicketContextWithTicketId = (
+  ticketId: string,
+  params?: TicketContextParams,
+) => {
   return useQuery({
-    queryKey: ["ticket-contexts", ticketId],
-    queryFn: () => getTicketContextWithTicketIdApi(ticketId),
+    queryKey: ["ticket-contexts", ticketId, params],
+    queryFn: () => getTicketContextWithTicketIdApi(ticketId, params),
     placeholderData: (previousData) => previousData,
   });
 };

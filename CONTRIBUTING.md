@@ -1,10 +1,10 @@
-# Contributing to Shadcn Admin
+# Contributing to Omichannel
 
-Thank you for your interest in contributing to Shadcn Admin. This guide will help you get started with the contribution process.
+Thank you for your interest in contributing to Omichannel. This guide will help you get started with the contribution process.
 
 ## Project Structure
 
-The Shadcn Admin project is organized as follows:
+The Omichannel project is organized as follows:
 
 - `/app` - Next.js app router pages and layouts
 - `/components` - Shared UI components (shadcn/ui)
@@ -19,7 +19,7 @@ The Shadcn Admin project is organized as follows:
 
 ## Development Guidelines
 
-When contributing to Shadcn Admin:
+When contributing to Omichannel:
 
 - Keep changes focused. Large PRs are harder to review.
 - Ensure all code is type-safe and takes full advantage of TypeScript features.
@@ -99,7 +99,6 @@ pnpm lint
    ```
 
    Branch type prefixes:
-
    - `feat/` - New features
    - `fix/` - Bug fixes
    - `docs/` - Documentation changes

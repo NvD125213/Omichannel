@@ -1,0 +1,32 @@
+export const eventsData = [
+  {
+    id: "019bb633-52e6-77bb-963d-703cf43a5a06",
+    ticket_id: "019bb633-52d0-79c9-bdc0-4b4fcc7c1882",
+    event_type: "CREATED",
+    payload: '{"title": "Yêu cầu hỗ trợ kỹ thuật", "priority": "high"}',
+    actor_type: "admin",
+    actor_id: "019b8bea-d0b3-7d18-b717-228a2bab0c17",
+    created_at: "2026-01-13 07:12:55.526122+00",
+    tenant_id: "019b8bea-cb75-72da-8cb0-66359f310427",
+  },
+  {
+    id: "019bb638-578b-79b2-8862-b97489195a04",
+    ticket_id: "019bb633-52d0-79c9-bdc0-4b4fcc7c1882",
+    event_type: "UPDATED",
+    payload: null,
+    actor_type: "admin",
+    actor_id: "string",
+    created_at: "2026-01-13 07:18:24.395161+00",
+    tenant_id: "019b8bea-cb75-72da-8cb0-66359f310427",
+  },
+  {
+    id: "019bccac-4e2b-723f-98ff-e6a17c695492",
+    ticket_id: "019bccac-4e17-7ae8-9d4e-2e3104f55923",
+    event_type: "CREATED",
+    payload: '{"title": "Yêu cầu sửa dữ liệu", "priority": "high"}',
+    actor_type: "admin",
+    actor_id: "019b8bea-d0b3-7d18-b717-228a2bab0c17",
+    created_at: "2026-01-17 15:56:42.923644+00",
+    tenant_id: "019b8bea-cb75-72da-8cb0-66359f310427",
+  },
+];

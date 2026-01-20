@@ -86,7 +86,7 @@ export default function TicketContextDisplay({
   ];
 
   return (
-    <div className="relative rounded-lg p-4 group hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 cursor-pointer">
+    <div className="relative rounded-lg p-4 group transition-all duration-300 cursor-pointer">
       {/* Header with User Info */}
       <div className="flex items-start gap-3 mb-4">
         <Avatar className="h-10 w-10 border-2 border-white shadow-sm">

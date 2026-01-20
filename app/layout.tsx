@@ -70,7 +70,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <FontProvider>
-            <NextToploader color="var(--primary)" showSpinner={false} />
+            <NextToploader
+              color="var(--primary)"
+              showSpinner={false}
+              showForHashAnchor={false}
+            />
             <QueryProvider>
               <AuthProvider>
                 {children}

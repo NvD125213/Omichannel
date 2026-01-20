@@ -209,7 +209,9 @@ export function TicketTagDataTable({
             className="w-6 h-6 rounded border border-gray-200"
             style={{ backgroundColor: row.original.color || "#ccc" }}
           />
-          <span className="text-sm font-mono">{row.original.color}</span>
+          <span className="text-sm text-gray-500 text-ellipsis font-medium">
+            {row.original.color}
+          </span>
         </div>
       ),
     },

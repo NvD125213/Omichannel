@@ -9,9 +9,9 @@ export default function SignUp2Page() {
         <div className="flex justify-center gap-2 md:justify-start">
           <Link href="/" className="flex items-center gap-2 font-medium">
             <div className="flex h-8 w-8 items-center justify-center rounded-md bg-linear-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white">
-              SA
+              OA
             </div>
-            <span>Shadcn Admin</span>
+            <span>Omichannel</span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">

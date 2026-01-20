@@ -224,12 +224,13 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
 export function SearchTrigger({ onClick }: { onClick: () => void }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="inline-flex items-center gap-2 rounded-md text-sm font-medium border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 relative justify-start text-muted-foreground sm:pr-12 md:w-36 lg:w-56"
     >
       <Search className="size-4" />
-      <span className="hidden lg:inline-flex">Search...</span>
-      <span className="inline-flex lg:hidden">Search...</span>
+      <span className="hidden lg:inline-flex">Tìm kiếm...</span>
+      <span className="inline-flex lg:hidden">Tìm kiếm...</span>
       <kbd className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
         <span className="text-xs">⌘</span>K
       </kbd>

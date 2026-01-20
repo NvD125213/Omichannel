@@ -117,9 +117,9 @@ export default function ResetPassword2() {
         {/* Logo */}
         <div className="flex items-center justify-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white">
-            SA
+            OA
           </div>
-          <span className="text-lg font-semibold">Shadcn Admin</span>
+          <span className="text-lg font-semibold">Omichannel</span>
         </div>
 
         {/* Card */}

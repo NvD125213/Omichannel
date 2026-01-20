@@ -143,11 +143,11 @@ export default function ResetPassword1() {
         <div className="relative z-10 flex h-full flex-col justify-between p-12">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-500 text-lg font-bold text-white shadow-lg shadow-violet-500/25 transition-transform group-hover:scale-105">
-              SA
+              OA
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-semibold text-white">
-                Shadcn Admin
+                Omichannel
               </span>
               <span className="text-sm text-zinc-400">Admin Dashboard</span>
             </div>
@@ -241,9 +241,9 @@ export default function ResetPassword1() {
         <div className="mx-auto w-full max-w-[400px] space-y-8">
           <div className="flex items-center justify-center gap-3 lg:hidden">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white">
-              SA
+              OA
             </div>
-            <span className="text-lg font-semibold">Shadcn Admin</span>
+            <span className="text-lg font-semibold">Omichannel</span>
           </div>
 
           {/* Mobile Steps Indicator */}

@@ -7,6 +7,7 @@ import {
   setTokens,
 } from "@/lib/auth";
 import { loginApi } from "@/services/auth/sign-in";
+import { logoutApi } from "@/services/auth/log-out";
 import { User } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import {
@@ -30,7 +31,7 @@ interface AuthContextType {
     username: string,
     password: string,
   ) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,11 +89,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const logout = useCallback(() => {
-    clearTokens();
-    setUser(null);
-    router.push("/sign-in");
-    router.refresh();
+  const logout = useCallback(async () => {
+    try {
+      await logoutApi();
+    } catch (error) {
+      // Still clear tokens even if API fails to avoid stuck state
+      console.error("Logout API failed:", error);
+    } finally {
+      clearTokens();
+      setUser(null);
+      router.push("/sign-in");
+      router.refresh();
+    }
   }, [router]);
 
   // Effect để sync state với kết quả của useMe

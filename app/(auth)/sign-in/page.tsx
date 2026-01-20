@@ -9,12 +9,12 @@ function SignInFallback() {
         <div className="relative z-20 flex h-full items-center justify-center text-lg font-medium">
           <div className="flex items-center gap-3">
             <div className="bg-primary text-primary-foreground flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold">
-              SA
+              OA
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-semibold">Shadcn Admin</span>
+              <span className="text-xl font-semibold">Omichannel</span>
               <span className="text-muted-foreground text-sm">
-                Shadcn Admin Dashboard
+                Omichannel Dashboard
               </span>
             </div>
           </div>

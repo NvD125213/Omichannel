@@ -485,6 +485,10 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
                                 key={tagId}
                                 variant="secondary"
                                 className="text-xs"
+                                style={{
+                                  backgroundColor: tag?.color || undefined,
+                                  color: tag?.color ? "#fff" : undefined,
+                                }}
                               >
                                 {tag?.name}
                               </Badge>
@@ -516,6 +520,10 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
                                 ? "opacity-100"
                                 : "opacity-0"
                             }`}
+                          />
+                          <div
+                            className="mr-2 h-2 w-2 rounded-full"
+                            style={{ backgroundColor: tag.color || "gray" }}
                           />
                           {tag.name}
                         </CommandItem>

@@ -6,7 +6,7 @@ export default function KanbanTicketFlow() {
       <div className="px-4 py-4 lg:px-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold tracking-tight">
-            Luồng dữ liệu hoạt động của ticket
+            Luồng hoạt động{" "}
           </h1>
           <p className="text-muted-foreground">
             Quản lý luồng dữ liệu hoạt động chi tiết của các ticket
