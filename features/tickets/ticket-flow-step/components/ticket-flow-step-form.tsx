@@ -116,7 +116,7 @@ function StepperPreview({
         <div className="text-center space-y-2">
           <div className="text-sm text-muted-foreground">Chưa có bước nào.</div>
           <div className="text-xs text-muted-foreground">
-            Hãy điền form bên trái và nhấn "Thêm bước"
+            Hãy điền form bên trái và nhấn &quot;Thêm bước&quot;
           </div>
         </div>
       </div>
