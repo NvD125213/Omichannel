@@ -82,7 +82,6 @@ export default function TicketFlowStepDataList({
             ) : (
               <div className="space-y-4">
                 {/* Here will be the actual stepper with flow steps */}
-                <TicketFlowStepper />
               </div>
             )}
           </CardContent>
