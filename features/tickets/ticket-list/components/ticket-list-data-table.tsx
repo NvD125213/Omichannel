@@ -572,11 +572,11 @@ export function DataTable({
         const createdAt = row.original.created_at;
         if (!createdAt) return <span className="text-muted-foreground">-</span>;
 
-        const [dateText, timeText] = convertDateTime(createdAt);
+        const { date, time } = convertDateTime(createdAt);
         return (
           <div className="flex flex-col text-sm">
-            <span>{dateText}</span>
-            <span className="text-muted-foreground text-xs">{timeText}</span>
+            <span>{date}</span>
+            <span className="text-muted-foreground text-xs">{time}</span>
           </div>
         );
       },
@@ -612,7 +612,7 @@ export function DataTable({
               <DropdownMenuItem asChild>
                 <Link
                   className="flex items-center cursor-pointer"
-                  href={`/tickets/ticket-list/${ticket.id}`}
+                  href={`/tickets/${ticket.id}`}
                 >
                   <Eye className="mr-2 size-4" />
                   Xem chi tiết

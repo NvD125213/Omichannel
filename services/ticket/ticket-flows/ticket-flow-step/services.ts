@@ -1,18 +1,37 @@
 import apiClient from "@/lib/api-client";
 
-// Interface instance
+export interface FlowInfo {
+  id: string;
+  name: string;
+  description: string;
+}
 
+export interface AssigneeUser {
+  id: string;
+  username: string;
+  fullname: string;
+}
+
+export interface AssigneeGroup {
+  id: string;
+  name: string;
+  description: string;
+}
+
+// Interface instance
 export interface TicketFlowStep {
   id: string;
-  ticket_id: string;
   flow_id: string;
   step_name: string;
   step_order: number;
-  assignee: string;
-  assignee_user_id: string;
-  assignee_group_id: string;
+  assignee_user_id: string | null;
+  assignee_group_id: string | null;
   created_at: string;
+  flow: FlowInfo;
+  assignee_user?: AssigneeUser | null;
+  assignee_group?: AssigneeGroup | null;
 }
+
 // Interface Request/Response
 // Get flow step
 export interface GetFlowStepResponse {

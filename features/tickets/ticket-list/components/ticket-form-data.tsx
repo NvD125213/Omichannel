@@ -16,13 +16,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Form,
   FormControl,
   FormField,
@@ -36,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useListUser } from "@/hooks/user/use-list-user";
 import { useGetTicketTemplates } from "@/hooks/ticket/ticket-templates/use-ticket-templates";
+import { useCreateTicketFlowInstance } from "@/hooks/ticket/ticket-flows/use-ticket-flow-instance";
 import { useGetTags } from "@/hooks/tag/use-tag-ticket";
 import {
   useCreateTicket,
@@ -44,20 +38,12 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Ticket } from "../utils/ticket-schema";
-
-const ticketFormSchema = z.object({
-  id: z.string().optional(),
-  title: z.string().min(1, "Tiêu đề không được để trống"),
-  description: z.string().min(1, "Mô tả không được để trống"),
-  assigned_to: z.string().optional(),
-  template_id: z.string().optional(),
-  priority: z.string().min(1, "Vui lòng chọn mức độ ưu tiên"),
-  tag_ids: z.array(z.string()).optional(),
-  extension_data: z.record(z.string(), z.string()).optional(),
-});
-
-type TicketFormValues = z.infer<typeof ticketFormSchema>;
+import {
+  ticketDefaultValues,
+  ticketFormSchema,
+  type Ticket,
+  type TicketFormValues,
+} from "../utils/ticket-schema";
 
 const priorities = [
   { value: "low", label: "Thấp", color: "bg-gray-400" },
@@ -69,14 +55,23 @@ const priorities = [
 
 interface TicketFormProps {
   ticket?: Ticket | null;
+  selectedFlowId?: string;
+  selectedStepId?: string;
+  originalFlowId?: string; // Not used anymore - flow is locked in edit mode
   onSuccess?: () => void;
 }
 
-export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
+export default function TicketForm({
+  ticket,
+  selectedFlowId,
+  selectedStepId,
+  onSuccess,
+}: TicketFormProps) {
   const isEditMode = !!ticket;
 
   const createTicketMutation = useCreateTicket();
   const updateTicketMutation = useUpdateTicket();
+  const createFlowInstanceMutation = useCreateTicketFlowInstance();
 
   const [openAssignee, setOpenAssignee] = React.useState(false);
   const [openTemplate, setOpenTemplate] = React.useState(false);
@@ -88,13 +83,13 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
   // Fetch data using hooks
   const { data: usersData, isLoading: isLoadingUsers } = useListUser({
     page: 1,
-    page_size: 100,
+    page_size: 10,
   });
   const { data: templatesData, isLoading: isLoadingTemplates } =
     useGetTicketTemplates({ page: 1, page_size: 100 });
   const { data: tagsData, isLoading: isLoadingTags } = useGetTags({
     page: 1,
-    page_size: 100,
+    page_size: 10,
   });
 
   const users = usersData?.data.items || [];
@@ -103,15 +98,7 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
 
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketFormSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      assigned_to: "",
-      template_id: "",
-      priority: "",
-      tag_ids: [],
-      extension_data: {},
-    },
+    defaultValues: ticketDefaultValues,
   });
 
   // Populate form when in edit mode
@@ -157,15 +144,7 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
         }
       }, 0);
     } else if (!ticket) {
-      form.reset({
-        title: "",
-        description: "",
-        assigned_to: "",
-        template_id: "",
-        priority: "",
-        tag_ids: [],
-        extension_data: {},
-      });
+      form.reset(ticketDefaultValues);
       setExtensionFields([]);
     }
   }, [ticket, isEditMode, form]);
@@ -220,7 +199,16 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
   };
 
   function onSubmit(data: TicketFormValues) {
+    console.log("🎯 Form submitted with data:", data);
+    console.log("📊 Current state:", {
+      isEditMode,
+      selectedFlowId,
+      selectedStepId,
+      ticketId: ticket?.id,
+    });
+
     if (isEditMode && ticket?.id) {
+      // Flow is locked in edit mode, just update ticket data
       updateTicketMutation.mutate(
         {
           id: ticket.id,
@@ -233,11 +221,92 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
         },
       );
     } else {
-      createTicketMutation.mutate(data as any, {
-        onSuccess: () => {
+      // ✨ Inject flow_id into payload if selectedFlowId is provided
+      const createPayload = {
+        ...data,
+        ...(selectedFlowId && { flow_id: selectedFlowId }),
+      };
+
+      console.log("📦 Create ticket payload:", createPayload);
+
+      createTicketMutation.mutate(createPayload as any, {
+        onSuccess: (response: any) => {
+          console.log("✅ Ticket created! Full response:", response);
+          console.log("🔍 Response structure check:");
+          console.log(
+            "  - response?.data?.ticket?.id:",
+            response?.data?.ticket?.id,
+          );
+          console.log(
+            "  - response?.data?.data?.ticket?.id:",
+            response?.data?.data?.ticket?.id,
+          );
+          console.log("  - response?.data?.id:", response?.data?.id);
+          console.log("  - response?.id:", response?.id);
+
           form.reset();
           setExtensionFields([]);
-          onSuccess?.();
+
+          // Enhanced ticket ID extraction to handle various response structures
+          // Case 1: Standard ActionTicketResponse -> response.data.ticket.id
+          // Case 2: Deeply nested (potential interceptor issue) -> response.data.data.ticket.id
+          // Case 3: Flat ticket object -> response.id
+          // Case 4: Maybe directly in data -> response.data.id
+          const ticketId =
+            response?.data?.ticket?.id ||
+            response?.data?.data?.ticket?.id ||
+            response?.data?.id ||
+            response?.id;
+
+          console.log("🎫 Extracted ticketId:", ticketId);
+          console.log("🔄 Flow instance creation check:");
+          console.log(
+            "  - selectedFlowId:",
+            selectedFlowId,
+            selectedFlowId ? "✓" : "❌",
+          );
+          console.log(
+            "  - selectedStepId:",
+            selectedStepId,
+            selectedStepId ? "✓" : "❌",
+          );
+          console.log("  - ticketId:", ticketId, ticketId ? "✓" : "❌");
+
+          // Create flow instance if flow and step are selected
+          if (selectedFlowId && selectedStepId && ticketId) {
+            console.log("✨ Creating flow instance with:", {
+              ticket_id: ticketId,
+              flow_id: selectedFlowId,
+              current_step_id: selectedStepId,
+            });
+            createFlowInstanceMutation.mutate(
+              {
+                ticket_id: ticketId,
+                flow_id: selectedFlowId,
+                current_step_id: selectedStepId,
+              },
+              {
+                onSuccess: () => {
+                  console.log("✅ Flow instance created successfully!");
+                  onSuccess?.();
+                },
+                onError: (err) => {
+                  console.error("❌ Flow instance creation failed:", err);
+                  onSuccess?.();
+                },
+              },
+            );
+          } else {
+            console.warn(
+              "⚠️ Skipping flow instance creation. Missing requirements:",
+              {
+                selectedFlowId: selectedFlowId || "MISSING",
+                selectedStepId: selectedStepId || "MISSING",
+                ticketId: ticketId || "MISSING",
+              },
+            );
+            onSuccess?.();
+          }
         },
       });
     }
@@ -245,7 +314,13 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit, (errors) => {
+          console.error("❌ Form validation failed:", errors);
+          console.log("📋 Current form values:", form.getValues());
+        })}
+        className="space-y-6"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -503,7 +578,7 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
                   <Command>
                     <CommandInput placeholder="Tìm tag..." />
                     <CommandEmpty>Không tìm thấy.</CommandEmpty>
@@ -586,6 +661,15 @@ export default function TicketForm({ ticket, onSuccess }: TicketFormProps) {
           <Button
             type="submit"
             className="flex-1"
+            onClick={() => {
+              console.log("🔘 Submit button clicked!");
+              console.log("🔍 Form state:", {
+                isValid: form.formState.isValid,
+                errors: form.formState.errors,
+                isDirty: form.formState.isDirty,
+                isSubmitting: form.formState.isSubmitting,
+              });
+            }}
             disabled={
               isEditMode
                 ? updateTicketMutation.isPending

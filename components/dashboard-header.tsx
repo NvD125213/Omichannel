@@ -71,7 +71,7 @@ export function DashboardHeader() {
         onOpenChange={setCommandSearchOpen}
       />
       <div className="ml-auto flex items-center gap-1">
-        <TelesipSDK />
+        {/* <TelesipSDK /> */}
         <Button
           variant="ghost"
           size="icon"

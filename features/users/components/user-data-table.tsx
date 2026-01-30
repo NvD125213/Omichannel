@@ -301,7 +301,7 @@ export function DataTable({
         const isActive = row.original.is_active;
         return (
           <Badge variant="secondary" className={getStatusColor(isActive)}>
-            {isActive === 1 ? "Active" : "Inactive"}
+            {isActive === 1 ? "Hoạt động" : "Không hoạt động"}
           </Badge>
         );
       },

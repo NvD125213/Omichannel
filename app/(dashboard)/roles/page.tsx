@@ -14,6 +14,9 @@ import {
 } from "use-query-params";
 import { useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { AppBreadcrumb } from "@/components/breadcrumb";
+import { Home } from "lucide-react";
+import { IconBuilding, IconLock } from "@tabler/icons-react";
 
 export default function RolesPage() {
   // State để quản lý edit dialog
@@ -72,51 +75,61 @@ export default function RolesPage() {
 
   return (
     <>
-      <div className="px-4 lg:px-6 py-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Danh sách vai trò
-          </h1>
-          <p className="text-muted-foreground">Quản lý thông tin vài trò</p>
+      <div className="p-4 space-y-8 bg-background min-h-screen text-foreground animate-in fade-in duration-500">
+        <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
+          <AppBreadcrumb
+            items={[
+              {
+                label: "Home",
+                href: "/dashboard",
+                icon: <Home className="size-4" />,
+              },
+              {
+                label: "Phân quyền",
+                href: "/roles",
+                icon: <IconLock className="size-4" />,
+              },
+              {
+                label: "Danh sách vai trò",
+                href: "/roles",
+                icon: <IconBuilding className="size-4" />,
+              },
+            ]}
+          />
+          <DataTable
+            roles={roles}
+            totalPages={data?.total_pages || 1}
+            totalRecords={data?.total_records || 1}
+            onDeleteRole={handleDeleteRole}
+            onEditRole={handleEditRole}
+            isLoading={isLoading}
+          />
         </div>
-      </div>
 
-      <div className="@container/main px-4 lg:px-6 space-y-6">
-        {/* <UserStateCards /> */}
+        {/* Edit User Dialog */}
+        <RoleFormDialog
+          role={editingRole}
+          open={editDialogOpen}
+          onOpenChange={handleEditDialogClose}
+        />
 
-        <DataTable
-          roles={roles}
-          totalPages={data?.total_pages || 1}
-          totalRecords={data?.total_records || 1}
-          onDeleteRole={handleDeleteRole}
-          onEditRole={handleEditRole}
-          isLoading={isLoading}
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Xóa vai trò"
+          description={
+            <span>
+              Bạn có chắc chắn muốn xóa vai trò{" "}
+              <span className="font-semibold">{deletingRole?.name}</span>?
+            </span>
+          }
+          confirmText="Xóa"
+          cancelText="Hủy"
+          onConfirm={handleConfirmDelete}
+          confirmVariant="destructive"
         />
       </div>
-
-      {/* Edit User Dialog */}
-      <RoleFormDialog
-        role={editingRole}
-        open={editDialogOpen}
-        onOpenChange={handleEditDialogClose}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="Xóa vai trò"
-        description={
-          <span>
-            Bạn có chắc chắn muốn xóa vai trò{" "}
-            <span className="font-semibold">{deletingRole?.name}</span>?
-          </span>
-        }
-        confirmText="Xóa"
-        cancelText="Hủy"
-        onConfirm={handleConfirmDelete}
-        confirmVariant="destructive"
-      />
     </>
   );
 }

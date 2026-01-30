@@ -1,22 +1,30 @@
 "use client";
 
-import TicketDetailLiveChatContext from "./ticket-detail-live-chat-tab";
+import TicketDetailLiveChatContext from "../../ticket-context/components/ticket-context-board-data";
 import { TicketEventTimelineData } from "@/features/tickets/ticket-event/components/ticket-event-timeline-data";
-import KabanTicketFlow from "./ticket-flow-chart-tab";
 import { TicketTagMain } from "../../ticket-tag/components/ticket-tag-main";
+import { AppBreadcrumb } from "@/components/breadcrumb";
+import { Home, ArrowLeft } from "lucide-react";
+import Link from "next/link";
+import { IconReportMoney } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
+import TicketFlowStepper from "../../ticket-flow-step/components/ticket-flow-stepper";
+
+import { useParams } from "next/navigation";
+import { useGetTicketById } from "@/hooks/ticket/ticket-list/use-ticket-list";
 
 const Section = ({
   title,
   children,
-  minHeight,
+  className = "",
 }: {
   title?: string;
   children: React.ReactNode;
-  minHeight?: string;
+  className?: string;
 }) => {
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-100 overflow-hidden ${minHeight ?? ""}`}
+      className={`bg-white rounded-xl border border-slate-100 overflow-hidden ${className}`}
     >
       {title && (
         <div className="px-5 py-3 border-b border-slate-100">
@@ -29,26 +37,59 @@ const Section = ({
 };
 
 const TicketDetailGrid = () => {
+  const params = useParams();
+  const ticketId = params?.ticketId as string;
+
+  const { data: ticketData } = useGetTicketById(ticketId);
+  const ticket = ticketData?.data;
+
   return (
     <div className="w-full bg-slate-50/50 px-4 py-6">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-3 py-4">
+        <Link href="/tickets">
+          <Button variant="ghost" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+
+        <AppBreadcrumb
+          items={[
+            {
+              label: "Dashboard",
+              href: "/dashboard",
+              icon: <Home className="size-4" />,
+            },
+            {
+              label: "Tickets",
+              href: "/tickets",
+              icon: <IconReportMoney className="size-4" />,
+            },
+            { label: "Chi tiết ticket", href: "/tickets/:ticketId" },
+          ]}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-10 gap-4 max-w-[1600px] mx-auto">
-        {/* Context Section */}
-        <div className="md:col-span-10 bg-white rounded-xl border border-slate-100 min-h-[400px]">
-          <TicketDetailLiveChatContext />
+        {/* ===== Row 1: Context (6) + Event (4) ===== */}
+        <div className="md:col-span-6 bg-white rounded-xl border border-slate-100 min-h-[300px]">
+          <TicketDetailLiveChatContext ticketId={ticketId} />
         </div>
 
-        {/* Flow Section */}
-        <div className="md:col-span-7 bg-white rounded-xl border border-slate-100 min-h-[500px]">
-          <KabanTicketFlow />
-        </div>
-
-        {/* Events Section */}
-        <Section title="Luồng sự kiện" minHeight="md:col-span-3 min-h-[500px]">
+        <Section title="Luồng sự kiện" className="md:col-span-4">
           <TicketEventTimelineData />
         </Section>
 
-        {/* Notes Section */}
-        <Section title="Ghi chú" minHeight="md:col-span-3 min-h-[300px]">
+        {/* ===== Row 2: Flow (full row) ===== */}
+        <Section title="Luồng hoạt động ticket" className="md:col-span-10">
+          <TicketFlowStepper
+            ticket_id={ticketId}
+            flow_id={ticket?.flow_id || ""}
+          />
+        </Section>
+
+        {/* ===== Row 3: Notes (3) + Tag (7) ===== */}
+        <Section title="Ghi chú" className="md:col-span-3 min-h-[300px]">
           <div className="flex flex-col items-center justify-center h-full text-center py-10">
             <div className="bg-slate-100 p-3 rounded-full mb-3">
               <span className="text-xl">📝</span>
@@ -62,8 +103,7 @@ const TicketDetailGrid = () => {
           </div>
         </Section>
 
-        {/* Tag Section */}
-        <Section title="Quản lý Tag" minHeight="md:col-span-7 min-h-[300px]">
+        <Section title="Quản lý Tag" className="md:col-span-7 min-h-[300px]">
           <TicketTagMain />
         </Section>
       </div>

@@ -14,7 +14,12 @@ export interface ActionTicketResponse {
   status: string;
   status_code: number;
   message: string;
-  data: unknown;
+  data: {
+    ticket?: {
+      id: string;
+      [key: string]: any;
+    };
+  };
 }
 
 // Assign ticket

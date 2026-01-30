@@ -30,10 +30,8 @@ import {
   IconUsers,
   IconShieldCheck,
   IconBuilding,
-  IconTicket,
-  IconTemplate,
-  IconTimelineEvent,
-  IconArrowAutofitContent,
+  IconFingerprint,
+  IconArrowAutofitWidth,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -41,6 +39,7 @@ import {
   GalleryVerticalEnd,
   KanbanIcon,
   MailIcon,
+  Workflow,
 } from "lucide-react";
 
 export const sidebarData: SidebarData = {
@@ -121,36 +120,21 @@ export const sidebarData: SidebarData = {
           icon: IconReportMoney,
           items: [
             {
-              title: "Danh sách ticket",
-              url: "/tickets/ticket-list",
-              icon: IconTicket,
+              title: "Quản lý ticket",
+              url: "/tickets",
+              icon: IconCreditCard,
             },
-            // {
-            //   title: "Danh sách event",
-            //   url: "/tickets/ticket-event",
-            //   icon: IconTimelineEvent,
-            // },
-            // {
-            //   title: "Mẫu ticket",
-            //   url: "/tickets/ticket-template",
-            //   icon: IconTemplate,
-            // },
-            // {
-            //   title: "Luồng xử lý ticket",
-            //   url: "/tickets/ticket-flow",
-            //   icon: IconArrowAutofitContent,
-            // },
+            {
+              title: "Quản lý luồng ticket",
+              url: "/tickets/flows",
+              icon: Workflow,
+            },
           ],
         },
         {
           title: "Quản lý người dùng",
           url: "/users",
           icon: IconUsers,
-        },
-        {
-          title: "Quản lý vai trò",
-          url: "/roles",
-          icon: IconShieldCheck,
         },
         {
           title: "Quản lý phòng ban",
@@ -268,9 +252,20 @@ export const sidebarData: SidebarData = {
       title: "Khác",
       items: [
         {
-          title: "Phân quyền",
-          url: "/permissions",
-          icon: IconLock,
+          title: "Quyền hạn",
+          icon: IconFingerprint,
+          items: [
+            {
+              title: "Quản lý vai trò",
+              url: "/roles",
+              icon: IconShieldCheck,
+            },
+            {
+              title: "Phân quyền",
+              url: "/permissions",
+              icon: IconLock,
+            },
+          ],
         },
         {
           title: "Settings",

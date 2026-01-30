@@ -20,7 +20,7 @@ export interface GroupResponseApi {
 }
 
 export interface GroupQueryParams {
-  id: string;
+  id?: string;
   page?: number;
   page_size?: number;
   search?: string;

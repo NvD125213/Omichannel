@@ -9,7 +9,7 @@
 //   const groupedPermissions = groupPermissionsByAction(permissions);
 
 //   return (
-//     <div className="p-8 space-y-8 bg-background min-h-screen text-foreground animate-in fade-in duration-500">
+//     <div className="p-4 space-y-8 bg-background min-h-screen text-foreground animate-in fade-in duration-500">
 //       <div className="flex flex-col gap-2">
 //         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
 //           Permissions

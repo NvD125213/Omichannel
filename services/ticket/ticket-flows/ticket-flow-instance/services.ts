@@ -33,8 +33,6 @@ export interface CreateFlowInstanceRequest {
   ticket_id: string;
   flow_id: string;
   current_step_id: string;
-  status: string;
-  tenant_id: string;
 }
 
 export interface CreateFlowInstanceResponse {
@@ -47,6 +45,7 @@ export interface CreateFlowInstanceResponse {
 // Update flow instance
 export interface UpdateFlowInstanceRequest extends Partial<CreateFlowInstanceRequest> {
   current_step_id?: string;
+  status?: string;
 }
 
 export interface UpdateFlowInstanceResponse {
@@ -68,6 +67,7 @@ export interface FlowInstanceParams {
   id?: string;
   ticket_id?: string;
   flow_id?: string;
+  current_step_id?: string;
   status?: string;
   page?: number;
   page_size?: number;

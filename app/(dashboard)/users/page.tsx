@@ -1,7 +1,6 @@
 "use client";
 
 import { DataTable } from "@/features/users/components/user-data-table";
-import { UserStateCards } from "@/features/users/components/user-state-cards";
 import { UserFormDialog } from "@/features/users/components/user-form-modal";
 import type { User } from "@/features/users/utils/schema";
 import { useListUser } from "@/hooks/user/use-list-user";
@@ -12,8 +11,11 @@ import {
   StringParam,
   withDefault,
 } from "use-query-params";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { AppBreadcrumb } from "@/components/breadcrumb";
+import { Home } from "lucide-react";
+import { IconUsers } from "@tabler/icons-react";
 
 export default function UsersPage() {
   // State để quản lý edit dialog
@@ -72,50 +74,51 @@ export default function UsersPage() {
 
   return (
     <>
-      <div className="px-4 lg:px-6 py-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Danh sách người dùng
-          </h1>
-          <p className="text-muted-foreground">Quản lý thông tin người dùng</p>
+      <div className="p-4 space-y-8 bg-background min-h-screen text-foreground animate-in fade-in duration-500">
+        <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
+          <AppBreadcrumb
+            items={[
+              { label: "Home", href: "/", icon: <Home className="size-4" /> },
+              {
+                label: "Quản lý người dùng",
+                href: "/users",
+                icon: <IconUsers className="size-4" />,
+              },
+            ]}
+          />
+          <DataTable
+            users={users}
+            pagination={data?.data.pagination}
+            onDeleteUser={handleDeleteUser}
+            onEditUser={handleEditUser}
+            isLoading={isLoading}
+          />
         </div>
-      </div>
 
-      <div className="@container/main px-4 lg:px-6 space-y-6">
-        <UserStateCards />
+        {/* Edit User Dialog */}
+        <UserFormDialog
+          user={editingUser}
+          open={editDialogOpen}
+          onOpenChange={handleEditDialogClose}
+        />
 
-        <DataTable
-          users={users}
-          pagination={data?.data.pagination}
-          onDeleteUser={handleDeleteUser}
-          onEditUser={handleEditUser}
-          isLoading={isLoading}
+        {/* Delete Confirmation Dialog */}
+        <ConfirmDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="Xóa người dùng"
+          description={
+            <span>
+              Bạn có chắc chắn muốn xóa người dùng{" "}
+              <span className="font-semibold">{deletingUser?.fullname}</span>?
+            </span>
+          }
+          confirmText="Xóa"
+          cancelText="Hủy"
+          onConfirm={handleConfirmDelete}
+          confirmVariant="destructive"
         />
       </div>
-
-      {/* Edit User Dialog */}
-      <UserFormDialog
-        user={editingUser}
-        open={editDialogOpen}
-        onOpenChange={handleEditDialogClose}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="Xóa người dùng"
-        description={
-          <span>
-            Bạn có chắc chắn muốn xóa người dùng{" "}
-            <span className="font-semibold">{deletingUser?.fullname}</span>?
-          </span>
-        }
-        confirmText="Xóa"
-        cancelText="Hủy"
-        onConfirm={handleConfirmDelete}
-        confirmVariant="destructive"
-      />
     </>
   );
 }

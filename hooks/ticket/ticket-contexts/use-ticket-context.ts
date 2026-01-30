@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useInfiniteQuery,
+} from "@tanstack/react-query";
 import {
   createTicketContextApi,
   deleteTicketContextApi,
@@ -14,6 +19,37 @@ export const useGetTicketContexts = (params: TicketContextParams) => {
   return useQuery({
     queryKey: ["ticket-contexts", params],
     queryFn: () => getTicketContextsApi(params),
+    placeholderData: (previousData) => previousData,
+  });
+};
+
+export const useGetTicketContextWithTicketIdInfinite = (
+  ticketId: string,
+  params?: TicketContextParams,
+) => {
+  return useInfiniteQuery({
+    // Loại bỏ page khỏi queryKey để tránh reset cache khi load thêm
+    queryKey: ["ticket-contexts", ticketId, { ...params, page: undefined }],
+
+    // Trang bắt đầu
+    initialPageParam: 1,
+
+    queryFn: async ({ pageParam }) => {
+      const response = await getTicketContextWithTicketIdApi(ticketId, {
+        ...params,
+        page: pageParam,
+      });
+
+      // Trả về toàn bộ response để dùng pagination
+      return response;
+    },
+
+    getNextPageParam: (lastPage) => {
+      const { current_page, total_pages } = lastPage.data.data.pagination;
+
+      return current_page < total_pages ? current_page + 1 : undefined;
+    },
+
     placeholderData: (previousData) => previousData,
   });
 };

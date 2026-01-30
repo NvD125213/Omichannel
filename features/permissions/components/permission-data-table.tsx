@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Filter } from "lucide-react";
+import { Filter, FingerprintIcon, Home, LockIcon } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -26,6 +26,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { AppBreadcrumb } from "@/components/breadcrumb";
+import { IconBuilding, IconLock } from "@tabler/icons-react";
 
 interface Permission {
   id: string;
@@ -254,15 +256,26 @@ export default function PermissionsMatrix() {
   };
 
   return (
-    <div className="w-full p-4 space-y-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold tracking-tight">
-          Bảng quản trị phân quyền
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Quản lý và trực quan hóa quyền hạn của các vai trò trong hệ thống
-        </p>
-      </div>
+    <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
+      <AppBreadcrumb
+        items={[
+          {
+            label: "Home",
+            href: "/dashboard",
+            icon: <Home className="size-4" />,
+          },
+          {
+            label: "Phân quyền",
+            href: "/permissions",
+            icon: <FingerprintIcon className="size-4" />,
+          },
+          {
+            label: "Quản lý vai trò",
+            href: "/permissions",
+            icon: <IconLock className="size-4" />,
+          },
+        ]}
+      />
 
       <PermissionTableToolbar
         searchTerm={searchTerm}

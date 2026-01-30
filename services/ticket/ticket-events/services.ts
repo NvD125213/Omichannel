@@ -4,8 +4,9 @@ export interface TicketEvent {
   id: string;
   ticket_id: string;
   event_type: string;
-  payload: string;
+  payload: any;
   actor_type: string;
+  actor_username: string;
   actor_id: string;
   created_at: string;
   tenant_id: string;
@@ -14,7 +15,8 @@ export interface TicketEvent {
 export interface TicketEventRequest {
   ticket_id: string;
   event_type: string;
-  payload: string;
+  payload: any;
+
   actor_type: string;
   actor_id: string;
   tenant_id: string;
@@ -27,9 +29,9 @@ export interface GetTicketEventsResponse {
   data: {
     ticket_events: TicketEvent[];
     pagination: {
-      total: number;
-      page: number;
+      current_page: number;
       page_size: number;
+      total_count: number;
       total_pages: number;
     };
   };

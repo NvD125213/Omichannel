@@ -12,8 +12,11 @@ import {
   StringParam,
   withDefault,
 } from "use-query-params";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { AppBreadcrumb } from "@/components/breadcrumb";
+import { Home } from "lucide-react";
+import { IconBuilding } from "@tabler/icons-react";
 
 export default function DepartmentsPage() {
   // State để quản lý edit dialog
@@ -75,18 +78,22 @@ export default function DepartmentsPage() {
   };
 
   return (
-    <>
-      <div className="px-4 lg:px-6 py-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Danh sách phòng ban
-          </h1>
-          <p className="text-muted-foreground">Quản lý thông tin phòng ban</p>
-        </div>
-      </div>
-
-      <div className="@container/main px-4 lg:px-6 space-y-6">
-        {/* <UserStateCards /> */}
+    <div className="p-4 space-y-8 bg-background min-h-screen text-foreground animate-in fade-in duration-500">
+      <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
+        <AppBreadcrumb
+          items={[
+            {
+              label: "Home",
+              href: "/dashboard",
+              icon: <Home className="size-4" />,
+            },
+            {
+              label: "Danh sách phòng ban",
+              href: "/departments",
+              icon: <IconBuilding className="size-4" />,
+            },
+          ]}
+        />
 
         <DataTable
           departments={departments}
@@ -121,6 +128,6 @@ export default function DepartmentsPage() {
         onConfirm={handleConfirmDelete}
         confirmVariant="destructive"
       />
-    </>
+    </div>
   );
 }
