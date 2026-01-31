@@ -70,6 +70,8 @@ interface DataTableProps {
     total_pages: number;
   };
   isLoading?: boolean;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 }
 
 export function DataTable({
@@ -78,6 +80,8 @@ export function DataTable({
   onEditUser,
   pagination,
   isLoading,
+  columnVisibility: externalColumnVisibility,
+  onColumnVisibilityChange,
 }: DataTableProps) {
   // Sync URL query params with stable defaults
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
@@ -91,8 +95,23 @@ export function DataTable({
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [internalColumnVisibility, setInternalColumnVisibility] =
+    useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+
+  // Use external or internal column visibility
+  const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
+  const setColumnVisibility = (
+    updater: VisibilityState | ((prev: VisibilityState) => VisibilityState),
+  ) => {
+    const newVisibility =
+      typeof updater === "function" ? updater(columnVisibility) : updater;
+    if (onColumnVisibilityChange) {
+      onColumnVisibilityChange(newVisibility);
+    } else {
+      setInternalColumnVisibility(newVisibility);
+    }
+  };
 
   // Sync sorting state with URL params
   useEffect(() => {

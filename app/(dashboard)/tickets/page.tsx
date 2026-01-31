@@ -11,7 +11,7 @@ import {
 } from "@/hooks/ticket/ticket-list/use-ticket-list";
 import { IconReportMoney } from "@tabler/icons-react";
 import { Home } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   NumberParam,
   StringParam,
@@ -28,6 +28,14 @@ export default function TicketListPage() {
   // State để quản lý edit sheet
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+
+  // Set default query params in URL on mount
+  useEffect(() => {
+    // Only set if not already in URL
+    if (query.page === 1 && query.page_size === 10) {
+      setQuery({ page: 1, page_size: 10 }, "replaceIn");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync query params with URL - with default values
   const [query, setQuery] = useQueryParams({

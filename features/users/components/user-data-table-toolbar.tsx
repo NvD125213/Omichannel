@@ -37,6 +37,8 @@ interface DataTableToolbarProps<TData> {
   table: Table<TData>;
   search?: string | null;
   onSearchChange?: (value: string | null | undefined) => void;
+  title?: string;
+  description?: string;
 }
 
 interface FilterOption {
@@ -170,15 +172,15 @@ const columnLabels: Record<string, string> = {
   is_active: "Trạng thái",
 };
 
-function DataTableViewOptions<TData>({ table }: { table: Table<TData> }) {
+export function DataTableViewOptions<TData>({
+  table,
+}: {
+  table: Table<TData>;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="ml-auto hidden h-8 cursor-pointer lg:flex"
-        >
+        <Button variant="outline" size="sm" className="h-8 cursor-pointer">
           <Settings2 className="size-4" />
           Hiển thị
         </Button>
@@ -213,6 +215,8 @@ export function DataTableToolbar<TData>({
   table,
   search = "",
   onSearchChange,
+  title = "Danh sách người dùng",
+  description,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
 
@@ -223,11 +227,6 @@ export function DataTableToolbar<TData>({
   useEffect(() => {
     setLocalSearch(search ?? "");
   }, [search]);
-
-  // const roleOptions: FilterOption[] = [
-  //   { label: "Admin", value: "Admin" },
-  //   { label: "User", value: "User" },
-  // ];
 
   const debouncedSearch = useMemo(
     () =>
@@ -245,30 +244,23 @@ export function DataTableToolbar<TData>({
   }, [debouncedSearch]);
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex flex-1 flex-wrap items-center gap-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Tìm kiếm người dùng..."
-            value={localSearch}
-            onChange={(event) => {
-              const value = event.target.value;
-              setLocalSearch(value);
-              debouncedSearch(value);
-            }}
-            className="h-8 w-[200px] pl-8 lg:w-[280px]"
-          />
+    <div className="space-y-4">
+      {/* Title Section */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+          {description && (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          )}
         </div>
-        {/* 
-        <FacetedFilter
-          table={table}
-          columnId="role"
-          title="Tìm kiếm theo quyền "
-          options={roleOptions}
-        /> */}
+        <div className="flex items-center gap-2">
+          <UserFormDialog />
+        </div>
+      </div>
 
-        {isFiltered && (
+      {/* Filters Section */}
+      {isFiltered && (
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="ghost"
             onClick={() => table.resetColumnFilters()}
@@ -277,16 +269,8 @@ export function DataTableToolbar<TData>({
             Reset
             <X className="ml-1 size-4" />
           </Button>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        <DataTableViewOptions table={table} />
-        <Button variant="outline" size="sm" className="h-8 cursor-pointer">
-          <Download className="size-4" />
-          Export
-        </Button>
-        <UserFormDialog />
-      </div>
+        </div>
+      )}
     </div>
   );
 }

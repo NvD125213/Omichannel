@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -12,6 +13,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
 
 type BreadcrumbItemType = {
   label: string;
@@ -24,46 +26,63 @@ type AppBreadcrumbProps = {
 };
 
 export function AppBreadcrumb({ items }: AppBreadcrumbProps) {
-  return (
-    <Breadcrumb>
-      <BreadcrumbList>
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1;
+  // Lấy link trước link hiện tại (item trước item cuối cùng)
+  const previousItem = items.length > 1 ? items[items.length - 2] : null;
+  const backHref = previousItem?.href ?? "#";
 
-          return (
-            <React.Fragment key={index}>
-              <BreadcrumbItem>
-                {isLast ? (
-                  <BreadcrumbPage className="flex items-center gap-1">
-                    {item.icon && (
-                      <span className="text-muted-foreground">{item.icon}</span>
-                    )}
-                    {item.label}
-                  </BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link
-                      href={item.href ?? "#"}
-                      className="flex items-center gap-1"
-                    >
+  return (
+    <div className="flex items-center justify-between w-full">
+      <Breadcrumb>
+        <BreadcrumbList>
+          {items.map((item, index) => {
+            const isLast = index === items.length - 1;
+
+            return (
+              <React.Fragment key={index}>
+                <BreadcrumbItem>
+                  {isLast ? (
+                    <BreadcrumbPage className="flex items-center gap-1">
                       {item.icon && (
                         <span className="text-muted-foreground">
                           {item.icon}
                         </span>
                       )}
                       {item.label}
-                    </Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
+                    </BreadcrumbPage>
+                  ) : (
+                    <BreadcrumbLink asChild>
+                      <Link
+                        href={item.href ?? "#"}
+                        className="flex items-center gap-1"
+                      >
+                        {item.icon && (
+                          <span className="text-muted-foreground">
+                            {item.icon}
+                          </span>
+                        )}
+                        {item.label}
+                      </Link>
+                    </BreadcrumbLink>
+                  )}
+                </BreadcrumbItem>
 
-              {!isLast && (
-                <BreadcrumbSeparator className="size-4 text-muted-foreground" />
-              )}
-            </React.Fragment>
-          );
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
+                {!isLast && (
+                  <BreadcrumbSeparator className="size-4 text-muted-foreground" />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
+
+      {previousItem && (
+        <Button variant="ghost" size="sm" asChild>
+          <Link href={backHref} className="flex items-center gap-1.5">
+            <ArrowLeft className="size-4" />
+            Quay lại
+          </Link>
+        </Button>
+      )}
+    </div>
   );
 }

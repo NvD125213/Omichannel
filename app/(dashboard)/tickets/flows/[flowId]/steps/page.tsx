@@ -55,16 +55,6 @@ export default function TicketFlowStepsPage() {
               ]}
             />
           )}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/tickets/flows")}
-            className="cursor-pointer -ml-2"
-          >
-            <ArrowLeft className="size-4 mr-2" />
-            Quay lại
-          </Button>
         </div>
 
         {/* Main Content */}

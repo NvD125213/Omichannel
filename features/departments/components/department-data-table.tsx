@@ -67,6 +67,8 @@ interface DataTableProps {
   totalPages: number;
   totalRecords: number;
   isLoading?: boolean;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 }
 
 const getOrderBadgeColor = (order?: number) => {
@@ -86,6 +88,8 @@ export function DataTable({
   totalPages,
   totalRecords,
   isLoading,
+  columnVisibility: externalColumnVisibility,
+  onColumnVisibilityChange,
 }: DataTableProps) {
   // Danh sách các query params của api
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
@@ -100,8 +104,23 @@ export function DataTable({
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [internalColumnVisibility, setInternalColumnVisibility] =
+    useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+
+  // Use external or internal column visibility
+  const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
+  const setColumnVisibility = (
+    updater: VisibilityState | ((prev: VisibilityState) => VisibilityState),
+  ) => {
+    const newVisibility =
+      typeof updater === "function" ? updater(columnVisibility) : updater;
+    if (onColumnVisibilityChange) {
+      onColumnVisibilityChange(newVisibility);
+    } else {
+      setInternalColumnVisibility(newVisibility);
+    }
+  };
 
   // Sorting theo department
   useEffect(() => {

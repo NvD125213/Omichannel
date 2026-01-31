@@ -32,6 +32,7 @@ import {
   IconBuilding,
   IconFingerprint,
   IconArrowAutofitWidth,
+  IconFilter,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,

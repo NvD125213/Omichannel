@@ -39,6 +39,8 @@ interface DataTableProps {
   totalRecords: number;
   isLoading?: boolean;
   departmentId?: string;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 }
 
 export function GroupDataTable({
@@ -49,6 +51,8 @@ export function GroupDataTable({
   totalRecords,
   isLoading,
   departmentId,
+  columnVisibility: externalColumnVisibility,
+  onColumnVisibilityChange,
 }: DataTableProps) {
   // Danh sách các query params của api
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
@@ -62,11 +66,26 @@ export function GroupDataTable({
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [internalColumnVisibility, setInternalColumnVisibility] =
+    useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
 
   const [userDetailOpen, setUserDetailOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+
+  // Use external or internal column visibility
+  const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
+  const setColumnVisibility = (
+    updater: VisibilityState | ((prev: VisibilityState) => VisibilityState),
+  ) => {
+    const newVisibility =
+      typeof updater === "function" ? updater(columnVisibility) : updater;
+    if (onColumnVisibilityChange) {
+      onColumnVisibilityChange(newVisibility);
+    } else {
+      setInternalColumnVisibility(newVisibility);
+    }
+  };
 
   // Sorting theo group
   useEffect(() => {
