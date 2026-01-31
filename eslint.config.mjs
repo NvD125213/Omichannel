@@ -19,6 +19,7 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/ban-ts-comment": "off",
       "react-hooks/set-state-in-effect": "off",
       "@typescript-eslint/no-unused-vars": "warn",
+      "react-hooks/preserve-manual-memoization": "off",
     },
   },
 ]);

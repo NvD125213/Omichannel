@@ -29,14 +29,6 @@ export default function TicketListPage() {
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
 
-  // Set default query params in URL on mount
-  useEffect(() => {
-    // Only set if not already in URL
-    if (query.page === 1 && query.page_size === 10) {
-      setQuery({ page: 1, page_size: 10 }, "replaceIn");
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // Sync query params with URL - with default values
   const [query, setQuery] = useQueryParams({
     page: withDefault(NumberParam, 1),
@@ -47,6 +39,14 @@ export default function TicketListPage() {
     code: StringParam,
     tag_ids: ArrayParam,
   });
+
+  // Set default query params in URL on mount
+  useEffect(() => {
+    // Only set if not already in URL
+    if (query.page === 1 && query.page_size === 10) {
+      setQuery({ page: 1, page_size: 10 }, "replaceIn");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch tickets with query params
   const { data, isLoading } = useGetTickets({

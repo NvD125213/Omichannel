@@ -382,7 +382,7 @@ export function DataTable({
   );
 
   {
-    /* eslint-disable-next-line */
+     
   }
   const pastPerformanceTable = useReactTable({
     data: pastPerformance,

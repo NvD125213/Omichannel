@@ -30,7 +30,6 @@ import {
   useContext,
   useRef,
   useEffect,
-  useMemo,
   type ReactNode,
   type ReactElement,
 } from "react";
@@ -65,7 +64,6 @@ import {
 // VERTICAL DOCK COMPONENT (macOS-like effect)
 // ============================================
 
-const DOCK_WIDTH = 128;
 const DEFAULT_MAGNIFICATION = 60;
 const DEFAULT_DISTANCE = 100;
 const DEFAULT_PANEL_WIDTH = 56;
@@ -362,7 +360,6 @@ export function NavigationRailFilter({
   onTagSelect,
   onTagRemove,
   onClearAll,
-  onApplyFilters,
   className,
   defaultExpanded = false,
   toolbarActions,
@@ -382,16 +379,20 @@ export function NavigationRailFilter({
   const tagsRef = useRef<HTMLDivElement>(null);
   const columnsRef = useRef<HTMLDivElement>(null);
 
-  // Debounced search callback
-  const debouncedSearchChange = useMemo(() => {
-    let timeoutId: NodeJS.Timeout;
-    return (value: string) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const debouncedSearchChange = useCallback(
+    (value: string) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      timeoutRef.current = setTimeout(() => {
         onSearchChange?.(value);
       }, searchDebounceMs);
-    };
-  }, [onSearchChange, searchDebounceMs]);
+    },
+    [onSearchChange, searchDebounceMs],
+  );
 
   // Handle focus when section changes
   useEffect(() => {
@@ -440,11 +441,13 @@ export function NavigationRailFilter({
   }, [isExpanded, focusSection]);
 
   // Handle click focus - expand and set section
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleClickFocus = useCallback((section: string) => {
     setFocusSection(section);
     setIsExpanded(true);
   }, []);
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
@@ -465,6 +468,7 @@ export function NavigationRailFilter({
   );
 
   // Handle clear all - reset internal state and call parent callback
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleClearAll = useCallback(() => {
     setSearchValue("");
     onClearAll?.();
