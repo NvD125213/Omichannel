@@ -20,10 +20,7 @@ import {
   EllipsisVertical,
   Pencil,
   Trash2,
-  Workflow,
-  StepForward,
 } from "lucide-react";
-import { IconCreditCard } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import {
   Table,
   TableBody,
@@ -44,9 +40,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { TicketFlow } from "../utils/ticket-flow-schema";
-import { TicketFlowDataTablePagination } from "./ticket-flow-pagination";
-import { TicketFlowDataTableToolbar } from "./ticket-flow-data-toolbar";
+import type { TicketTemplate } from "../utils/schema";
+import { DataTablePagination } from "./template-data-table-pagination";
+import { DataTableToolbar } from "./template-data-table-toolbar";
 import {
   useQueryParam,
   NumberParam,
@@ -57,47 +53,58 @@ import { EmptyData } from "@/components/empty-data";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { convertDateTime } from "@/utils/convert-time";
-import Link from "next/link";
-import { TicketFlowStepFormSheet } from "../../ticket-flow-step/components/ticket-flow-step-form";
 
 interface DataTableProps {
-  ticketFlows: TicketFlow[];
-  onDeleteFlow: (id: string) => void;
-  onEditFlow: (flow: TicketFlow) => void;
-  totalPages: number;
-  totalRecords: number;
+  templates: TicketTemplate[];
+  onDeleteTemplate: (id: string) => void;
+  onEditTemplate: (template: TicketTemplate) => void;
+  pagination?: {
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+  };
   isLoading?: boolean;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 }
 
-export function TicketFlowDataTable({
-  ticketFlows,
-  onDeleteFlow,
-  onEditFlow,
-  totalPages,
-  totalRecords,
+export function DataTable({
+  templates,
+  onDeleteTemplate,
+  onEditTemplate,
+  pagination,
   isLoading,
+  columnVisibility: externalColumnVisibility,
+  onColumnVisibilityChange,
 }: DataTableProps) {
-  // Query params của api
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
   const [pageSize, setPageSize] = useQueryParam(
     "page_size",
     withDefault(NumberParam, 10),
   );
-  const [search, setSearch] = useQueryParam("search", StringParam);
   const [sortBy, setSortBy] = useQueryParam("sort_by", StringParam);
   const [sortOrder, setSortOrder] = useQueryParam("sort_order", StringParam);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [internalColumnVisibility, setInternalColumnVisibility] =
+    useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
 
-  // Sheet state
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null);
+  const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
+  const setColumnVisibility = (
+    updater: VisibilityState | ((prev: VisibilityState) => VisibilityState),
+  ) => {
+    const newVisibility =
+      typeof updater === "function" ? updater(columnVisibility) : updater;
+    if (onColumnVisibilityChange) {
+      onColumnVisibilityChange(newVisibility);
+    } else {
+      setInternalColumnVisibility(newVisibility);
+    }
+  };
 
-  // Sorting theo flow
   useEffect(() => {
     if (sortBy && sortOrder) {
       setSorting([{ id: sortBy, desc: sortOrder === "desc" }]);
@@ -106,7 +113,6 @@ export function TicketFlowDataTable({
     }
   }, [sortBy, sortOrder]);
 
-  // Update URL params when sorting changes
   const handleSortingChange = (
     updaterOrValue: SortingState | ((old: SortingState) => SortingState),
   ) => {
@@ -126,12 +132,13 @@ export function TicketFlowDataTable({
     }
   };
 
-  const handleOpenStepForm = (flowId: string) => {
-    setSelectedFlowId(flowId);
-    setIsSheetOpen(true);
+  const getStatusColor = (isActive: boolean) => {
+    return isActive
+      ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
+      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
   };
 
-  const columns: ColumnDef<TicketFlow>[] = [
+  const columns: ColumnDef<TicketTemplate>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -170,38 +177,7 @@ export function TicketFlowDataTable({
             className="-ml-4 h-8 data-[state=open]:bg-accent"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Tên luồng xử lý
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
-            ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const flow = row.original;
-        return (
-          <div className="flex items-center gap-3">
-            <div className="flex flex-col">
-              <span className="font-medium">{flow.name}</span>
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "description",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className="-ml-4 h-8 data-[state=open]:bg-accent"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Mô tả
+            Tên
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4" />
             ) : column.getIsSorted() === "desc" ? (
@@ -213,10 +189,92 @@ export function TicketFlowDataTable({
         );
       },
       cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.description}
-        </span>
+        <div className="flex flex-col">
+          <span className="font-medium">{row.original.name}</span>
+          {row.original.description && (
+            <span className="text-sm text-muted-foreground line-clamp-1">
+              {row.original.description}
+            </span>
+          )}
+        </div>
       ),
+    },
+    {
+      accessorKey: "flow_name",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Luồng xử lý
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.flow_name || "-"}</span>
+      ),
+    },
+    {
+      accessorKey: "sla_name",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            SLA
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.sla_name || "-"}</span>
+      ),
+    },
+    {
+      accessorKey: "is_active",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Trạng thái
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const isActive = row.original.is_active;
+        return (
+          <Badge variant="secondary" className={getStatusColor(isActive)}>
+            {isActive ? "Hoạt động" : "Không hoạt động"}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "created_at",
@@ -239,94 +297,13 @@ export function TicketFlowDataTable({
         );
       },
       cell: ({ row }) => {
-        const createdAt = row.original.created_at;
-        if (!createdAt) return <span className="text-muted-foreground">-</span>;
-
-        const { date, time } = convertDateTime(createdAt, "text");
+        const date = row.original.created_at;
         return (
-          <div className="flex flex-col text-sm">
-            <span>{date}</span>
-            <span className="text-muted-foreground text-xs">{time}</span>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "steps_count",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className="-ml-4 h-8 data-[state=open]:bg-accent"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Số bước
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
-            ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const count = row.original.steps_count ?? 0;
-        const getStepsBadgeColor = (count: number) => {
-          if (count === 0) return "bg-red-100 text-red-700 border-red-200";
-          if (count <= 3) return "bg-blue-100 text-blue-700 border-blue-200";
-          if (count <= 6) return "bg-cyan-100 text-cyan-700 border-cyan-200";
-          return "bg-indigo-100 text-indigo-700 border-indigo-200";
-        };
-        return (
-          <Badge
-            variant="outline"
-            className={`font-mono gap-1.5 ${getStepsBadgeColor(count)}`}
-          >
-            <Workflow className="h-3 w-3" />
-            {count}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "tickets_count",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className="-ml-4 h-8 data-[state=open]:bg-accent"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Số ticket
-            {column.getIsSorted() === "asc" ? (
-              <ArrowUp className="ml-2 h-4 w-4" />
-            ) : column.getIsSorted() === "desc" ? (
-              <ArrowDown className="ml-2 h-4 w-4" />
-            ) : (
-              <ArrowUpDown className="ml-2 h-4 w-4" />
-            )}
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const count = row.original.tickets_count ?? 0;
-        const getTicketsBadgeColor = (count: number) => {
-          if (count === 0) return "bg-red-100 text-red-700 border-red-200";
-          if (count <= 5) return "bg-green-100 text-green-700 border-green-200";
-          if (count <= 15)
-            return "bg-emerald-100 text-emerald-700 border-emerald-200";
-          return "bg-teal-100 text-teal-700 border-teal-200";
-        };
-        return (
-          <Badge
-            variant="outline"
-            className={`font-mono gap-1.5 ${getTicketsBadgeColor(count)}`}
-          >
-            <IconCreditCard className="h-3 w-3" />
-            {count}
-          </Badge>
+          <span className="text-sm">
+            {date
+              ? format(new Date(date), "dd/MM/yyyy HH:mm", { locale: vi })
+              : "-"}
+          </span>
         );
       },
     },
@@ -335,16 +312,14 @@ export function TicketFlowDataTable({
       enableSorting: false,
       header: "Hành động",
       cell: ({ row }) => {
-        const flow = row.original;
-        const hasSteps = (flow.steps_count ?? 0) > 0;
-
+        const template = row.original;
         return (
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
               className="h-8 w-8 cursor-pointer"
-              onClick={() => onEditFlow(flow)}
+              onClick={() => onEditTemplate(template)}
             >
               <Pencil className="size-4" />
               <span className="sr-only">Sửa</span>
@@ -364,19 +339,10 @@ export function TicketFlowDataTable({
                 <DropdownMenuItem
                   variant="destructive"
                   className="cursor-pointer"
-                  onClick={() => onDeleteFlow(flow.id)}
+                  onClick={() => onDeleteTemplate(template.id)}
                 >
                   <Trash2 className="size-4" />
                   Xóa
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  variant="default"
-                  className="cursor-pointer"
-                  onClick={() => handleOpenStepForm(flow.id)}
-                >
-                  <StepForward className="size-4" />
-                  {hasSteps ? "Chỉnh sửa bước" : "Tạo bước"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -386,9 +352,8 @@ export function TicketFlowDataTable({
     },
   ];
 
-  /* eslint-disable-next-line */
   const table = useReactTable({
-    data: ticketFlows,
+    data: templates,
     columns,
     state: {
       sorting,
@@ -408,111 +373,84 @@ export function TicketFlowDataTable({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
-  // Tạo pagination object từ props
-  const pagination = {
-    total: totalRecords,
-    page: page,
-    page_size: pageSize,
-    total_pages: totalPages,
-  };
-
   return (
-    <>
-      <div className="space-y-4">
-        <TicketFlowDataTableToolbar
-          table={table}
-          search={search}
-          onSearchChange={(value) => setSearch(value ?? undefined)}
-        />
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    return (
-                      <TableHead key={header.id} colSpan={header.colSpan}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )}
-                      </TableHead>
-                    );
-                  })}
+    <div className="space-y-4">
+      <DataTableToolbar table={table} />
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id} colSpan={header.colSpan}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  {columns.map((column, cellIndex) => (
+                    <TableCell key={cellIndex}>
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  ))}
                 </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, index) => (
-                  <TableRow key={index}>
-                    {columns.map((column, cellIndex) => (
-                      <TableCell key={cellIndex}>
-                        <Skeleton className="h-6 w-full" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    <EmptyData
-                      icon={IconMoodEmpty}
-                      title="Dữ liệu luồng xử lý trống."
-                      description="Hãy thử thêm mới luồng xử lý hoặc thay đổi thông tin tìm kiếm"
-                      showButton={false}
-                      buttonText=""
-                      onButtonClick={() => console.log("Upload clicked")}
-                    />
-                  </TableCell>
+              ))
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        <TicketFlowDataTablePagination
-          table={table}
-          pagination={pagination}
-          currentPage={page}
-          currentPageSize={pageSize}
-          onPageChange={setPage}
-          onPageSizeChange={setPageSize}
-        />
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  <EmptyData
+                    icon={IconMoodEmpty}
+                    title="Chưa có template nào."
+                    description="Hãy thử thêm mới template hoặc thay đổi thông tin tìm kiếm."
+                    showButton={false}
+                    buttonText=""
+                    onButtonClick={() => {}}
+                  />
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
-
-      {/* Sheet Form */}
-      {selectedFlowId && (
-        <TicketFlowStepFormSheet
-          flowId={selectedFlowId}
-          flowName={
-            ticketFlows.find((f) => f.id === selectedFlowId)?.name ||
-            "Luồng xử lý"
-          }
-          open={isSheetOpen}
-          onOpenChange={setIsSheetOpen}
-        />
-      )}
-    </>
+      <DataTablePagination
+        table={table}
+        pagination={pagination}
+        currentPage={page}
+        currentPageSize={pageSize}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
+      />
+    </div>
   );
 }

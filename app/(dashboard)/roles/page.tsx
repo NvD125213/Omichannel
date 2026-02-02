@@ -161,7 +161,7 @@ export default function RolesPage() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 p-4 space-y-8 text-foreground animate-in fade-in duration-500 overflow-auto">
+      <div className="flex-1 space-y-8 text-foreground animate-in fade-in duration-500 overflow-auto">
         <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
           <AppBreadcrumb
             items={[
@@ -182,6 +182,7 @@ export default function RolesPage() {
               },
             ]}
           />
+
           <DataTable
             roles={roles}
             totalPages={data?.total_pages || 1}

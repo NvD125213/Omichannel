@@ -33,6 +33,7 @@ import {
   IconFingerprint,
   IconArrowAutofitWidth,
   IconFilter,
+  IconCategory2,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -130,6 +131,11 @@ export const sidebarData: SidebarData = {
               url: "/tickets/flows",
               icon: Workflow,
             },
+            // {
+            //   title: "Quản lý template",
+            //   url: "/tickets/templates",
+            //   icon: IconCategory2,
+            // },
           ],
         },
         {

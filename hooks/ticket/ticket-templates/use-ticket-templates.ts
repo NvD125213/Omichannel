@@ -7,6 +7,7 @@ import {
   GetTicketTemplatesParams,
   GetTicketTemplatesResponse,
   TicketTemplate,
+  GetTicketTemplateByIdResponse,
   createTicketTemplateApi,
   updateTicketTemplateApi,
   deleteTicketTemplateApi,
@@ -27,7 +28,7 @@ export const useGetTicketTemplates = (params?: GetTicketTemplatesParams) => {
 };
 
 export const useGetTicketTemplateById = (id: string) => {
-  return useQuery<TicketTemplate>({
+  return useQuery<GetTicketTemplateByIdResponse>({
     queryKey: ["ticket-template", id],
     queryFn: () => getTicketTemplateById(id),
     enabled: !!id,

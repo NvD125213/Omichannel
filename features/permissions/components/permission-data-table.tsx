@@ -269,11 +269,6 @@ export default function PermissionsMatrix() {
             href: "/permissions",
             icon: <FingerprintIcon className="size-4" />,
           },
-          {
-            label: "Quản lý vai trò",
-            href: "/permissions",
-            icon: <IconLock className="size-4" />,
-          },
         ]}
       />
 

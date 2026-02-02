@@ -55,6 +55,9 @@ export interface GetTicketByCodeResponse {
 export const getTickets = async (params?: any) => {
   const response = await apiClient.get<GetTicketsResponse>("/tickets", {
     params,
+    paramsSerializer: {
+      indexes: null, // Serialize array as tag_ids=uuid1&tag_ids=uuid2 instead of tag_ids[]=uuid1&tag_ids[]=uuid2
+    },
   });
   return response.data;
 };

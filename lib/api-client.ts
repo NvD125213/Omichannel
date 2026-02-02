@@ -124,7 +124,8 @@ apiClient.interceptors.response.use(
           throw new Error("Không nhận được dữ liệu token mới");
         }
       } catch (refreshError) {
-        console.error("❌ Refresh token failed:", refreshError);
+        console.error("Refresh token failed:", refreshError);
+        console.log(refreshError);
         // Refresh failed - clear tokens and redirect to login
         processQueue(refreshError as Error, null);
         clearTokens();

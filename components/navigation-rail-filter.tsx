@@ -33,7 +33,6 @@ import {
   type ReactNode,
   type ReactElement,
 } from "react";
-
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -301,6 +300,12 @@ export type NavigationRailFilterProps = {
   selectOptions?: FilterOption[];
   selectValue?: string;
   onSelectChange?: (value: string) => void;
+  // Second select for priority or other single-select filters
+  select2Label?: string;
+  select2Placeholder?: string;
+  select2Options?: FilterOption[];
+  select2Value?: string;
+  onSelect2Change?: (value: string) => void;
   comboboxLabel?: string;
   comboboxOptions?: FilterOption[];
   comboboxValues?: string[];
@@ -351,6 +356,11 @@ export function NavigationRailFilter({
   selectOptions = [],
   selectValue,
   onSelectChange,
+  select2Label = "Độ ưu tiên",
+  select2Placeholder = "Chọn độ ưu tiên",
+  select2Options = [],
+  select2Value,
+  onSelect2Change,
   comboboxLabel = "Danh mục",
   comboboxOptions = [],
   comboboxValues = [],
@@ -370,12 +380,15 @@ export function NavigationRailFilter({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [searchValue, setSearchValue] = useState("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
   const [focusSection, setFocusSection] = useState<string | null>(null);
 
   // Refs for each section
   const searchInputRef = useRef<HTMLInputElement>(null);
   const selectTriggerRef = useRef<HTMLButtonElement>(null);
+  const select2TriggerRef = useRef<HTMLButtonElement>(null);
   const comboboxTriggerRef = useRef<HTMLButtonElement>(null);
+  const tagsTriggerRef = useRef<HTMLButtonElement>(null);
   const tagsRef = useRef<HTMLDivElement>(null);
   const columnsRef = useRef<HTMLDivElement>(null);
 
@@ -410,6 +423,13 @@ export function NavigationRailFilter({
         case "select":
           selectTriggerRef.current?.focus();
           selectTriggerRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          break;
+        case "select2":
+          select2TriggerRef.current?.focus();
+          select2TriggerRef.current?.scrollIntoView({
             behavior: "smooth",
             block: "center",
           });
@@ -467,6 +487,17 @@ export function NavigationRailFilter({
     [comboboxValues, onComboboxChange],
   );
 
+  const handleTagToggle = useCallback(
+    (tagId: string) => {
+      if (selectedTags.includes(tagId)) {
+        onTagRemove?.(tagId);
+      } else {
+        onTagSelect?.(tagId);
+      }
+    },
+    [selectedTags, onTagRemove, onTagSelect],
+  );
+
   // Handle clear all - reset internal state and call parent callback
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleClearAll = useCallback(() => {
@@ -477,6 +508,7 @@ export function NavigationRailFilter({
   const hasActiveFilters = !!(
     searchValue ||
     selectValue ||
+    select2Value ||
     comboboxValues.length > 0 ||
     selectedTags.length > 0
   );
@@ -484,6 +516,7 @@ export function NavigationRailFilter({
   const totalActiveFilters = [
     searchValue ? 1 : 0,
     selectValue ? 1 : 0,
+    select2Value ? 1 : 0,
     comboboxValues.length,
     selectedTags.length,
   ].reduce((a, b) => a + b, 0);
@@ -539,6 +572,25 @@ export function NavigationRailFilter({
                       ? selectOptions.find((o) => o.value === selectValue)
                           ?.label || selectLabel
                       : selectPlaceholder}
+                  </VerticalDockLabel>
+                  <VerticalDockIcon>
+                    <ListFilter className="size-full" />
+                  </VerticalDockIcon>
+                </VerticalDockItem>
+              )}
+
+              {/* Select 2 (Priority) */}
+              {select2Options.length > 0 && (
+                <VerticalDockItem
+                  onClick={() => handleClickFocus("select2")}
+                  isActive={!!select2Value}
+                  badge={select2Value ? 1 : undefined}
+                >
+                  <VerticalDockLabel>
+                    {select2Value
+                      ? select2Options.find((o) => o.value === select2Value)
+                          ?.label || select2Label
+                      : select2Placeholder}
                   </VerticalDockLabel>
                   <VerticalDockIcon>
                     <ListFilter className="size-full" />
@@ -743,6 +795,40 @@ export function NavigationRailFilter({
                   </>
                 )}
 
+                {/* Select 2 Option (Priority) */}
+                {select2Options.length > 0 && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                        <ListFilter className="size-4 text-muted-foreground" />
+                        {select2Label}
+                      </label>
+                      <Select
+                        value={select2Value}
+                        onValueChange={onSelect2Change}
+                      >
+                        <SelectTrigger
+                          ref={select2TriggerRef}
+                          className="w-full h-10 bg-background border-input focus:ring-2 focus:ring-primary/20"
+                        >
+                          <SelectValue placeholder={select2Placeholder} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {select2Options.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              <div className="flex items-center gap-2">
+                                {option.icon}
+                                {option.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+
                 {/* Combobox (Multi-select) */}
                 {comboboxOptions.length > 0 && (
                   <>
@@ -844,68 +930,106 @@ export function NavigationRailFilter({
                 {tags.length > 0 && (
                   <>
                     <Separator />
-                    <div ref={tagsRef} className="space-y-3">
+                    <div ref={tagsRef} className="space-y-2">
                       <label className="text-sm font-medium text-foreground flex items-center gap-2">
                         <Tags className="size-4 text-muted-foreground" />
                         Tags
                       </label>
-                      <div className="flex flex-wrap gap-2">
-                        {tags.map((tag) => {
-                          const isSelected = selectedTags.includes(tag.id);
-                          const colorClass =
-                            tagColors[tag.color || "default"] ||
-                            tagColors.default;
+                      <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            ref={tagsTriggerRef}
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={tagsOpen}
+                            className="w-full justify-between h-10 bg-background border-input hover:bg-accent/50"
+                          >
+                            {selectedTags.length > 0
+                              ? `${selectedTags.length} tag đã chọn`
+                              : "Chọn tags..."}
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64 p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Tìm tags..." />
+                            <CommandList>
+                              <CommandEmpty>
+                                Không tìm thấy kết quả.
+                              </CommandEmpty>
+                              <CommandGroup>
+                                {tags.map((tag) => {
+                                  const isSelected = selectedTags.includes(
+                                    tag.id,
+                                  );
+                                  const colorClass =
+                                    tagColors[tag.color || "default"] ||
+                                    tagColors.default;
 
-                          return (
-                            <Badge
-                              key={tag.id}
-                              variant="outline"
-                              onClick={() =>
-                                isSelected
-                                  ? onTagRemove?.(tag.id)
-                                  : onTagSelect?.(tag.id)
-                              }
-                              className={cn(
-                                "cursor-pointer transition-all duration-200 px-3 py-1.5 text-xs font-medium",
-                                colorClass,
-                                isSelected &&
-                                  "ring-2 ring-primary ring-offset-1",
-                              )}
-                            >
-                              {tag.label}
-                              {isSelected && (
-                                <Check className="ml-1.5 size-3" />
-                              )}
-                            </Badge>
-                          );
-                        })}
-                      </div>
+                                  return (
+                                    <CommandItem
+                                      key={tag.id}
+                                      value={tag.label}
+                                      onSelect={() => handleTagToggle(tag.id)}
+                                    >
+                                      <div
+                                        className={cn(
+                                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                          isSelected
+                                            ? "bg-primary text-primary-foreground"
+                                            : "opacity-50",
+                                        )}
+                                      >
+                                        {isSelected && (
+                                          <Check className="h-3 w-3" />
+                                        )}
+                                      </div>
+                                      <Badge
+                                        variant="outline"
+                                        className={cn(
+                                          "text-xs font-medium px-2 py-0.5",
+                                          colorClass,
+                                        )}
+                                      >
+                                        {tag.label}
+                                      </Badge>
+                                    </CommandItem>
+                                  );
+                                })}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
 
                       {selectedTags.length > 0 && (
-                        <div className="space-y-2 pt-2">
-                          <p className="text-xs text-muted-foreground">
-                            Đã chọn ({selectedTags.length})
-                          </p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {selectedTags.map((tagId) => {
-                              const tag = tags.find((t) => t.id === tagId);
-                              return tag ? (
-                                <Badge
-                                  key={tagId}
-                                  variant="default"
-                                  className="pl-2 pr-1 py-1 gap-1 text-xs"
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {selectedTags.map((tagId) => {
+                            const tag = tags.find((t) => t.id === tagId);
+                            if (!tag) return null;
+                            const colorClass =
+                              tagColors[tag.color || "default"] ||
+                              tagColors.default;
+
+                            return (
+                              <Badge
+                                key={tagId}
+                                variant="outline"
+                                className={cn(
+                                  "pl-2 pr-1 py-1 gap-1 text-xs font-medium",
+                                  colorClass,
+                                )}
+                              >
+                                {tag.label}
+                                <button
+                                  onClick={() => onTagRemove?.(tagId)}
+                                  className="ml-1 hover:text-destructive"
                                 >
-                                  {tag.label}
-                                  <button
-                                    onClick={() => onTagRemove?.(tagId)}
-                                    className="ml-1 hover:text-destructive"
-                                  >
-                                    <X className="size-3" />
-                                  </button>
-                                </Badge>
-                              ) : null;
-                            })}
-                          </div>
+                                  <X className="size-3" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

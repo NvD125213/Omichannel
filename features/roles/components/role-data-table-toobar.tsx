@@ -245,6 +245,9 @@ export function DataTableToolbar<TData>({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-1 flex-wrap items-center gap-2">
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+        </div>
         {/* <div className="relative">
           <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -278,9 +281,6 @@ export function DataTableToolbar<TData>({
         )} */}
       </div>
       <div className="flex items-center gap-2">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-        </div>
         {/* <DataTableViewOptions table={table} /> */}
         <RoleFormDialog />
       </div>

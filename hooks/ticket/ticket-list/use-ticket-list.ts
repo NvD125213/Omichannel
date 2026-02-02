@@ -70,9 +70,13 @@ export const useUpdateTicket = () => {
       payload: ActionTicketRequest;
     }) => updateTicketApi(id, payload),
     onSuccess: (_, variables) => {
-      toast.success("Cập nhật ticket thành công");
-      queryClient.invalidateQueries({ queryKey: ["tickets"] });
-      queryClient.invalidateQueries({ queryKey: ["ticket", variables.id] });
+      if (_.status_code == 200) {
+        toast.success("Cập nhật template ticket thành công");
+        queryClient.invalidateQueries({ queryKey: ["tickets"] });
+        queryClient.invalidateQueries({ queryKey: ["ticket", variables.id] });
+      } else {
+        toast.error("Lỗi: " + _.message);
+      }
     },
     onError: (error: any) => {
       toast.error(

@@ -9,6 +9,8 @@ import {
   PauseCircle,
   XCircle,
   HelpCircle,
+  Filter,
+  X,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
@@ -19,6 +21,14 @@ import {
   useGetTicketFlowInstance,
 } from "@/hooks/ticket/ticket-flows/use-ticket-flow-instance";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   Timeline,
@@ -29,7 +39,7 @@ import {
   TimelineSeparator,
 } from "@/components/ui/timeline";
 import { EmptyData } from "@/components/empty-data";
-import { IconMoodEmpty } from "@tabler/icons-react";
+import { IconFilter, IconMoodEmpty } from "@tabler/icons-react";
 import TicketFlowInstanceDetail from "./ticket-flow-instance-detail";
 
 interface StepData {
@@ -194,6 +204,9 @@ export default function TicketFlowStepper({
   const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
   // Fetch all steps for the flow (using infinite query)
   const {
     data: stepsInfiniteData,
@@ -216,6 +229,7 @@ export default function TicketFlowStepper({
   } = useGetTicketFlowInstances({
     ticket_id: ticket_id,
     flow_id: flow_id,
+    status: statusFilter !== "all" ? statusFilter : undefined,
     page_size: 10,
   });
 
@@ -247,6 +261,19 @@ export default function TicketFlowStepper({
     };
   });
 
+  // Filter steps based on status filter - hide steps without matching instances
+  const filteredStepsData =
+    statusFilter !== "all"
+      ? stepsData.filter((step) => {
+          // Check if this step has at least one instance with the filtered status
+          return instances.some(
+            (inst: any) =>
+              inst.current_step_id === step.id &&
+              normalizeStatus(inst.status) === normalizeStatus(statusFilter),
+          );
+        })
+      : stepsData;
+
   // Fetch instance data for the selected step
   const {
     data: selectedStepInstanceData,
@@ -271,11 +298,11 @@ export default function TicketFlowStepper({
 
   // Auto-select active step or first step
   useEffect(() => {
-    if (stepsData.length > 0 && !selectedStep) {
-      const activeStep = stepsData.find((s) => s.status === "active");
-      setSelectedStep(activeStep?.id || stepsData[0].id);
+    if (filteredStepsData.length > 0 && !selectedStep) {
+      const activeStep = filteredStepsData.find((s) => s.status === "active");
+      setSelectedStep(activeStep?.id || filteredStepsData[0].id);
     }
-  }, [stepsData, selectedStep]);
+  }, [filteredStepsData, selectedStep]);
 
   // Infinite scroll: load more steps when scrolling to bottom
   useEffect(() => {
@@ -306,6 +333,7 @@ export default function TicketFlowStepper({
     );
   }
 
+  // Only show full empty state when there's no data at all
   if (stepsData.length === 0) {
     return (
       <EmptyData
@@ -317,104 +345,169 @@ export default function TicketFlowStepper({
     );
   }
 
-  const selectedStepData = stepsData.find((s) => s.id === selectedStep);
+  const selectedStepData = filteredStepsData.find((s) => s.id === selectedStep);
 
   return (
     <div className="grid grid-cols-10 gap-4 h-full">
       {/* Left Column - Steps List (60% - 6 cols) */}
       <div className="col-span-6 border-r pr-4">
-        <div
-          ref={containerRef}
-          className="max-h-[calc(100vh-10rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-2 pt-4"
-        >
-          <Timeline color="secondary" orientation="vertical" className="w-full">
-            {stepsData.map((step, index) => (
-              <TimelineItem key={step.id}>
-                <TimelineHeader>
-                  <TimelineSeparator />
-                  <TimelineIcon>
+        {/* Filter Bar */}
+        <div className="pb-3 mb-3 border-b flex items-center gap-2 justify-between">
+          {/* Status Filter */}
+          <p className="text-sm font-medium text-slate-700 flex items-center gap-2 bg-slate-50 px-2 py-1 rounded-lg">
+            <IconFilter className="size-4" />
+            Bộ lọc
+          </p>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-8 text-xs w-48">
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả trạng thái</SelectItem>
+              <SelectItem value="running">Đang xử lý</SelectItem>
+              <SelectItem value="completed">Hoàn thành</SelectItem>
+              <SelectItem value="pending">Chờ xử lý</SelectItem>
+              <SelectItem value="paused">Tạm dừng</SelectItem>
+              <SelectItem value="failed">Thất bại</SelectItem>
+              <SelectItem value="cancelled">Hủy bỏ</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Active Filter Summary */}
+          {statusFilter !== "all" && (
+            <div className="flex items-center justify-between text-xs text-slate-600 mt-2">
+              <div className="flex items-center gap-1.5">
+                <span className="font-medium">Đang lọc:</span>
+                <Badge
+                  variant="secondary"
+                  className="text-xs px-1.5 py-0.5 h-5"
+                >
+                  {getTranslateStatus(statusFilter)}
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-xs text-slate-500 hover:text-slate-700"
+                onClick={() => setStatusFilter("all")}
+              >
+                <X className="h-3 w-3 mr-0.5" />
+                Xóa bộ lọc
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {filteredStepsData.length === 0 ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center space-y-2">
+              <IconMoodEmpty className="h-12 w-12 text-slate-300 mx-auto" />
+              <p className="text-sm font-medium text-slate-600">
+                Không tìm thấy kết quả
+              </p>
+              <p className="text-xs text-slate-400">
+                Thử thay đổi bộ lọc để xem kết quả khác
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div
+            ref={containerRef}
+            className="max-h-[calc(100vh-18rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-2 pt-4"
+          >
+            <Timeline
+              color="secondary"
+              orientation="vertical"
+              className="w-full"
+            >
+              {filteredStepsData.map((step, index) => (
+                <TimelineItem key={step.id}>
+                  <TimelineHeader>
+                    <TimelineSeparator />
+                    <TimelineIcon>
+                      <div
+                        className={`${getStepIconBackground(step.status)} w-4 h-4 rounded-full flex items-center justify-center cursor-pointer transition-all hover:shadow-md`}
+                        onClick={() => setSelectedStep(step.id)}
+                      >
+                        {getStepIcon(step.status)}
+                      </div>
+                    </TimelineIcon>
+                  </TimelineHeader>
+                  <TimelineBody className="-translate-y-1.5 pt-0 pb-5">
                     <div
-                      className={`${getStepIconBackground(step.status)} w-4 h-4 rounded-full flex items-center justify-center cursor-pointer transition-all hover:shadow-md`}
+                      className={`flex flex-col gap-1.5 cursor-pointer p-2.5 rounded-md transition-all ${
+                        selectedStep === step.id
+                          ? "bg-indigo-50/60 border border-indigo-200/70"
+                          : "hover:bg-slate-50/80"
+                      }`}
                       onClick={() => setSelectedStep(step.id)}
                     >
-                      {getStepIcon(step.status)}
+                      <div className="flex items-center gap-1.5">
+                        <Badge
+                          variant="outline"
+                          className={`${getStepBadgeStyles(step.status)} text-xs px-1.5 py-1 h-5 font-medium`}
+                        >
+                          {getTranslateStatus(step.status)}
+                        </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-xs px-1.5 py-1 h-5 font-medium"
+                        >
+                          Bước {step.step_order}
+                        </Badge>
+                      </div>
+
+                      <h3 className="font-medium text-sm text-slate-900 leading-tight">
+                        {step.name}
+                      </h3>
+
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3 text-slate-400" />
+                        <span className="text-xs text-slate-500">
+                          {
+                            convertDateTime(step.created_at, "short").datetime
+                          }{" "}
+                        </span>
+                      </div>
                     </div>
-                  </TimelineIcon>
-                </TimelineHeader>
-                <TimelineBody className="-translate-y-1.5 pt-0 pb-5">
-                  <div
-                    className={`flex flex-col gap-1.5 cursor-pointer p-2.5 rounded-md transition-all ${
-                      selectedStep === step.id
-                        ? "bg-indigo-50/60 border border-indigo-200/70"
-                        : "hover:bg-slate-50/80"
-                    }`}
-                    onClick={() => setSelectedStep(step.id)}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Badge
-                        variant="outline"
-                        className={`${getStepBadgeStyles(step.status)} text-xs px-1.5 py-1 h-5 font-medium`}
-                      >
-                        {getTranslateStatus(step.status)}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className="text-xs px-1.5 py-1 h-5 font-medium"
-                      >
-                        Bước {step.step_order}
-                      </Badge>
-                    </div>
+                  </TimelineBody>
+                </TimelineItem>
+              ))}
 
-                    <h3 className="font-medium text-sm text-slate-900 leading-tight">
-                      {step.name}
-                    </h3>
+              {/* Loading indicator */}
+              {isFetchingNextStepsPage && (
+                <TimelineItem className="min-h-0">
+                  <TimelineHeader>
+                    <TimelineIcon>
+                      <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
+                    </TimelineIcon>
+                  </TimelineHeader>
+                  <TimelineBody className="pt-0 pb-2">
+                    <span className="text-xs text-slate-400 italic">
+                      Đang tải...
+                    </span>
+                  </TimelineBody>
+                </TimelineItem>
+              )}
 
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-3 w-3 text-slate-400" />
-                      <span className="text-xs text-slate-500">
-                        {
-                          convertDateTime(step.created_at, "short").datetime
-                        }{" "}
-                      </span>
-                    </div>
-                  </div>
-                </TimelineBody>
-              </TimelineItem>
-            ))}
-
-            {/* Loading indicator */}
-            {isFetchingNextStepsPage && (
-              <TimelineItem className="min-h-0">
-                <TimelineHeader>
-                  <TimelineIcon>
-                    <Loader2 className="h-3 w-3 animate-spin text-indigo-500" />
-                  </TimelineIcon>
-                </TimelineHeader>
-                <TimelineBody className="pt-0 pb-2">
-                  <span className="text-xs text-slate-400 italic">
-                    Đang tải...
-                  </span>
-                </TimelineBody>
-              </TimelineItem>
-            )}
-
-            {/* End indicator - Không còn sự kiện */}
-            {!hasNextStepsPage && stepsData.length > 0 && (
-              <TimelineItem className="min-h-0">
-                <TimelineHeader>
-                  <TimelineIcon>
-                    <div className="h-1.5 w-1.5 rounded-sm bg-slate-300" />
-                  </TimelineIcon>
-                </TimelineHeader>
-                <TimelineBody className="pt-0 pb-2">
-                  <span className="text-xs text-slate-400 italic">
-                    Không còn sự kiện
-                  </span>
-                </TimelineBody>
-              </TimelineItem>
-            )}
-          </Timeline>
-        </div>
+              {/* End indicator - Không còn sự kiện */}
+              {!hasNextStepsPage && filteredStepsData.length > 0 && (
+                <TimelineItem className="min-h-0">
+                  <TimelineHeader>
+                    <TimelineIcon>
+                      <div className="h-1.5 w-1.5 rounded-sm bg-slate-300" />
+                    </TimelineIcon>
+                  </TimelineHeader>
+                  <TimelineBody className="pt-0 pb-2">
+                    <span className="text-xs text-slate-400 italic">
+                      Không còn sự kiện
+                    </span>
+                  </TimelineBody>
+                </TimelineItem>
+              )}
+            </Timeline>
+          </div>
+        )}
       </div>
 
       {/* Right Column - Step Details (40% - 4 cols) */}

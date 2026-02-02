@@ -9,12 +9,15 @@ export interface TicketTemplate {
   name: string;
   description?: string;
   flow_id: string;
-  sla_id: string;
+  sla_id?: string;
   extension_schema: Record<string, unknown>;
   is_active: boolean;
   tenant_id?: string;
   created_at: string;
   updated_at: string;
+  // Additional fields from join/API
+  flow_name?: string;
+  sla_name?: string;
 }
 
 export interface GetTicketTemplatesParams {
@@ -45,7 +48,7 @@ export interface CreateTicketTemplateRequest {
   name: string;
   description?: string;
   flow_id: string;
-  sla_id: string;
+  sla_id?: string;
   extension_schema?: Record<string, unknown>;
   is_active: boolean;
   tenant_id?: string;
@@ -70,9 +73,16 @@ export const getTicketTemplates = async (
   return res.data;
 };
 
+export interface GetTicketTemplateByIdResponse {
+  status: string;
+  status_code: number;
+  message: string;
+  data: TicketTemplate;
+}
+
 export const getTicketTemplateById = async (
   id: string,
-): Promise<TicketTemplate> => {
+): Promise<GetTicketTemplateByIdResponse> => {
   const res = await apiClient.get(`/ticket-templates/${id}`);
   return res.data;
 };
