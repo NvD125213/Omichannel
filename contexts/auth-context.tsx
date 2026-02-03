@@ -148,8 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.clear();
 
       // Navigate to sign-in
+      // NOTE: Không cần router.refresh() vì có thể gây race condition
+      // với việc xóa cookie, đặc biệt trên production
       router.push("/sign-in");
-      router.refresh();
     }
   }, [router, queryClient]);
 

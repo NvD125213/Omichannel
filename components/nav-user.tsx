@@ -40,18 +40,17 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar();
   const { logout } = useAuth();
-  const router = useRouter();
 
   const handleLogout = async () => {
     try {
       await logout();
-      toast.success("Logged out successfully", {
-        description: "You have been logged out of your account.",
+      toast.success("Đăng xuất thành công", {
+        description: "Bạn đã được đăng xuất khỏi tài khoản của mình.",
       });
-      router.push("/sign-in");
+      // NOTE: Không cần router.push() vì logout() đã xử lý navigation
     } catch {
-      toast.error("Logout failed", {
-        description: "An error occurred while logging out.",
+      toast.error("Đăng xuất thất bại", {
+        description: "Đã xảy ra lỗi khi đăng xuất.",
       });
     }
   };

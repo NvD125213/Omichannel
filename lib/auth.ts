@@ -10,8 +10,9 @@ const COOKIE_OPTIONS: Cookies.CookieAttributes = {
   expires: 7,
   // Chỉ gửi cookie qua HTTPS trên production
   secure: process.env.NODE_ENV === "production",
-  // Chống CSRF attacks - cookie chỉ được gửi trong same-site requests
-  sameSite: "strict",
+  // Chống CSRF attacks - "lax" cho phép cookie được gửi trong top-level navigation
+  // Vẫn bảo mật nhưng tránh vấn đề race condition khi logout/redirect
+  sameSite: "lax",
   // Cookie có thể truy cập từ tất cả paths
   path: "/",
 };

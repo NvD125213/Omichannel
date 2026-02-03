@@ -30,7 +30,7 @@ export function ProfileDropdown() {
       toast.success("Đã đăng xuất thành công", {
         description: "Bạn đã được đăng xuất khỏi tài khoản của mình.",
       });
-      router.push("/sign-in");
+      // NOTE: Không cần router.push() vì logout() đã xử lý navigation
     } catch {
       toast.error("Đăng xuất thất bại", {
         description: "Đã xảy ra lỗi khi đăng xuất.",
