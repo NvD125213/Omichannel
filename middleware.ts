@@ -1,10 +1,9 @@
-// proxy.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const PUBLIC_ROUTES = ["/sign-in"];
 const PROTECTED_ROUTES = ["/dashboard"];
 
-export function proxy(req: NextRequest) {
+export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const accessToken = req.cookies.get("access_token")?.value;
@@ -26,6 +25,7 @@ export function proxy(req: NextRequest) {
 
   /**
    * 2. CHƯA login nhưng vào trang protected → redirect login
+   * Lưu ý: Khi redirect cần đảm bảo không redirect loop
    */
   if (!accessToken && isProtectedRoute) {
     return NextResponse.redirect(new URL("/sign-in", req.url));
