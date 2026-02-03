@@ -30,6 +30,8 @@ import {
   StringParam,
   withDefault,
 } from "use-query-params";
+import { ProtectedRoute } from "@/components/protected-route";
+import { PERMISSIONS } from "@/constants/permission";
 
 // Sort options
 const sortOptions: FilterOption[] = [
@@ -62,12 +64,15 @@ const columnOptions: ColumnOption[] = [
   { id: "is_active", label: "Trạng thái" },
 ];
 
-export default function DepartmentDetailPage({
-  params,
+/**
+ * Component chứa logic và UI chính của trang chi tiết phòng ban
+ * Chỉ được render khi đã qua lớp bảo mật
+ */
+function DepartmentDetailPageContent({
+  departmentId,
 }: {
-  params: Promise<{ departmentId: string }>;
+  departmentId: string;
 }) {
-  const { departmentId } = use(params);
   const { data: department, isLoading } = useGetDepartmentDetail(departmentId);
 
   // States for Edit/Delete actions
@@ -251,5 +256,24 @@ export default function DepartmentDetailPage({
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * DepartmentDetailPage Wrapper
+ * Đóng vai trò Guard: Check quyền -> Nếu OK mới render Content
+ * Ngăn chặn việc execute hooks/api calls khi chưa có quyền
+ */
+export default function DepartmentDetailPage({
+  params,
+}: {
+  params: Promise<{ departmentId: string }>;
+}) {
+  const { departmentId } = use(params);
+
+  return (
+    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_DEPARTMENT_BY_ID]}>
+      <DepartmentDetailPageContent departmentId={departmentId} />
+    </ProtectedRoute>
   );
 }

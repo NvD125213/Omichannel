@@ -18,9 +18,11 @@ import {
   useEffect,
   useState,
 } from "react";
+import { Permission, PERMISSIONS } from "@/constants/permission";
 import { useNavigationEvents } from "@/hooks/use-navigation-events";
 import { useMe } from "@/hooks/user/use-me";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface AuthContextType {
   user: User | null;
@@ -32,6 +34,11 @@ interface AuthContextType {
     password: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
+  // Permission management
+  permissions: Permission[];
+  hasPermission: (permission: Permission) => boolean;
+  hasAnyPermission: (permissions: Permission[]) => boolean;
+  hasAllPermissions: (permissions: Permission[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,7 +61,9 @@ function decodeToken(token: string): Partial<User> | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [permissions, setPermissions] = useState<Permission[]>([]);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Listen for navigation events (e.g., from api-client interceptors)
   useNavigationEvents();
@@ -66,6 +75,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isSuccess: isMeSuccess,
     isError: isMeError,
   } = useMe();
+
+  // Permission helper functions
+  const hasPermission = useCallback(
+    (permission: Permission): boolean => {
+      return permissions.includes(permission);
+    },
+    [permissions],
+  );
+
+  const hasAnyPermission = useCallback(
+    (requiredPermissions: Permission[]): boolean => {
+      if (!requiredPermissions || requiredPermissions.length === 0) {
+        return true; // No permissions required
+      }
+      return requiredPermissions.some((permission) =>
+        permissions.includes(permission),
+      );
+    },
+    [permissions],
+  );
+
+  const hasAllPermissions = useCallback(
+    (requiredPermissions: Permission[]): boolean => {
+      if (!requiredPermissions || requiredPermissions.length === 0) {
+        return true; // No permissions required
+      }
+      return requiredPermissions.every((permission) =>
+        permissions.includes(permission),
+      );
+    },
+    [permissions],
+  );
 
   const login = useCallback(
     async (name_tenant: string, username: string, password: string) => {
@@ -96,12 +137,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Still clear tokens even if API fails to avoid stuck state
       console.error("Logout API failed:", error);
     } finally {
+      // Clear tokens
       clearTokens();
+
+      // Reset state
       setUser(null);
+      setPermissions([]);
+
+      // CRITICAL: Clear React Query cache to prevent stale data
+      queryClient.clear();
+
+      // Navigate to sign-in
       router.push("/sign-in");
       router.refresh();
     }
-  }, [router]);
+  }, [router, queryClient]);
 
   // Effect để sync state với kết quả của useMe
   useEffect(() => {
@@ -110,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!token) {
       setUser(null);
+      setPermissions([]);
       setIsLoading(false);
       return;
     }
@@ -120,14 +171,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (isMeSuccess && meData) {
       // Backend trả về thông tin user hợp lệ -> Update state
-      setUser({
+      const userData: User = {
         id: meData.id,
         name: meData.fullname || meData.username,
         email: meData.email,
         avatar: "", // Bổ sung field avatar nếu API có trả về
         role: meData.role,
-        tenant_id: meData.tenant_id, // Nếu User interface hỗ trợ
-      } as any);
+        permissions: meData.permissions || [],
+      };
+
+      setUser(userData);
+
+      // Lưu permissions vào state riêng để dễ access
+      setPermissions((meData.permissions || []) as Permission[]);
+
       setIsLoading(false);
     } else if (isMeError) {
       // Backend trả về lỗi (401, etc) mặc dù có token -> Logout
@@ -146,6 +203,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         logout,
+        permissions,
+        hasPermission,
+        hasAnyPermission,
+        hasAllPermissions,
       }}
     >
       {children}

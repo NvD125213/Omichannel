@@ -21,6 +21,8 @@ import {
   type FilterOption,
   type ColumnOption,
 } from "@/components/navigation-rail-filter";
+import { ProtectedRoute } from "@/components/protected-route";
+import { PERMISSIONS } from "@/constants/permission";
 
 // Sort options
 const sortOptions: FilterOption[] = [
@@ -53,7 +55,11 @@ const columnOptions: ColumnOption[] = [
   { id: "is_active", label: "Trạng thái" },
 ];
 
-export default function DepartmentsPage() {
+/**
+ * Component chứa logic và UI chính của trang Departments
+ * Chỉ được render khi đã qua lớp bảo mật
+ */
+function DepartmentsPageContent() {
   // State để quản lý edit dialog
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(
     null,
@@ -220,5 +226,18 @@ export default function DepartmentsPage() {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * DepartmentsPage Wrapper
+ * Đóng vai trò Guard: Check quyền -> Nếu OK mới render Content
+ * Ngăn chặn việc execute hooks/api calls khi chưa có quyền
+ */
+export default function DepartmentsPage() {
+  return (
+    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_DEPARTMENTS]}>
+      <DepartmentsPageContent />
+    </ProtectedRoute>
   );
 }

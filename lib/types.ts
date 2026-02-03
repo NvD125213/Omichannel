@@ -6,6 +6,7 @@ interface User {
   email: string;
   avatar: string;
   role?: string;
+  permissions?: string[];
 }
 
 interface Team {
@@ -19,6 +20,7 @@ interface BaseNavItem {
   badge?: string;
   badgeColor?: "violet" | "green";
   icon?: React.ElementType;
+  permissions?: string[];
 }
 
 type NavLink = BaseNavItem & {

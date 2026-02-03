@@ -7,6 +7,8 @@ import focusDocumentsData from "@/constants/format-documents-data.json";
 import keyPersonnelData from "@/constants/key-personal-data.json";
 import pastPerformanceData from "@/constants/past-performance-data.json";
 
+import { DashboardStatsCards } from "@/features/dashboard/components/dashboard-stats-cards";
+
 export default function Page() {
   return (
     <>
@@ -14,13 +16,13 @@ export default function Page() {
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome to your admin dashboard
+            Chào mừng đến với hệ thống Onmichannel
           </p>
         </div>
       </div>
 
       <div className="@container/main px-4 lg:px-6 space-y-6">
-        <SectionCards />
+        <DashboardStatsCards />
         <ChartAreaInteractive />
       </div>
       <div className="@container/main">

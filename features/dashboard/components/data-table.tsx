@@ -101,6 +101,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { schema } from "../utils/task-schema";
+import { useSocket } from "@/contexts/socket-context";
+import { notificationService } from "@/services/notification/services";
 
 function DragHandle({ id }: { id: number }) {
   const { attributes, listeners } = useSortable({
@@ -382,7 +384,6 @@ export function DataTable({
   );
 
   {
-     
   }
   const pastPerformanceTable = useReactTable({
     data: pastPerformance,

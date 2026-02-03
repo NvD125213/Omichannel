@@ -21,6 +21,8 @@ import {
   type FilterOption,
   type ColumnOption,
 } from "@/components/navigation-rail-filter";
+import { ProtectedRoute } from "@/components/protected-route";
+import { PERMISSIONS } from "@/constants/permission";
 
 // Sort options
 const sortOptions: FilterOption[] = [
@@ -55,7 +57,11 @@ const columnOptions: ColumnOption[] = [
   { id: "is_active", label: "Trạng thái" },
 ];
 
-export default function UsersPage() {
+/**
+ * Component chứa logic và UI chính của trang Users
+ * Chỉ được render khi đã qua lớp bảo mật
+ */
+function UsersPageContent() {
   // State để quản lý edit dialog
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -213,5 +219,18 @@ export default function UsersPage() {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * UsersPage Wrapper
+ * Đóng vai trò Guard: Check quyền -> Nếu OK mới render Content
+ * Ngăn chặn việc execute hooks/api calls khi chưa có quyền
+ */
+export default function UsersPage() {
+  return (
+    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_USERS]}>
+      <UsersPageContent />
+    </ProtectedRoute>
   );
 }

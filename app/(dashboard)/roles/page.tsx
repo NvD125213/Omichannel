@@ -21,6 +21,8 @@ import {
   type FilterOption,
   type ColumnOption,
 } from "@/components/navigation-rail-filter";
+import { ProtectedRoute } from "@/components/protected-route";
+import { PERMISSIONS } from "@/constants/permission";
 
 // Sort options
 const sortOptions: FilterOption[] = [
@@ -53,7 +55,11 @@ const columnOptions: ColumnOption[] = [
   { id: "created_at", label: "Ngày tạo" },
 ];
 
-export default function RolesPage() {
+/**
+ * Component chứa logic và UI chính của trang Roles
+ * Chỉ được render khi đã qua lớp bảo mật
+ */
+function RolesPageContent() {
   // State để quản lý edit dialog
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -220,5 +226,18 @@ export default function RolesPage() {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * RolesPage Wrapper
+ * Đóng vai trò Guard: Check quyền -> Nếu OK mới render Content
+ * Ngăn chặn việc execute hooks/api calls khi chưa có quyền
+ */
+export default function RolesPage() {
+  return (
+    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_ROLES]}>
+      <RolesPageContent />
+    </ProtectedRoute>
   );
 }

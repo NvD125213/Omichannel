@@ -43,6 +43,7 @@ import {
   MailIcon,
   Workflow,
 } from "lucide-react";
+import { PERMISSIONS } from "@/constants/permission";
 
 export const sidebarData: SidebarData = {
   teams: [
@@ -125,16 +126,19 @@ export const sidebarData: SidebarData = {
               title: "Quản lý ticket",
               url: "/tickets",
               icon: IconCreditCard,
+              permissions: [PERMISSIONS.VIEW_TICKETS],
             },
             {
               title: "Quản lý luồng ticket",
               url: "/tickets/flows",
               icon: Workflow,
+              permissions: [PERMISSIONS.VIEW_TICKET_FLOWS],
             },
             // {
             //   title: "Quản lý template",
             //   url: "/tickets/templates",
             //   icon: IconCategory2,
+            //   permissions: [PERMISSIONS.VIEW_TICKET_TEMPLATES],
             // },
           ],
         },
@@ -142,11 +146,13 @@ export const sidebarData: SidebarData = {
           title: "Quản lý người dùng",
           url: "/users",
           icon: IconUsers,
+          permissions: [PERMISSIONS.VIEW_USERS],
         },
         {
           title: "Quản lý phòng ban",
           url: "/departments",
           icon: IconBuilding,
+          permissions: [PERMISSIONS.VIEW_DEPARTMENTS],
         },
         {
           title: "Chats",
@@ -266,11 +272,13 @@ export const sidebarData: SidebarData = {
               title: "Quản lý vai trò",
               url: "/roles",
               icon: IconShieldCheck,
+              permissions: [PERMISSIONS.VIEW_ROLES],
             },
             {
               title: "Phân quyền",
               url: "/permissions",
               icon: IconLock,
+              permissions: [PERMISSIONS.VIEW_PERMISSIONS],
             },
           ],
         },

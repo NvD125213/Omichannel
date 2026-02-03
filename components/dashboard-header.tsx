@@ -7,7 +7,7 @@ import { ToggleTheme } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Settings, Phone } from "lucide-react";
+import { Settings, Phone, BellRing } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
@@ -81,7 +81,16 @@ export function DashboardHeader() {
           <Phone className="h-5 w-5" />
           <span className="sr-only">Mở trình gọi điện</span>
         </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-emerald-500 transition-colors"
+        >
+          <BellRing className="h-5 w-5" />
+          <span className="sr-only">Mở thông báo</span>
+        </Button>
         <ToggleTheme />
+
         <Button
           type="button"
           variant="ghost"

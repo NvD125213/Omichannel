@@ -43,6 +43,8 @@ import {
   type ColumnOption,
   type TagItem,
 } from "@/components/navigation-rail-filter";
+import { ProtectedRoute } from "@/components/protected-route";
+import { PERMISSIONS } from "@/constants/permission";
 
 // Status options với icons
 const statusOptions: FilterOption[] = [
@@ -87,7 +89,11 @@ const columnOptions: ColumnOption[] = [
   { id: "assigned_to_name", label: "Người xử lý" },
 ];
 
-export default function TicketListPage() {
+/**
+ * Component chứa logic và UI chính của trang Ticket List
+ * Chỉ được render khi đã qua lớp bảo mật
+ */
+function TicketListPageContent() {
   // State để quản lý delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
@@ -124,38 +130,38 @@ export default function TicketListPage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch data for filter options
-  const { data: templatesData } = useGetTicketTemplates({
-    page: 1,
-    page_size: 100,
-  });
-  const { data: flowsData } = useGetTicketFlows({ page: 1, page_size: 100 });
-  const { data: usersData } = useListUser({ page: 1, page_size: 100 });
+  // const { data: templatesData } = useGetTicketTemplates({
+  //   page: 1,
+  //   page_size: 100,
+  // });
+  // const { data: flowsData } = useGetTicketFlows({ page: 1, page_size: 100 });
+  // const { data: usersData } = useListUser({ page: 1, page_size: 100 });
   const { data: tagsData } = useGetTags({ page: 1, page_size: 100 });
 
   // Build filter options from API data
-  const templateOptions: FilterOption[] = useMemo(() => {
-    const templates = templatesData?.data?.templates || [];
-    return templates.map((t: any) => ({
-      value: t.id,
-      label: t.name,
-    }));
-  }, [templatesData]);
+  // const templateOptions: FilterOption[] = useMemo(() => {
+  //   const templates = templatesData?.data?.templates || [];
+  //   return templates.map((t: any) => ({
+  //     value: t.id,
+  //     label: t.name,
+  //   }));
+  // }, [templatesData]);
 
-  const flowOptions: FilterOption[] = useMemo(() => {
-    const flows = flowsData?.data?.data?.flows || [];
-    return flows.map((f: any) => ({
-      value: f.id,
-      label: f.name,
-    }));
-  }, [flowsData]);
+  // const flowOptions: FilterOption[] = useMemo(() => {
+  //   const flows = flowsData?.data?.data?.flows || [];
+  //   return flows.map((f: any) => ({
+  //     value: f.id,
+  //     label: f.name,
+  //   }));
+  // }, [flowsData]);
 
-  const userOptions: FilterOption[] = useMemo(() => {
-    const users = usersData?.data?.items || [];
-    return users.map((u: any) => ({
-      value: u.id,
-      label: u.fullname || u.username,
-    }));
-  }, [usersData]);
+  // const userOptions: FilterOption[] = useMemo(() => {
+  //   const users = usersData?.data?.items || [];
+  //   return users.map((u: any) => ({
+  //     value: u.id,
+  //     label: u.fullname || u.username,
+  //   }));
+  // }, [usersData]);
 
   const tagItems: TagItem[] = useMemo(() => {
     const tags = tagsData?.data?.tags || [];
@@ -219,21 +225,21 @@ export default function TicketListPage() {
     setQuery({ priority: value || undefined, page: 1 });
   };
 
-  const handleTemplateChange = (values: string[]) => {
-    setQuery({ template_id: values[0] || undefined, page: 1 });
-  };
+  // const handleTemplateChange = (values: string[]) => {
+  //   setQuery({ template_id: values[0] || undefined, page: 1 });
+  // };
 
-  const handleFlowChange = (values: string[]) => {
-    setQuery({ flow_id: values[0] || undefined, page: 1 });
-  };
+  // const handleFlowChange = (values: string[]) => {
+  //   setQuery({ flow_id: values[0] || undefined, page: 1 });
+  // };
 
-  const handleCreatedByChange = (values: string[]) => {
-    setQuery({ created_by: values[0] || undefined, page: 1 });
-  };
+  // const handleCreatedByChange = (values: string[]) => {
+  //   setQuery({ created_by: values[0] || undefined, page: 1 });
+  // };
 
-  const handleAssignedToChange = (values: string[]) => {
-    setQuery({ assigned_to: values[0] || undefined, page: 1 });
-  };
+  // const handleAssignedToChange = (values: string[]) => {
+  //   setQuery({ assigned_to: values[0] || undefined, page: 1 });
+  // };
 
   const handleTagSelect = (tagId: string) => {
     const currentTags = (query.tag_ids || []).filter(
@@ -269,12 +275,12 @@ export default function TicketListPage() {
   };
 
   // Column visibility handler
-  const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
-    setColumnVisibility((prev) => ({
-      ...prev,
-      [columnId]: visible,
-    }));
-  };
+  // const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
+  //   setColumnVisibility((prev) => ({
+  //     ...prev,
+  //     [columnId]: visible,
+  //   }));
+  // };
 
   return (
     <div className="flex h-full bg-background">
@@ -359,5 +365,18 @@ export default function TicketListPage() {
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * TicketListPage Wrapper
+ * Đóng vai trò Guard: Check quyền -> Nếu OK mới render Content
+ * Ngăn chặn việc execute hooks/api calls khi chưa có quyền
+ */
+export default function TicketListPage() {
+  return (
+    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_TICKETS]}>
+      <TicketListPageContent />
+    </ProtectedRoute>
   );
 }

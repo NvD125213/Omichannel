@@ -68,6 +68,8 @@ interface DataTableProps {
   totalPages: number;
   totalRecords: number;
   isLoading?: boolean;
+  columnVisibility?: VisibilityState;
+  onColumnVisibilityChange?: (visibility: VisibilityState) => void;
 }
 
 export function TicketFlowDataTable({
@@ -77,6 +79,8 @@ export function TicketFlowDataTable({
   totalPages,
   totalRecords,
   isLoading,
+  columnVisibility: propColumnVisibility,
+  onColumnVisibilityChange: propOnColumnVisibilityChange,
 }: DataTableProps) {
   // Query params của api
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
@@ -84,14 +88,37 @@ export function TicketFlowDataTable({
     "page_size",
     withDefault(NumberParam, 10),
   );
-  const [search, setSearch] = useQueryParam("search", StringParam);
+  // Search and Sort params are now handled by parent via NavigationRailFilter,
+  // but we still read sort for internal table state sync if needed,
+  // or rely on the table state updating via props from parent re-render?
+  // the table hooks into URL directly for sort.
   const [sortBy, setSortBy] = useQueryParam("sort_by", StringParam);
   const [sortOrder, setSortOrder] = useQueryParam("sort_order", StringParam);
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [internalColumnVisibility, setInternalColumnVisibility] =
+    useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+
+  const columnVisibility = propColumnVisibility ?? internalColumnVisibility;
+
+  const setColumnVisibility = (
+    updaterOrValue:
+      | VisibilityState
+      | ((old: VisibilityState) => VisibilityState),
+  ) => {
+    const newVisibility =
+      typeof updaterOrValue === "function"
+        ? updaterOrValue(columnVisibility)
+        : updaterOrValue;
+
+    if (propOnColumnVisibilityChange) {
+      propOnColumnVisibilityChange(newVisibility);
+    } else {
+      setInternalColumnVisibility(newVisibility);
+    }
+  };
 
   // Sheet state
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -421,8 +448,8 @@ export function TicketFlowDataTable({
       <div className="space-y-4">
         <TicketFlowDataTableToolbar
           table={table}
-          search={search}
-          onSearchChange={(value) => setSearch(value ?? undefined)}
+          title="Danh sách luồng xử lý"
+          // description="Quản lý các quy trình xử lý ticket của hệ thống"
         />
         <div className="rounded-md border">
           <Table>

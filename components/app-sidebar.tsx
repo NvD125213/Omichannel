@@ -10,16 +10,22 @@ import {
 import { sidebarData } from "@/constants/sidebar-data";
 import { useAuth } from "@/contexts/auth-context";
 import { useSidebarConfig } from "@/contexts/sidebar-context";
-import React from "react";
+import React, { useMemo } from "react";
 import { NavGroup } from "./nav-group";
 import { NavUser } from "./nav-user";
 import { TeamSwitcher } from "./team-switcher";
+import { filterNavGroupsByPermissions } from "@/lib/filter-nav-items";
 
 export default function AppSidebar({
   ...props
 }: React.ComponentProps<typeof UISidebar>) {
-  const { user } = useAuth();
+  const { user, permissions } = useAuth();
   const { config } = useSidebarConfig();
+
+  // Filter nav groups dựa trên user permissions
+  const filteredNavGroups = useMemo(() => {
+    return filterNavGroupsByPermissions(sidebarData.navGroups, permissions);
+  }, [permissions]);
 
   return (
     <UISidebar
@@ -32,7 +38,7 @@ export default function AppSidebar({
         <TeamSwitcher teams={sidebarData.teams} />
       </SidebarHeader>
       <SidebarContent>
-        {sidebarData.navGroups.map((nav) => (
+        {filteredNavGroups.map((nav) => (
           <NavGroup key={nav.title} {...nav} />
         ))}
       </SidebarContent>
