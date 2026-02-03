@@ -33,9 +33,12 @@ export function ProtectedRoute({
     // Chỉ thực hiện side-effects (redirect) khi đã load xong data
     if (isLoading) return;
 
-    // 1. Chưa đăng nhập -> redirect
+    // 1. Chưa đăng nhập -> redirect về sign-in
+    // FIX: Trước đây redirect về /not-found gây ra vấn đề khi logout
+    // Timeline: Logout -> router.push("/sign-in") -> ProtectedRoute của dashboard layout
+    // vẫn chạy useEffect, thấy !isAuthenticated -> redirect /not-found (SAI!)
     if (!isAuthenticated) {
-      router.replace("/not-found");
+      router.replace("/sign-in");
       return;
     }
 

@@ -3,7 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 const PUBLIC_ROUTES = ["/sign-in"];
 const PROTECTED_ROUTES = ["/dashboard"];
 
-export function middleware(req: NextRequest) {
+/**
+ * Proxy function (formerly middleware)
+ * Next.js 16+ renamed middleware to proxy for better clarity
+ * https://nextjs.org/docs/messages/middleware-to-proxy
+ */
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const accessToken = req.cookies.get("access_token")?.value;
