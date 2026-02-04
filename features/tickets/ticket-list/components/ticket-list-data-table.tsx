@@ -219,6 +219,24 @@ const getPriorityDotColor = (priority: string) => {
   }
 };
 
+export enum TicketStatus {
+  PENDING = "pending",
+  OPEN = "open",
+  IN_PROGRESS = "in_progress",
+  ON_HOLD = "on_hold",
+  RESOLVED = "resolved",
+  CLOSED = "closed",
+  CANCELLED = "cancelled",
+}
+
+export enum TicketPriority {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  URGENT = "urgent",
+  CRITICAL = "critical",
+}
+
 export function DataTable({
   tickets,
   onDeleteTicket,

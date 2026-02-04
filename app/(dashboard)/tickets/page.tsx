@@ -9,9 +9,6 @@ import {
   useDeleteTicket,
   useGetTickets,
 } from "@/hooks/ticket/ticket-list/use-ticket-list";
-import { useGetTicketTemplates } from "@/hooks/ticket/ticket-templates/use-ticket-templates";
-import { useGetTicketFlows } from "@/hooks/ticket/ticket-flows/use-ticket-flow";
-import { useListUser } from "@/hooks/user/use-list-user";
 import { useGetTags } from "@/hooks/tag/use-tag-ticket";
 import { IconReportMoney } from "@tabler/icons-react";
 import {
@@ -28,6 +25,9 @@ import {
   Minus,
   Zap,
   Flame,
+  Search,
+  ListTodo,
+  Signal,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import {
@@ -45,11 +45,42 @@ import {
 } from "@/components/navigation-rail-filter";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PERMISSIONS } from "@/constants/permission";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { List, LayoutGrid } from "lucide-react";
+import { TicketKanbanBoard } from "@/features/tickets/ticket-list/components/ticket-kanban-board";
+import { useUpdateTicket } from "@/hooks/ticket/ticket-list/use-ticket-list";
+import type { ActionTicketRequest } from "@/services/ticket/tickets/action-tickets";
+
+export enum TicketStatus {
+  PENDING = "pending",
+  OPEN = "open",
+  IN_PROGRESS = "in_progress",
+  ON_HOLD = "on_hold",
+  RESOLVED = "resolved",
+  CLOSED = "closed",
+  CANCELLED = "cancelled",
+}
+
+export enum TicketPriority {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  URGENT = "urgent",
+  CRITICAL = "critical",
+}
 
 // Status options với icons
 const statusOptions: FilterOption[] = [
-  { value: "pending", label: "Đang chờ", icon: <Clock className="size-4" /> },
-  { value: "open", label: "Đang mở", icon: <Play className="size-4" /> },
+  {
+    value: TicketStatus.PENDING,
+    label: "Đang chờ",
+    icon: <Clock className="size-4" />,
+  },
+  {
+    value: TicketStatus.OPEN,
+    label: "Đang mở",
+    icon: <Play className="size-4" />,
+  },
   {
     value: "in_progress",
     label: "Đang xử lý",
@@ -78,17 +109,6 @@ const priorityOptions: FilterOption[] = [
   },
 ];
 
-// Column options for visibility toggle
-const columnOptions: ColumnOption[] = [
-  { id: "code", label: "Mã Ticket" },
-  { id: "title", label: "Tiêu đề" },
-  { id: "priority", label: "Độ ưu tiên" },
-  { id: "status", label: "Trạng thái" },
-  { id: "created_at", label: "Ngày tạo" },
-  { id: "created_by_name", label: "Người tạo" },
-  { id: "assigned_to_name", label: "Người xử lý" },
-];
-
 /**
  * Component chứa logic và UI chính của trang Ticket List
  * Chỉ được render khi đã qua lớp bảo mật
@@ -97,6 +117,10 @@ function TicketListPageContent() {
   // State để quản lý delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("kanban");
+  const { mutateAsync: updateTicket } = useUpdateTicket();
 
   // State để quản lý edit sheet
   const [editSheetOpen, setEditSheetOpen] = useState(false);
@@ -128,40 +152,7 @@ function TicketListPageContent() {
       setQuery({ page: 1, page_size: 10 }, "replaceIn");
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Fetch data for filter options
-  // const { data: templatesData } = useGetTicketTemplates({
-  //   page: 1,
-  //   page_size: 100,
-  // });
-  // const { data: flowsData } = useGetTicketFlows({ page: 1, page_size: 100 });
-  // const { data: usersData } = useListUser({ page: 1, page_size: 100 });
   const { data: tagsData } = useGetTags({ page: 1, page_size: 100 });
-
-  // Build filter options from API data
-  // const templateOptions: FilterOption[] = useMemo(() => {
-  //   const templates = templatesData?.data?.templates || [];
-  //   return templates.map((t: any) => ({
-  //     value: t.id,
-  //     label: t.name,
-  //   }));
-  // }, [templatesData]);
-
-  // const flowOptions: FilterOption[] = useMemo(() => {
-  //   const flows = flowsData?.data?.data?.flows || [];
-  //   return flows.map((f: any) => ({
-  //     value: f.id,
-  //     label: f.name,
-  //   }));
-  // }, [flowsData]);
-
-  // const userOptions: FilterOption[] = useMemo(() => {
-  //   const users = usersData?.data?.items || [];
-  //   return users.map((u: any) => ({
-  //     value: u.id,
-  //     label: u.fullname || u.username,
-  //   }));
-  // }, [usersData]);
 
   const tagItems: TagItem[] = useMemo(() => {
     const tags = tagsData?.data?.tags || [];
@@ -186,7 +177,10 @@ function TicketListPageContent() {
     tag_ids: query.tag_ids || undefined,
   });
 
-  const tickets: Ticket[] = (data?.data?.items as unknown as Ticket[]) || [];
+  const tickets: Ticket[] = useMemo(
+    () => (data?.data?.items as unknown as Ticket[]) || [],
+    [data],
+  );
 
   // Xử lý xóa ticket
   const { mutateAsync: deleteTicket } = useDeleteTicket();
@@ -212,6 +206,38 @@ function TicketListPageContent() {
     setEditSheetOpen(true);
   };
 
+  const handleUpdateTicketPriority = async (
+    ticket: Ticket,
+    newPriority: string,
+  ) => {
+    if (!ticket.id) return;
+
+    try {
+      const payload: ActionTicketRequest = {
+        assigned_to: ticket.assigned_to || "",
+        description: ticket.description || "",
+        extension_data: Array.isArray(ticket.extension_data)
+          ? ticket.extension_data.reduce(
+              (acc, item) => {
+                if (item.key) acc[item.key] = item.value || "";
+                return acc;
+              },
+              {} as Record<string, string>,
+            )
+          : {},
+        priority: newPriority,
+        tag_ids: (ticket.tags || [])
+          .map((t) => t.id)
+          .filter((id): id is string => !!id),
+        template_id: ticket.template_id || "",
+        title: ticket.title,
+      };
+      await updateTicket({ id: ticket.id, payload });
+    } catch (error) {
+      console.error("Failed to update ticket priority", error);
+    }
+  };
+
   // Filter handlers
   const handleSearchChange = (value: string) => {
     setQuery({ code: value || undefined, page: 1 });
@@ -224,22 +250,6 @@ function TicketListPageContent() {
   const handlePriorityChange = (value: string) => {
     setQuery({ priority: value || undefined, page: 1 });
   };
-
-  // const handleTemplateChange = (values: string[]) => {
-  //   setQuery({ template_id: values[0] || undefined, page: 1 });
-  // };
-
-  // const handleFlowChange = (values: string[]) => {
-  //   setQuery({ flow_id: values[0] || undefined, page: 1 });
-  // };
-
-  // const handleCreatedByChange = (values: string[]) => {
-  //   setQuery({ created_by: values[0] || undefined, page: 1 });
-  // };
-
-  // const handleAssignedToChange = (values: string[]) => {
-  //   setQuery({ assigned_to: values[0] || undefined, page: 1 });
-  // };
 
   const handleTagSelect = (tagId: string) => {
     const currentTags = (query.tag_ids || []).filter(
@@ -274,18 +284,15 @@ function TicketListPageContent() {
     });
   };
 
-  // Column visibility handler
-  // const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
-  //   setColumnVisibility((prev) => ({
-  //     ...prev,
-  //     [columnId]: visible,
-  //   }));
-  // };
-
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-full bg-background relative">
       {/* Navigation Rail Filter */}
       <NavigationRailFilter
+        className={
+          viewMode === "kanban"
+            ? "absolute inset-0 z-20 pointer-events-none"
+            : ""
+        }
         searchPlaceholder="Tìm kiếm theo mã ticket..."
         onSearchChange={handleSearchChange}
         searchDebounceMs={500}
@@ -294,11 +301,13 @@ function TicketListPageContent() {
         selectOptions={statusOptions}
         selectValue={query.status || undefined}
         onSelectChange={handleStatusChange}
+        selectIcon={<ListTodo className="size-full" />}
         select2Label="Độ ưu tiên"
         select2Placeholder="Chọn độ ưu tiên"
         select2Options={priorityOptions}
         select2Value={query.priority || undefined}
         onSelect2Change={handlePriorityChange}
+        select2Icon={<Signal className="size-full" />}
         tags={tagItems}
         selectedTags={(query.tag_ids || []).filter(
           (id): id is string => id !== null,
@@ -307,32 +316,50 @@ function TicketListPageContent() {
         onTagRemove={handleTagRemove}
         onClearAll={handleClearFilters}
         onApplyFilters={() => {}}
-        // columnOptions={columnOptions}
-        // columnVisibility={columnVisibility}
-        // onColumnVisibilityChange={handleColumnVisibilityChange}
+        orientation={viewMode === "kanban" ? "horizontal" : "vertical"}
+        verticalDockPositionClassName={
+          viewMode === "kanban" ? "absolute bottom-6" : "-translate-y-[20%]"
+        }
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       {/* Main Content */}
       <div className="flex-1 space-y-8 text-foreground animate-in fade-in duration-500 overflow-auto">
-        <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
-          <AppBreadcrumb
-            items={[
-              { label: "Home", href: "/", icon: <Home className="size-4" /> },
-              {
-                label: "Quản lý ticket",
-                href: "/tickets",
-                icon: <IconReportMoney className="size-4" />,
-              },
-            ]}
-          />
-          <DataTable
-            tickets={tickets}
-            totalPages={data?.data?.total_pages || 1}
-            totalRecords={data?.data?.total || 0}
-            onDeleteTicket={handleDeleteTicket}
-            onEditTicket={handleEditTicket}
-            isLoading={isLoading}
-          />
+        <div className="@container/main px-4 py-4 lg:px-6 space-y-6 h-full flex flex-col">
+          <div className="flex items-center justify-between shrink-0">
+            <AppBreadcrumb
+              items={[
+                { label: "Home", href: "/", icon: <Home className="size-4" /> },
+                {
+                  label: "Quản lý ticket",
+                  href: "/tickets",
+                  icon: <IconReportMoney className="size-4" />,
+                },
+              ]}
+            />
+          </div>
+
+          <div className="flex-1 min-h-0">
+            {viewMode === "list" ? (
+              <DataTable
+                tickets={tickets}
+                totalPages={data?.data?.total_pages || 1}
+                totalRecords={data?.data?.total || 0}
+                onDeleteTicket={handleDeleteTicket}
+                onEditTicket={handleEditTicket}
+                isLoading={isLoading}
+              />
+            ) : (
+              <TicketKanbanBoard
+                tickets={tickets}
+                onTicketUpdate={handleUpdateTicketPriority}
+                isLoading={isLoading}
+                onDeleteTicket={handleDeleteTicket}
+                onEditTicket={handleEditTicket}
+              />
+            )}
+          </div>
         </div>
 
         {/* Delete Confirmation Dialog */}

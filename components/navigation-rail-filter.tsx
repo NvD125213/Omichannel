@@ -12,6 +12,8 @@ import {
   Layers,
   Tags,
   Settings2,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -30,6 +32,7 @@ import {
   useContext,
   useRef,
   useEffect,
+  isValidElement,
   type ReactNode,
   type ReactElement,
 } from "react";
@@ -60,77 +63,85 @@ import {
 } from "@/components/ui/command";
 
 // ============================================
-// VERTICAL DOCK COMPONENT (macOS-like effect)
+// DOCK COMPONENT (macOS-like effect)
 // ============================================
 
 const DEFAULT_MAGNIFICATION = 60;
 const DEFAULT_DISTANCE = 100;
 const DEFAULT_PANEL_WIDTH = 56;
 
-interface VerticalDockContextType {
-  mouseY: MotionValue<number>;
+interface DockContextType {
+  mousePos: MotionValue<number>;
   spring: SpringOptions;
   magnification: number;
   distance: number;
+  orientation: "vertical" | "horizontal";
 }
 
-const VerticalDockContext = createContext<VerticalDockContextType | undefined>(
-  undefined,
-);
+const DockContext = createContext<DockContextType | undefined>(undefined);
 
-function useVerticalDock() {
-  const context = useContext(VerticalDockContext);
+function useDock() {
+  const context = useContext(DockContext);
   if (!context) {
-    throw new Error("useVerticalDock must be used within VerticalDockProvider");
+    throw new Error("useDock must be used within DockProvider");
   }
   return context;
 }
 
-interface VerticalDockProps {
+interface DockProps {
   children: ReactNode;
   className?: string;
   distance?: number;
   panelWidth?: number;
   magnification?: number;
   spring?: SpringOptions;
+  orientation?: "vertical" | "horizontal";
 }
 
-function VerticalDock({
+function Dock({
   children,
   className,
   spring = { mass: 0.1, stiffness: 150, damping: 12 },
   magnification = DEFAULT_MAGNIFICATION,
   distance = DEFAULT_DISTANCE,
   panelWidth = DEFAULT_PANEL_WIDTH,
-}: VerticalDockProps) {
-  const mouseY = useMotionValue(Number.POSITIVE_INFINITY);
+  orientation = "vertical",
+}: DockProps) {
+  const mousePos = useMotionValue(Number.POSITIVE_INFINITY);
 
   return (
     <div
       className={cn(
-        "flex flex-col items-center h-fit gap-2 rounded-2xl bg-card/95 backdrop-blur-md border border-border/50 py-3 shadow-xl",
+        "flex items-center gap-2 rounded-2xl bg-card/95 backdrop-blur-md border border-border/50 shadow-xl pointer-events-auto",
+        orientation === "vertical"
+          ? "flex-col h-fit py-3"
+          : "flex-row w-fit px-3",
         className,
       )}
-      style={{ width: panelWidth }}
+      style={
+        orientation === "vertical"
+          ? { width: panelWidth }
+          : { height: panelWidth }
+      }
       onMouseLeave={() => {
-        mouseY.set(Number.POSITIVE_INFINITY);
+        mousePos.set(Number.POSITIVE_INFINITY);
       }}
-      onMouseMove={({ pageY }) => {
-        mouseY.set(pageY);
+      onMouseMove={(e) => {
+        mousePos.set(orientation === "vertical" ? e.pageY : e.pageX);
       }}
       role="toolbar"
       aria-label="Filter dock"
     >
-      <VerticalDockContext.Provider
-        value={{ mouseY, spring, distance, magnification }}
+      <DockContext.Provider
+        value={{ mousePos, spring, distance, magnification, orientation }}
       >
         {children}
-      </VerticalDockContext.Provider>
+      </DockContext.Provider>
     </div>
   );
 }
 
-interface VerticalDockItemProps {
+interface DockItemProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
@@ -138,20 +149,28 @@ interface VerticalDockItemProps {
   badge?: number;
 }
 
-function VerticalDockItem({
+function DockItem({
   children,
   className,
   onClick,
   isActive,
   badge,
-}: VerticalDockItemProps) {
+}: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const { distance, magnification, mouseY, spring } = useVerticalDock();
+  const { distance, magnification, mousePos, spring, orientation } = useDock();
   const isHovered = useMotionValue(0);
 
-  const mouseDistance = useTransform(mouseY, (val) => {
-    const domRect = ref.current?.getBoundingClientRect() ?? { y: 0, height: 0 };
-    return val - domRect.y - domRect.height / 2;
+  const mouseDistance = useTransform(mousePos, (val) => {
+    const domRect = ref.current?.getBoundingClientRect() ?? {
+      y: 0,
+      x: 0,
+      height: 0,
+      width: 0,
+    };
+    if (orientation === "vertical") {
+      return val - domRect.y - domRect.height / 2;
+    }
+    return val - domRect.x - domRect.width / 2;
   });
 
   const sizeTransform = useTransform(
@@ -167,7 +186,8 @@ function VerticalDockItem({
       ref={ref}
       onClick={onClick}
       className={cn(
-        "relative flex items-center justify-center cursor-pointer rounded-xl transition-colors mx-auto",
+        "relative flex items-center justify-center cursor-pointer rounded-xl transition-colors",
+        orientation === "vertical" ? "mx-auto" : "my-auto",
         isActive
           ? "bg-primary/20 text-primary"
           : "hover:bg-accent text-muted-foreground hover:text-foreground",
@@ -200,20 +220,17 @@ function VerticalDockItem({
   );
 }
 
-interface VerticalDockLabelProps {
+interface DockLabelProps {
   children: ReactNode;
   className?: string;
   isHovered?: MotionValue<number>;
 }
 
-function VerticalDockLabel({
-  children,
-  className,
-  ...rest
-}: VerticalDockLabelProps) {
+function DockLabel({ children, className, ...rest }: DockLabelProps) {
   const restProps = rest as Record<string, unknown>;
   const isHovered = restProps.isHovered as MotionValue<number>;
   const [isVisible, setIsVisible] = useState(false);
+  const { orientation } = useDock();
 
   useEffect(() => {
     if (!isHovered) return;
@@ -227,11 +244,18 @@ function VerticalDockLabel({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, x: 0 }}
-          animate={{ opacity: 1, x: 10 }}
-          exit={{ opacity: 0, x: 0 }}
+          initial={{ opacity: 0, x: 0, y: 0 }}
+          animate={{
+            opacity: 1,
+            x: orientation === "vertical" ? 10 : 0,
+            y: orientation === "vertical" ? 0 : -10,
+          }}
+          exit={{ opacity: 0, x: 0, y: 0 }}
           className={cn(
-            "absolute left-full ml-3 top-1/2 -translate-y-1/2 whitespace-nowrap z-50",
+            "absolute whitespace-nowrap z-50",
+            orientation === "vertical"
+              ? "left-full ml-3 top-1/2 -translate-y-1/2"
+              : "bottom-full mb-3 left-1/2 -translate-x-1/2",
             "rounded-lg border border-border bg-popover px-3 py-1.5 text-sm font-medium text-popover-foreground shadow-lg",
             className,
           )}
@@ -245,17 +269,13 @@ function VerticalDockLabel({
   );
 }
 
-interface VerticalDockIconProps {
+interface DockIconProps {
   children: ReactNode;
   className?: string;
   size?: MotionValue<number>;
 }
 
-function VerticalDockIcon({
-  children,
-  className,
-  ...rest
-}: VerticalDockIconProps) {
+function DockIcon({ children, className, ...rest }: DockIconProps) {
   const restProps = rest as Record<string, unknown>;
   const size = restProps.size as MotionValue<number>;
   const iconSize = useTransform(size, (val) => val * 0.5);
@@ -323,6 +343,18 @@ export type NavigationRailFilterProps = {
   columnOptions?: ColumnOption[];
   columnVisibility?: Record<string, boolean>;
   onColumnVisibilityChange?: (columnId: string, visible: boolean) => void;
+  verticalDockPositionClassName?: string;
+  orientation?: "vertical" | "horizontal";
+
+  searchIcon?: ReactNode;
+  selectIcon?: ReactNode;
+  select2Icon?: ReactNode;
+  comboboxIcon?: ReactNode;
+  tagsIcon?: ReactNode;
+  columnIcon?: ReactNode;
+  filterIcon?: ReactNode;
+  viewMode?: "list" | "kanban";
+  onViewModeChange?: (mode: "list" | "kanban") => void;
 };
 
 // Tag color mapping
@@ -376,12 +408,24 @@ export function NavigationRailFilter({
   columnOptions = [],
   columnVisibility = {},
   onColumnVisibilityChange,
+  verticalDockPositionClassName = "-translate-y-[20%]",
+  orientation = "vertical",
+  searchIcon,
+  selectIcon,
+  select2Icon,
+  comboboxIcon,
+  tagsIcon,
+  columnIcon,
+  filterIcon,
+  viewMode,
+  onViewModeChange,
 }: NavigationRailFilterProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [searchValue, setSearchValue] = useState("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [focusSection, setFocusSection] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<string | null>(null);
 
   // Refs for each section
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -464,6 +508,7 @@ export function NavigationRailFilter({
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleClickFocus = useCallback((section: string) => {
     setFocusSection(section);
+    setActiveSection(section);
     setIsExpanded(true);
   }, []);
 
@@ -521,9 +566,76 @@ export function NavigationRailFilter({
     selectedTags.length,
   ].reduce((a, b) => a + b, 0);
 
+  const getHeaderIcon = () => {
+    let icon: ReactNode = null;
+    let defaultIcon: ReactNode = null;
+
+    switch (activeSection) {
+      case "search":
+        icon = searchIcon;
+        defaultIcon = <Search className="size-5 text-primary" />;
+        break;
+      case "select":
+        icon = selectIcon;
+        defaultIcon = <ListFilter className="size-5 text-primary" />;
+        break;
+      case "select2":
+        icon = select2Icon;
+        defaultIcon = <ListFilter className="size-5 text-primary" />;
+        break;
+      case "combobox":
+        icon = comboboxIcon;
+        defaultIcon = <Layers className="size-5 text-primary" />;
+        break;
+      case "tags":
+        icon = tagsIcon;
+        defaultIcon = <Tags className="size-5 text-primary" />;
+        break;
+      case "columns":
+        icon = columnIcon;
+        defaultIcon = <Settings2 className="size-5 text-primary" />;
+        break;
+      default:
+        icon = filterIcon;
+        defaultIcon = <Filter className="size-5 text-primary" />;
+    }
+
+    if (icon && isValidElement(icon)) {
+      return cloneElement(icon as ReactElement<{ className?: string }>, {
+        className: "size-5 text-primary",
+      });
+    }
+
+    return icon || defaultIcon;
+  };
+
+  const renderLabelIcon = (icon: ReactNode, defaultIconKey: string) => {
+    if (icon && isValidElement(icon)) {
+      return cloneElement(icon as ReactElement<{ className?: string }>, {
+        className: "size-4 text-muted-foreground",
+      });
+    }
+
+    switch (defaultIconKey) {
+      case "search":
+        return <Search className="size-4 text-muted-foreground" />;
+      case "select":
+      case "select2":
+        return <ListFilter className="size-4 text-muted-foreground" />;
+      case "combobox":
+        return <Layers className="size-4 text-muted-foreground" />;
+      case "tags":
+        return <Tags className="size-4 text-muted-foreground" />;
+      case "columns":
+        return <Settings2 className="size-4 text-muted-foreground" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className={cn("relative flex h-full", className)}>
-      {/* Collapsed Vertical Dock (macOS-like) */}
+      {/* Collapsed Dock (macOS-like) */}
       <AnimatePresence mode="wait">
         {!isExpanded && (
           <motion.div
@@ -531,124 +643,166 @@ export function NavigationRailFilter({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex items-center h-full z-[10] -translate-y-[10%]"
+            className={cn(
+              "flex items-center z-[10]",
+              orientation === "vertical" ? "h-full" : "w-full justify-center",
+              verticalDockPositionClassName,
+            )}
           >
-            <VerticalDock magnification={56} distance={100} panelWidth={56}>
+            <Dock
+              magnification={56}
+              distance={100}
+              panelWidth={56}
+              orientation={orientation}
+            >
               {/* Main Filter Button */}
-              <VerticalDockItem
-                onClick={() => setIsExpanded(true)}
+              <DockItem
+                onClick={() => {
+                  setIsExpanded(true);
+                  setActiveSection(null);
+                }}
                 isActive={hasActiveFilters}
                 badge={hasActiveFilters ? totalActiveFilters : undefined}
               >
-                <VerticalDockLabel>Bộ lọc</VerticalDockLabel>
-                <VerticalDockIcon>
-                  <Filter className="size-full" />
-                </VerticalDockIcon>
-              </VerticalDockItem>
+                <DockLabel>Bộ lọc</DockLabel>
+                <DockIcon>
+                  {filterIcon || <Filter className="size-full" />}
+                </DockIcon>
+              </DockItem>
 
-              <div className="w-6 h-px bg-border/50" />
+              {/* View Mode Toggle */}
+              {viewMode && onViewModeChange && (
+                <DockItem
+                  onClick={() =>
+                    onViewModeChange(viewMode === "list" ? "kanban" : "list")
+                  }
+                >
+                  <DockLabel>
+                    {viewMode === "list" ? "Chế độ Kanban" : "Chế độ Danh sách"}
+                  </DockLabel>
+                  <DockIcon>
+                    {viewMode === "list" ? (
+                      <LayoutGrid className="size-full" />
+                    ) : (
+                      <List className="size-full" />
+                    )}
+                  </DockIcon>
+                </DockItem>
+              )}
+
+              <div
+                className={cn(
+                  "bg-border/50",
+                  orientation === "vertical" ? "w-6 h-px" : "h-6 w-px",
+                )}
+              />
 
               {/* Search */}
-              <VerticalDockItem
+              <DockItem
                 onClick={() => handleClickFocus("search")}
                 isActive={!!searchValue}
                 badge={searchValue ? 1 : undefined}
               >
-                <VerticalDockLabel>Tìm kiếm</VerticalDockLabel>
-                <VerticalDockIcon>
-                  <Search className="size-full" />
-                </VerticalDockIcon>
-              </VerticalDockItem>
+                <DockLabel>Tìm kiếm</DockLabel>
+                <DockIcon>
+                  {searchIcon || <Search className="size-full" />}
+                </DockIcon>
+              </DockItem>
 
               {/* Select */}
               {selectOptions.length > 0 && (
-                <VerticalDockItem
+                <DockItem
                   onClick={() => handleClickFocus("select")}
                   isActive={!!selectValue}
                   badge={selectValue ? 1 : undefined}
                 >
-                  <VerticalDockLabel>
+                  <DockLabel>
                     {selectValue
                       ? selectOptions.find((o) => o.value === selectValue)
                           ?.label || selectLabel
                       : selectPlaceholder}
-                  </VerticalDockLabel>
-                  <VerticalDockIcon>
-                    <ListFilter className="size-full" />
-                  </VerticalDockIcon>
-                </VerticalDockItem>
+                  </DockLabel>
+                  <DockIcon>
+                    {selectIcon || <ListFilter className="size-full" />}
+                  </DockIcon>
+                </DockItem>
               )}
 
               {/* Select 2 (Priority) */}
               {select2Options.length > 0 && (
-                <VerticalDockItem
+                <DockItem
                   onClick={() => handleClickFocus("select2")}
                   isActive={!!select2Value}
                   badge={select2Value ? 1 : undefined}
                 >
-                  <VerticalDockLabel>
+                  <DockLabel>
                     {select2Value
                       ? select2Options.find((o) => o.value === select2Value)
                           ?.label || select2Label
                       : select2Placeholder}
-                  </VerticalDockLabel>
-                  <VerticalDockIcon>
-                    <ListFilter className="size-full" />
-                  </VerticalDockIcon>
-                </VerticalDockItem>
+                  </DockLabel>
+                  <DockIcon>
+                    {select2Icon || <ListFilter className="size-full" />}
+                  </DockIcon>
+                </DockItem>
               )}
 
               {/* Combobox */}
               {comboboxOptions.length > 0 && (
-                <VerticalDockItem
+                <DockItem
                   onClick={() => handleClickFocus("combobox")}
                   isActive={comboboxValues.length > 0}
                   badge={comboboxValues.length || undefined}
                 >
-                  <VerticalDockLabel>{comboboxLabel}</VerticalDockLabel>
-                  <VerticalDockIcon>
-                    <Layers className="size-full" />
-                  </VerticalDockIcon>
-                </VerticalDockItem>
+                  <DockLabel>{comboboxLabel}</DockLabel>
+                  <DockIcon>
+                    {comboboxIcon || <Layers className="size-full" />}
+                  </DockIcon>
+                </DockItem>
               )}
 
               {/* Tags */}
               {tags.length > 0 && (
-                <VerticalDockItem
+                <DockItem
                   onClick={() => handleClickFocus("tags")}
                   isActive={selectedTags.length > 0}
                   badge={selectedTags.length || undefined}
                 >
-                  <VerticalDockLabel>Tags</VerticalDockLabel>
-                  <VerticalDockIcon>
-                    <Tags className="size-full" />
-                  </VerticalDockIcon>
-                </VerticalDockItem>
+                  <DockLabel>Tags</DockLabel>
+                  <DockIcon>
+                    {tagsIcon || <Tags className="size-full" />}
+                  </DockIcon>
+                </DockItem>
               )}
 
               {/* Columns (Display Options) */}
               {columnOptions.length > 0 && (
-                <VerticalDockItem onClick={() => handleClickFocus("columns")}>
-                  <VerticalDockLabel>Hiển thị cột</VerticalDockLabel>
-                  <VerticalDockIcon>
-                    <Settings2 className="size-full" />
-                  </VerticalDockIcon>
-                </VerticalDockItem>
+                <DockItem onClick={() => handleClickFocus("columns")}>
+                  <DockLabel>Hiển thị cột</DockLabel>
+                  <DockIcon>
+                    {columnIcon || <Settings2 className="size-full" />}
+                  </DockIcon>
+                </DockItem>
               )}
 
               {/* Clear All */}
               {hasActiveFilters && (
                 <>
-                  <div className="w-6 h-px bg-border/50" />
-                  <VerticalDockItem onClick={handleClearAll}>
-                    <VerticalDockLabel>Xóa tất cả</VerticalDockLabel>
-                    <VerticalDockIcon>
+                  <div
+                    className={cn(
+                      "bg-border/50",
+                      orientation === "vertical" ? "w-6 h-px" : "h-6 w-px",
+                    )}
+                  />
+                  <DockItem onClick={handleClearAll}>
+                    <DockLabel>Xóa tất cả</DockLabel>
+                    <DockIcon>
                       <X className="size-full" />
-                    </VerticalDockIcon>
-                  </VerticalDockItem>
+                    </DockIcon>
+                  </DockItem>
                 </>
               )}
-            </VerticalDock>
+            </Dock>
           </motion.div>
         )}
       </AnimatePresence>
@@ -666,7 +820,7 @@ export function NavigationRailFilter({
               damping: 30,
               mass: 1,
             }}
-            className="flex flex-col bg-card border-r border-border overflow-hidden h-full"
+            className="flex flex-col bg-card border-r border-border overflow-hidden h-full pointer-events-auto"
           >
             {/* Header */}
             <motion.div
@@ -678,12 +832,13 @@ export function NavigationRailFilter({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <motion.div
+                    key={activeSection || "default"}
                     className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10"
                     initial={{ rotate: -180, opacity: 0 }}
                     animate={{ rotate: 0, opacity: 1 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <Filter className="size-5 text-primary" />
+                    {getHeaderIcon()}
                   </motion.div>
                   <div>
                     <h2 className="font-semibold text-base">Bộ lọc</h2>
@@ -734,7 +889,7 @@ export function NavigationRailFilter({
                 {/* Search Input */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <Search className="size-4 text-muted-foreground" />
+                    {renderLabelIcon(searchIcon, "search")}
                     Tìm kiếm
                   </label>
                   <div className="relative">
@@ -767,7 +922,7 @@ export function NavigationRailFilter({
                     <Separator />
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <ListFilter className="size-4 text-muted-foreground" />
+                        {renderLabelIcon(selectIcon, "select")}
                         {selectLabel}
                       </label>
                       <Select
@@ -801,7 +956,7 @@ export function NavigationRailFilter({
                     <Separator />
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <ListFilter className="size-4 text-muted-foreground" />
+                        {renderLabelIcon(select2Icon, "select2")}
                         {select2Label}
                       </label>
                       <Select
@@ -835,7 +990,7 @@ export function NavigationRailFilter({
                     <Separator />
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <Layers className="size-4 text-muted-foreground" />
+                        {renderLabelIcon(comboboxIcon, "combobox")}
                         {comboboxLabel}
                       </label>
                       <Popover
@@ -932,7 +1087,7 @@ export function NavigationRailFilter({
                     <Separator />
                     <div ref={tagsRef} className="space-y-2">
                       <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <Tags className="size-4 text-muted-foreground" />
+                        {renderLabelIcon(tagsIcon, "tags")}
                         Tags
                       </label>
                       <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
@@ -1042,7 +1197,7 @@ export function NavigationRailFilter({
                     <Separator />
                     <div ref={columnsRef} className="space-y-3">
                       <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        <Settings2 className="size-4 text-muted-foreground" />
+                        {renderLabelIcon(columnIcon, "columns")}
                         Hiển thị cột
                       </label>
                       <div className="space-y-2">
