@@ -17,6 +17,7 @@ import {
   GetTicketByIdResponse,
   GetTicketByCodeResponse,
 } from "@/services/ticket/tickets/get-tickets";
+import { ApiErrorParser } from "@/lib/api-error-special";
 
 export const useGetTickets = (params?: any) => {
   return useQuery<GetTicketsResponse>({
@@ -70,18 +71,43 @@ export const useUpdateTicket = () => {
       payload: ActionTicketRequest;
     }) => updateTicketApi(id, payload),
     onSuccess: (_, variables) => {
-      if (_.status_code == 200) {
+      if (_.data.status_code == 200) {
         toast.success("Cập nhật template ticket thành công");
         queryClient.invalidateQueries({ queryKey: ["tickets"] });
         queryClient.invalidateQueries({ queryKey: ["ticket", variables.id] });
       } else {
-        toast.error("Lỗi: " + _.message);
+        toast.error("Lỗi: " + _.data.message);
       }
     },
     onError: (error: any) => {
-      toast.error(
-        error?.response?.data?.message || "Có lỗi xảy ra khi cập nhật ticket",
-      );
+      console.log(error);
+
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+
+      // Xử lý riêng lỗi validate 422 (ví dụ: uuid_parsing cho assigned_to)
+      if (status === 422 && data) {
+        const parsedErrors = ApiErrorParser.parse(data);
+        if (parsedErrors && parsedErrors.length > 0) {
+          const fieldMap = ApiErrorParser.toFieldMap(parsedErrors);
+
+          // Ưu tiên hiển thị dạng "field: message"
+          let message = "";
+          if (Object.keys(fieldMap).length > 0) {
+            message = Object.entries(fieldMap)
+              .map(([field, msg]) => `${field}: ${msg}`)
+              .join("\n");
+          } else {
+            message = parsedErrors.map((e) => e.message).join("\n");
+          }
+
+          toast.error(message || "Dữ liệu không hợp lệ (422)");
+          return;
+        }
+      }
+
+      // Fallback cho các lỗi khác
+      toast.error(data?.message || "Có lỗi xảy ra khi cập nhật ticket");
     },
   });
 };

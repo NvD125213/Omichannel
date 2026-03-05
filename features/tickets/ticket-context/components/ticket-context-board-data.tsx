@@ -153,7 +153,7 @@ export default function TicketDetailLiveChatContext({
           ) : mappedTicketContexts.length === 0 ? (
             <div className="flex items-center justify-center h-full">
               <EmptyData
-                className="w-full h-full"
+                className="w-full h-full p-0"
                 icon={IconMoodEmpty}
                 title="Ticket chưa có context"
                 description="Hãy thêm context mới hoặc thay đổi thông tin tìm kiếm"

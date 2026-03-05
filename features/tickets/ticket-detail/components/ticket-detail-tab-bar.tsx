@@ -65,7 +65,7 @@ const TicketDetailGrid = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-10 gap-4 max-w-[1600px] mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-10 gap-4 max-w-full">
         {/* ===== Row 1: Context (6) + Event (4) ===== */}
         <div className="md:col-span-6 bg-white rounded-xl border border-slate-100 min-h-[300px]">
           <TicketDetailLiveChatContext ticketId={ticketId} />
@@ -74,6 +74,13 @@ const TicketDetailGrid = () => {
         <Section title="Luồng sự kiện" className="md:col-span-4">
           <TicketEventTimelineData />
         </Section>
+        {/* ===== Row 3: Template (4) + Tag (6) ===== */}
+        <Section title="Thông tin template" className="md:col-span-10">
+          <TemplateDetail
+            templateId={ticket?.template_id || ""}
+            ticketId={ticketId}
+          />
+        </Section>
 
         {/* ===== Row 2: Flow (full row) ===== */}
         <Section title="Luồng hoạt động ticket" className="md:col-span-10">
@@ -81,18 +88,6 @@ const TicketDetailGrid = () => {
             ticket_id={ticketId}
             flow_id={ticket?.flow_id || ""}
           />
-        </Section>
-
-        {/* ===== Row 3: Template (4) + Tag (6) ===== */}
-        <Section title="Thông tin template" className="md:col-span-4">
-          <TemplateDetail
-            templateId={ticket?.template_id || ""}
-            ticketId={ticketId}
-          />
-        </Section>
-
-        <Section title="Quản lý Tag" className="md:col-span-6">
-          <TicketTagMain />
         </Section>
       </div>
     </div>

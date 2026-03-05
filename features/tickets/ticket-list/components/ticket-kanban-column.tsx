@@ -14,7 +14,7 @@ import { IconTicketOff } from "@tabler/icons-react";
 import { useMemo } from "react";
 
 interface TicketKanbanColumnProps {
-  id: string; // priority
+  id: string; // status
   title: string;
   tickets?: Ticket[];
   color: string;
@@ -36,7 +36,7 @@ export function TicketKanbanColumn({
     id,
     data: {
       type: "column",
-      priority: id,
+      status: id,
     },
   });
 

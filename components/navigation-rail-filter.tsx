@@ -14,6 +14,7 @@ import {
   Settings2,
   LayoutGrid,
   List,
+  ListOrdered,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -114,7 +115,7 @@ function Dock({
       className={cn(
         "flex items-center gap-2 rounded-2xl bg-card/95 backdrop-blur-md border border-border/50 shadow-xl pointer-events-auto",
         orientation === "vertical"
-          ? "flex-col h-fit py-3"
+          ? "flex-col h-fit py-3 mb-3"
           : "flex-row w-fit px-3",
         className,
       )}
@@ -355,6 +356,13 @@ export type NavigationRailFilterProps = {
   filterIcon?: ReactNode;
   viewMode?: "list" | "kanban";
   onViewModeChange?: (mode: "list" | "kanban") => void;
+  // Kanban-only pagination (chỉ hiển thị khi viewMode === "kanban")
+  kanbanPage?: number;
+  kanbanPageSize?: number;
+  kanbanTotalPages?: number;
+  kanbanTotal?: number;
+  onKanbanPageChange?: (page: number) => void;
+  onKanbanPageSizeChange?: (pageSize: number) => void;
 };
 
 // Tag color mapping
@@ -419,6 +427,12 @@ export function NavigationRailFilter({
   filterIcon,
   viewMode,
   onViewModeChange,
+  kanbanPage = 1,
+  kanbanPageSize = 10,
+  kanbanTotalPages = 1,
+  kanbanTotal = 0,
+  onKanbanPageChange,
+  onKanbanPageSizeChange,
 }: NavigationRailFilterProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [searchValue, setSearchValue] = useState("");
@@ -435,6 +449,7 @@ export function NavigationRailFilter({
   const tagsTriggerRef = useRef<HTMLButtonElement>(null);
   const tagsRef = useRef<HTMLDivElement>(null);
   const columnsRef = useRef<HTMLDivElement>(null);
+  const kanbanPaginationRef = useRef<HTMLDivElement>(null);
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -493,6 +508,12 @@ export function NavigationRailFilter({
           break;
         case "columns":
           columnsRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          break;
+        case "kanban-pagination":
+          kanbanPaginationRef.current?.scrollIntoView({
             behavior: "smooth",
             block: "center",
           });
@@ -784,6 +805,20 @@ export function NavigationRailFilter({
                   </DockIcon>
                 </DockItem>
               )}
+
+              {/* Kanban pagination (chỉ khi viewMode === "kanban") */}
+              {viewMode === "kanban" &&
+                onKanbanPageChange &&
+                onKanbanPageSizeChange && (
+                  <DockItem
+                    onClick={() => handleClickFocus("kanban-pagination")}
+                  >
+                    <DockLabel>Phân trang</DockLabel>
+                    <DockIcon>
+                      <ListOrdered className="size-full" />
+                    </DockIcon>
+                  </DockItem>
+                )}
 
               {/* Clear All */}
               {hasActiveFilters && (
@@ -1233,6 +1268,71 @@ export function NavigationRailFilter({
                     </div>
                   </>
                 )}
+
+                {/* Kanban pagination (chỉ khi viewMode === "kanban") */}
+                {viewMode === "kanban" &&
+                  onKanbanPageChange &&
+                  onKanbanPageSizeChange && (
+                    <>
+                      <Separator />
+                      <div ref={kanbanPaginationRef} className="space-y-3">
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <span className="text-xs text-muted-foreground">
+                              Trang
+                            </span>
+                            <Select
+                              value={String(kanbanPage ?? 1)}
+                              onValueChange={(v) =>
+                                onKanbanPageChange?.(Number(v))
+                              }
+                            >
+                              <SelectTrigger className="w-full h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Array.from(
+                                  {
+                                    length: Math.max(1, kanbanTotalPages ?? 1),
+                                  },
+                                  (_, i) => i + 1,
+                                ).map((p) => (
+                                  <SelectItem key={p} value={String(p)}>
+                                    Trang {p}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <span className="text-xs text-muted-foreground">
+                              Số ticket / trang
+                            </span>
+                            <Select
+                              value={String(kanbanPageSize ?? 10)}
+                              onValueChange={(v) =>
+                                onKanbanPageSizeChange?.(Number(v))
+                              }
+                            >
+                              <SelectTrigger className="w-full h-9">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[10, 20, 30, 50].map((size) => (
+                                  <SelectItem key={size} value={String(size)}>
+                                    {size}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Tổng {kanbanTotal ?? 0} ticket
+                        </p>
+                      </div>
+                    </>
+                  )}
               </motion.div>
             </ScrollArea>
 

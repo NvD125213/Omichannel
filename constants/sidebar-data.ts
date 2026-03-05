@@ -34,6 +34,7 @@ import {
   IconArrowAutofitWidth,
   IconFilter,
   IconCategory2,
+  IconTag,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -133,6 +134,12 @@ export const sidebarData: SidebarData = {
               url: "/tickets/flows",
               icon: Workflow,
               permissions: [PERMISSIONS.VIEW_TICKET_FLOWS],
+            },
+            {
+              title: "Quản lý tag",
+              url: "/tickets/tags",
+              icon: IconTag,
+              permissions: [PERMISSIONS.VIEW_TAGS],
             },
             // {
             //   title: "Quản lý template",

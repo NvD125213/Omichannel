@@ -5,6 +5,8 @@ export interface ActionTicketRequest {
   description: string;
   extension_data: Record<string, string>;
   priority: string;
+  // Cho phép cập nhật status khi drag & drop Kanban
+  status?: string;
   tag_ids: string[];
   template_id: string;
   title: string;
@@ -46,11 +48,7 @@ export const updateTicketApi = async (
   id: string,
   payload: ActionTicketRequest,
 ) => {
-  const response = await apiClient.put<ActionTicketResponse>(
-    `/tickets/${id}`,
-    payload,
-  );
-  return response.data;
+  return await apiClient.put<ActionTicketResponse>(`/tickets/${id}`, payload);
 };
 
 export const deleteTicketApi = async (id: string) => {

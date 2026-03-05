@@ -7,20 +7,20 @@ import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  Grip,
   Clock,
-  Circle,
-  Loader2,
-  CheckCircle2,
+  Play,
+  AlertCircle,
+  Pause,
+  CheckCircle,
   XCircle,
   Ban,
-  PauseCircle,
   HelpCircle,
   User,
   MoreHorizontal,
   Pencil,
   Trash2,
   Eye,
+  Calendar,
 } from "lucide-react";
 import { createElement } from "react";
 import type { Ticket } from "../utils/ticket-schema";
@@ -46,25 +46,26 @@ const getStatusIcon = (status: string) => {
   switch (status?.toLowerCase()) {
     case "open":
     case "mở":
-      return Circle;
+      return Play;
     case "pending":
     case "đang chờ":
       return Clock;
     case "in_progress":
     case "đang xử lý":
-      return Loader2;
+      return AlertCircle;
+    case "on_hold":
+    case "tạm hoãn":
+    case "tạm dừng":
+      return Pause;
     case "resolved":
     case "đã giải quyết":
-      return CheckCircle2;
+      return CheckCircle;
     case "closed":
     case "đóng":
       return XCircle;
     case "cancelled":
     case "đã hủy":
       return Ban;
-    case "on_hold":
-    case "tạm hoãn":
-      return PauseCircle;
     default:
       return HelpCircle;
   }
@@ -120,6 +121,28 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
+const getPriorityName = (priority: string) => {
+  switch (priority?.toLowerCase()) {
+    case "low":
+    case "thấp":
+      return "Thấp";
+    case "medium":
+    case "trung bình":
+      return "Trung bình";
+    case "high":
+    case "cao":
+      return "Cao";
+    case "urgent":
+    case "khẩn cấp":
+      return "Khẩn cấp";
+    case "critical":
+    case "nghiêm trọng":
+      return "Rất khẩn cấp";
+    default:
+      return priority;
+  }
+};
+
 const tagColors: Record<string, string> = {
   red: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
   blue: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800",
@@ -139,16 +162,16 @@ const tagColors: Record<string, string> = {
 
 const getStatusName = (status: string) => {
   switch (status?.toLowerCase()) {
-    case "new":
-    case "mới":
-      return "Mới";
     case "open":
     case "đang mở":
       return "Đang mở";
     case "pending":
     case "đang chờ":
       return "Đang chờ";
-    case "on hold":
+    case "in_progress":
+    case "đang xử lý":
+      return "Đang xử lý";
+    case "on_hold":
     case "tạm dừng":
       return "Tạm dừng";
     case "resolved":
@@ -226,69 +249,78 @@ export function TicketKanbanCard({
   const statusColorClass = getStatusColor(ticket.status);
   const priorityColorClass = getPriorityColor(ticket.priority);
 
+  const priorityBarClass =
+    priorityColorClass.split(" ")[1]?.replace("bg-", "bg-") || "bg-gray-400";
+
   return (
     <Card
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={style}
       className={cn(
-        "group relative cursor-grab overflow-hidden border-none py-3 shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5",
+        "group relative cursor-grab overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md hover:border-border p-1",
         isDragging &&
-          "opacity-50 ring-2 ring-primary shadow-2xl scale-105 z-50",
-        "bg-white dark:bg-zinc-900",
+          "opacity-60 ring-2 ring-primary shadow-lg scale-[1.02] z-50 cursor-grabbing",
       )}
     >
+      {/* Thanh màu độ ưu tiên bên trái */}
       <div
         className={cn(
-          "absolute inset-y-0 left-0 w-1 transition-colors",
-          priorityColorClass.split(" ")[1].replace("bg-", "bg-"),
+          "absolute inset-y-0 left-0 w-1 rounded-l-xl",
+          priorityBarClass,
         )}
       />
 
-      <CardContent className="space-y-3 px-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <div className="font-semibold flex items-center gap-2 pb-1">
-              <span className="text-[10px] uppercase text-muted-foreground">
-                #{ticket.code}
+      <CardContent className="p-3 pl-4 space-y-2.5">
+        {/* Dòng 1: Mã + Badge trạng thái & ưu tiên */}
+        <div className="flex items-center justify-between gap-2 min-h-0">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground shrink-0">
+            #{ticket.code}
+          </span>
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border",
+                statusColorClass,
+              )}
+            >
+              {createElement(getStatusIcon(ticket.status), {
+                className: "size-3 shrink-0",
+              })}
+              <span className="truncate max-w-[72px]">
+                {getStatusName(ticket.status)}
               </span>
-              <div
+            </span>
+            {ticket.priority && (
+              <span
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full px-1 py-0.5 border shadow-xs transition-colors",
-                  statusColorClass,
+                  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border",
+                  getPriorityColor(ticket.priority),
                 )}
               >
-                {createElement(getStatusIcon(ticket.status), {
-                  className: "size-3",
-                })}
-                <span className="text-[10px] font-bold">
-                  {getStatusName(ticket.status)}
-                </span>
-              </div>
-            </div>
-
-            <h4
-              className="text-sm font-bold text-zinc-800 dark:text-zinc-200 hover:text-primary cursor-pointer transition-colors"
-              title={ticket.title}
-              onClick={() => onEditTicket?.(ticket)}
-            >
-              {ticket.title}
-            </h4>
-          </div>
-          <div className="flex items-center gap-1 shrink-0 pl-2">
-            <button
-              {...attributes}
-              {...listeners}
-              className="text-zinc-500 hover:text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800/50 dark:hover:bg-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300 rounded cursor-grab active:cursor-grabbing touch-none transition-colors"
-              title="Kéo để di chuyển (Drag to move)"
-            >
-              <Grip className="size-4" />
-            </button>
+                <span className="size-1.5 rounded-full bg-current shrink-0" />
+                {getPriorityName(ticket.priority)}
+              </span>
+            )}
           </div>
         </div>
 
+        {/* Tiêu đề */}
+        <h4
+          className="text-sm font-semibold text-foreground line-clamp-2 leading-tight hover:text-primary transition-colors cursor-pointer"
+          title={ticket.title}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditTicket?.(ticket);
+          }}
+        >
+          {ticket.title}
+        </h4>
+
         {ticket.description && (
           <p
-            className="text-zinc-500 line-clamp-2 text-xs leading-relaxed"
+            className="text-muted-foreground line-clamp-2 text-xs leading-relaxed"
             title={ticket.description}
           >
             {ticket.description}
@@ -296,21 +328,20 @@ export function TicketKanbanCard({
         )}
 
         {ticket.tags && ticket.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-1">
             {ticket.tags.map((tag) => (
               <Badge
                 key={tag.id}
-                variant="outline"
+                variant="secondary"
                 className={cn(
-                  "px-1.5 py-0 text-[10px] font-medium border h-5",
-                  tagColors[tag.color || "default"]
-                    ? tagColors[tag.color || "default"]
-                    : "text-white border-transparent",
+                  "px-1.5 py-0 text-[10px] font-medium h-5 border-0",
+                  tagColors[tag.color || "default"] ??
+                    "bg-muted text-white/100",
                 )}
                 style={
                   !tagColors[tag.color || "default"] && tag.color
                     ? { backgroundColor: tag.color }
-                    : {}
+                    : undefined
                 }
               >
                 {tag.name}
@@ -319,61 +350,49 @@ export function TicketKanbanCard({
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-1">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5" title="Người tạo">
-              <User className="size-3 text-zinc-400" />
-
-              <div className="flex flex-col">
-                <span className="text-[9px] text-zinc-400 leading-none mb-0.5">
-                  Người tạo
-                </span>
-                <span className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium truncate max-w-[90px] leading-none">
-                  {ticket.created_by_name || "Chưa có"}
-                </span>
-              </div>
-            </div>
+        {/* Người tạo + Ngày tạo */}
+        <div className="flex items-center justify-between gap-2 pt-0.5 text-muted-foreground">
+          <div className="flex items-center gap-1.5 min-w-0" title="Người tạo">
+            <User className="size-3 shrink-0" />
+            <span className="text-[10px] truncate">
+              {ticket.created_by_name || "—"}
+            </span>
           </div>
           {ticket.created_at && (
-            <div className="text-[10px] text-zinc-400" title="Ngày tạo">
-              {convertDateTime(ticket.created_at, "short").datetime}
+            <div className="flex items-center gap-1 shrink-0" title="Ngày tạo">
+              <Calendar className="size-3" />
+              <span className="text-[10px]">
+                {convertDateTime(ticket.created_at, "short").datetime}
+              </span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-          <div className="flex items-center gap-2" title="Người được giao">
-            <Avatar className="size-5 border border-zinc-200 dark:border-zinc-700">
-              <AvatarFallback className="text-[9px] bg-zinc-100 font-bold text-zinc-600">
+        {/* Chân card: Người đảm nhiệm + Menu */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-border/60">
+          <div className="flex items-center gap-2 min-w-0" title="Đảm nhiệm">
+            <Avatar className="size-6 border border-border shrink-0">
+              <AvatarFallback className="text-[9px] bg-muted font-medium text-muted-foreground">
                 {getInitials(ticket.assigned_to_name || "")}
               </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <span className="text-[9px] text-zinc-400 leading-none mb-0.5">
-                Đảm nhiệm
-              </span>
-              <span className="text-[11px] text-zinc-600 dark:text-zinc-300 font-medium truncate max-w-[90px] leading-none">
-                {ticket.assigned_to_name || "Chưa có"}
-              </span>
-            </div>
+            <span className="text-[11px] font-medium text-foreground truncate">
+              {ticket.assigned_to_name || "Chưa giao"}
+            </span>
           </div>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 text-zinc-400 hover:text-zinc-600"
+                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
               >
                 <MoreHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem>
-                <Link
-                  className="flex items-center cursor-pointer w-full"
-                  href={`/tickets/${ticket.id || ticket.code}`}
-                >
+              <DropdownMenuItem asChild>
+                <Link href={`/tickets/${ticket.id || ticket.code}`}>
                   <Eye className="mr-2 size-4" />
                   Xem chi tiết
                 </Link>

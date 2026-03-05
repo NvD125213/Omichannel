@@ -142,7 +142,12 @@ apiClient.interceptors.response.use(
       error.message ||
       "Có lỗi xảy ra";
 
-    return Promise.reject(new Error(errorMessage));
+    // Giữ lại AxiosError để phía UI có thể đọc status, data (ví dụ để parse lỗi 422)
+    if (errorMessage && error.message !== errorMessage) {
+      error.message = errorMessage;
+    }
+
+    return Promise.reject(error);
   },
 );
 

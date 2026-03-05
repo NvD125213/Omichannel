@@ -148,10 +148,47 @@ export default function TicketFlowInstanceDetail({
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="min-h-full flex flex-col">
+      {" "}
+      {/* Sticky Action Section at Top - chỉ hiển thị khi đã có instance */}
+      {instance && (
+        <div className="shrink-0 pb-3 bg-white border-b border-slate-100 sticky top-0 z-10">
+          <div className="flex items-center gap-2">
+            {instance.id && (
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger
+                  className={`${getStepBadgeStyles(selectedStatus)} h-9 text-xs border font-medium px-3 min-w-[130px]`}
+                >
+                  <SelectValue placeholder="Chọn trạng thái" />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <Button
+              onClick={handleAction}
+              disabled={isActionLoading}
+              className="flex-1"
+              variant="outline"
+            >
+              {isActionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              Cập nhật trạng thái
+            </Button>
+          </div>
+        </div>
+      )}
       {/* Content Section - ScrollArea or Empty State */}
       {instance ? (
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 pr-4 pt-3">
           <motion.div
             key={stepData.id}
             initial={{ opacity: 0, x: 20 }}
@@ -378,55 +415,35 @@ export default function TicketFlowInstanceDetail({
         </ScrollArea>
       ) : (
         /* Empty State when no instance */
-        <div className="flex-1 flex flex-col items-center justify-center py-12 text-center text-muted-foreground min-h-[calc(100vh-200px)]">
+        <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground translate-y-full">
           <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
             <FileText className="h-6 w-6 text-slate-400" />
           </div>
+
           <p className="text-sm font-medium text-slate-900">
             Chưa thực hiện đến bước này
           </p>
+
           <p className="text-xs text-slate-500 mt-1">
             Nhấn nút bên dưới để bắt đầu thực hiện bước
           </p>
+
+          <div className="mt-4 flex items-center gap-2">
+            <Button
+              onClick={handleAction}
+              disabled={isActionLoading}
+              className="gap-2"
+            >
+              {isActionLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+              <span>Thực hiện bước</span>
+            </Button>
+          </div>
         </div>
       )}
-
-      {/* Fixed Action Section at Bottom - Outside ScrollArea */}
-      <div className="shrink-0 pt-4 pb-2 bg-white border-t border-slate-100">
-        <div className="flex items-center gap-2">
-          {instance?.id && (
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger
-                className={`${getStepBadgeStyles(selectedStatus)} h-9 text-xs border font-medium px-3 min-w-[130px]`}
-              >
-                <SelectValue placeholder="Chọn trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Button
-            onClick={handleAction}
-            disabled={isActionLoading}
-            className="flex-1"
-            variant={instance?.id ? "outline" : "default"}
-          >
-            {isActionLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : instance?.id ? (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            ) : (
-              <Play className="h-4 w-4 mr-2" />
-            )}
-            {instance?.id ? "Cập nhật trạng thái" : "Thực hiện bước"}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

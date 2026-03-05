@@ -12,25 +12,29 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Ticket } from "../utils/ticket-schema";
 import { TicketKanbanColumn } from "./ticket-kanban-column";
 import { TicketKanbanCard } from "./ticket-kanban-card";
 
 interface TicketKanbanBoardProps {
   tickets: Ticket[];
-  onTicketUpdate: (ticket: Ticket, newPriority: string) => void;
+  onTicketUpdate: (ticket: Ticket, newStatus: string) => void;
   isLoading?: boolean;
   onEditTicket?: (ticket: Ticket) => void;
   onDeleteTicket?: (id: string) => void;
+  visibleStatuses?: Record<string, boolean>;
 }
 
-const priorities = [
-  { id: "low", title: "Thấp", color: "bg-blue-500" },
-  { id: "medium", title: "Trung bình", color: "bg-cyan-500" },
-  { id: "high", title: "Cao", color: "bg-orange-500" },
-  { id: "urgent", title: "Khẩn cấp", color: "bg-red-500" },
-  { id: "critical", title: "Nghiêm trọng", color: "bg-purple-600" },
+// Các cột theo status (chuẩn theo TicketStatus ở tickets/page.tsx)
+const statuses = [
+  { id: "pending", title: "Đang chờ", color: "bg-yellow-500" },
+  { id: "open", title: "Đang mở", color: "bg-blue-500" },
+  { id: "in_progress", title: "Đang xử lý", color: "bg-purple-500" },
+  { id: "on_hold", title: "Tạm dừng", color: "bg-orange-500" },
+  { id: "resolved", title: "Đã giải quyết", color: "bg-emerald-500" },
+  { id: "closed", title: "Đã đóng", color: "bg-gray-500" },
+  { id: "cancelled", title: "Đã hủy", color: "bg-red-500" },
 ];
 
 export function TicketKanbanBoard({
@@ -39,10 +43,20 @@ export function TicketKanbanBoard({
   isLoading,
   onEditTicket,
   onDeleteTicket,
+  visibleStatuses,
 }: TicketKanbanBoardProps) {
   // We maintain local state for optimistic UI updates
   const [tickets, setTasks] = useState<Ticket[]>(initialTickets);
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
+
+  const activeStatuses = useMemo(
+    () =>
+      statuses.filter(
+        (status) =>
+          !visibleStatuses || visibleStatuses[status.id] !== false,
+      ),
+    [visibleStatuses],
+  );
 
   // Sync with props, but don't override while dragging
   useEffect(() => {
@@ -59,11 +73,11 @@ export function TicketKanbanBoard({
     }),
   );
 
-  const getTicketsByPriority = useCallback(
-    (priority: string) => {
-      // Normalize priority check
+  const getTicketsByStatus = useCallback(
+    (status: string) => {
+      // Chuẩn hóa status về lowercase để so sánh
       return tickets.filter(
-        (ticket) => (ticket.priority?.toLowerCase() || "low") === priority,
+        (ticket) => ticket.status?.toLowerCase() === status.toLowerCase(),
       );
     },
     [tickets],
@@ -89,32 +103,32 @@ export function TicketKanbanBoard({
 
     const overData = over.data.current;
 
-    // If dragging over a column
+    // Nếu kéo qua 1 cột => đổi status theo cột
     if (overData?.type === "column") {
-      const newPriority = overData.priority as string;
-      const currentPriority = activeTicket.priority?.toLowerCase() || "low";
+      const newStatus = overData.status as string;
+      const currentStatus = activeTicket.status?.toLowerCase();
 
-      if (currentPriority !== newPriority) {
+      if (currentStatus !== newStatus.toLowerCase()) {
         setTasks((prev) =>
           prev.map((t) =>
-            (t.id || t.code) === activeId ? { ...t, priority: newPriority } : t,
+            (t.id || t.code) === activeId ? { ...t, status: newStatus } : t,
           ),
         );
       }
       return;
     }
 
-    // If dragging over another ticket
+    // Nếu kéo lên một ticket khác trong cột status khác => đổi status theo ticket đó (chỉ đổi status, không reorder)
     const overTicket = tickets.find((t) => (t.id || t.code) === overId);
     if (!overTicket) return;
 
-    const currentPriority = activeTicket.priority?.toLowerCase() || "low";
-    const overPriority = overTicket.priority?.toLowerCase() || "low";
+    const currentStatus = activeTicket.status?.toLowerCase();
+    const overStatus = overTicket.status?.toLowerCase();
 
-    if (currentPriority !== overPriority) {
+    if (currentStatus !== overStatus) {
       setTasks((prev) =>
         prev.map((t) =>
-          (t.id || t.code) === activeId ? { ...t, priority: overPriority } : t,
+          (t.id || t.code) === activeId ? { ...t, status: overStatus } : t,
         ),
       );
     }
@@ -129,56 +143,42 @@ export function TicketKanbanBoard({
     const activeId = active.id as string;
     const overId = over.id as string;
 
-    // Find the original ticket to check if priority actually changed compared to server state?
+    // Find the original ticket to check if status actually changed compared to server state?
     // Actually we should check our local optimistic state against logic.
     // Ideally, we compare where it started vs where it ended.
     // But `handleDragOver` already mutated `tickets` state to show preview.
-    // We need to trigger the API update here if priority changed.
+    // We need to trigger the API update here if status changed.
 
     // We can find the ticket in our (already mutated) state
     const currentTicket = tickets.find((t) => (t.id || t.code) === activeId);
 
     if (currentTicket) {
-      // Compare with the logic of where it dropped?
-      // Actually, we need to know if the Final Priority is different from the Prop ticket priority?
-      // Or we just call the update handler and let the parent decide?
-      // But `handleDragOver` runs continuously.
-      // Let's rely on finding what column it ended up in.
-
-      // However, `over` can be a column or a task.
-      let targetPriority = "";
+      // Xác định status cuối cùng sau khi thả
+      let targetStatus = "";
 
       if (over.data.current?.type === "column") {
-        targetPriority = over.data.current.priority;
+        targetStatus = over.data.current.status;
       } else if (over.data.current?.type === "ticket") {
-        targetPriority = (
-          over.data.current.ticket as Ticket
-        ).priority.toLowerCase();
+        targetStatus = (over.data.current.ticket as Ticket).status;
       }
 
-      // If we found a target priority
-      if (targetPriority) {
-        // Check against the ORIGINAL ticket priority from `initialTickets` to see if we need to call API
-        // Wait, `initialTickets` might have changed if parent re-renders?
-        // It's safer to just look at the ticket we have in state vs what we think it should be.
-        // Actually, `handleDragOver` updates the state `tickets`. So `currentTicket.priority` IS `targetPriority`.
-        // We need to compare it with the server state. But we don't have easy access to "server state" of this specific ticket unless we look at `initialTickets`.
-
+      // Nếu có status mới thì so sánh với status ban đầu từ props
+      if (targetStatus) {
         const originalTicket = initialTickets.find(
           (t) => (t.id || t.code) === activeId,
         );
         if (
           originalTicket &&
-          originalTicket.priority.toLowerCase() !== targetPriority
+          originalTicket.status.toLowerCase() !== targetStatus.toLowerCase()
         ) {
-          onTicketUpdate(originalTicket, targetPriority);
+          onTicketUpdate(originalTicket, targetStatus);
         }
       }
     }
 
     if (activeId === overId) return;
 
-    // Sorting logic within the same column
+    // Sorting logic within the same column (giữ nguyên, nhưng tính theo status)
     // (This part is purely visual for reordering locally, if API doesn't support manual sort order, this will reset on refresh)
     const ticketInState = tickets.find((t) => (t.id || t.code) === activeId);
     const overTicketInState = tickets.find((t) => (t.id || t.code) === overId);
@@ -186,14 +186,14 @@ export function TicketKanbanBoard({
     if (
       ticketInState &&
       overTicketInState &&
-      ticketInState.priority === overTicketInState.priority
+      ticketInState.status === overTicketInState.status
     ) {
       setTasks((prev) => {
         const columnTickets = prev.filter(
-          (t) => t.priority === ticketInState.priority,
+          (t) => t.status === ticketInState.status,
         );
         const otherTickets = prev.filter(
-          (t) => t.priority !== ticketInState.priority,
+          (t) => t.status !== ticketInState.status,
         );
 
         const activeIndex = columnTickets.findIndex(
@@ -224,13 +224,13 @@ export function TicketKanbanBoard({
         onDragEnd={handleDragEnd}
       >
         <div className="flex h-full min-h-[600px] gap-4 overflow-x-auto pb-4 items-start">
-          {priorities.map((priority) => (
+          {activeStatuses.map((status) => (
             <TicketKanbanColumn
-              key={priority.id}
-              id={priority.id}
-              title={priority.title}
-              color={priority.color}
-              tickets={isLoading ? [] : getTicketsByPriority(priority.id)}
+              key={status.id}
+              id={status.id}
+              title={status.title}
+              color={status.color}
+              tickets={isLoading ? [] : getTicketsByStatus(status.id)}
               loading={isLoading}
               onEditTicket={onEditTicket}
               onDeleteTicket={onDeleteTicket}

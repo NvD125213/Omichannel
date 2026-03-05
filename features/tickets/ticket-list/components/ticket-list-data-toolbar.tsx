@@ -77,11 +77,7 @@ export function DataTableToolbar<TData>({
         <h2 className="text-lg font-semibold text-foreground">{title}</h2>
       </div>
       <div className="flex items-center gap-2 justify-end">
-        {/* <DataTableViewOptions table={table} /> */}
-        {/* <Button variant="outline" size="sm" className="h-8 cursor-pointer">
-          <Download className="size-4" />
-          Export
-        </Button> */}
+        <DataTableViewOptions table={table} />
         <TicketCreateSheet />
       </div>
     </div>

@@ -25,9 +25,9 @@ import {
   Minus,
   Zap,
   Flame,
-  Search,
   ListTodo,
   Signal,
+  PlusCircle,
 } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import {
@@ -40,16 +40,15 @@ import {
 import {
   NavigationRailFilter,
   type FilterOption,
-  type ColumnOption,
   type TagItem,
+  type ColumnOption,
 } from "@/components/navigation-rail-filter";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PERMISSIONS } from "@/constants/permission";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { List, LayoutGrid } from "lucide-react";
 import { TicketKanbanBoard } from "@/features/tickets/ticket-list/components/ticket-kanban-board";
 import { useUpdateTicket } from "@/hooks/ticket/ticket-list/use-ticket-list";
 import type { ActionTicketRequest } from "@/services/ticket/tickets/action-tickets";
+import { Button } from "@/components/ui/button";
 
 export enum TicketStatus {
   PENDING = "pending",
@@ -125,8 +124,6 @@ function TicketListPageContent() {
   // State để quản lý edit sheet
   const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
-
-  // Column visibility state
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({});
@@ -206,9 +203,9 @@ function TicketListPageContent() {
     setEditSheetOpen(true);
   };
 
-  const handleUpdateTicketPriority = async (
+  const handleUpdateTicketStatus = async (
     ticket: Ticket,
-    newPriority: string,
+    newStatus: string,
   ) => {
     if (!ticket.id) return;
 
@@ -225,7 +222,8 @@ function TicketListPageContent() {
               {} as Record<string, string>,
             )
           : {},
-        priority: newPriority,
+        priority: ticket.priority || "",
+        status: newStatus,
         tag_ids: (ticket.tags || [])
           .map((t) => t.id)
           .filter((id): id is string => !!id),
@@ -284,15 +282,27 @@ function TicketListPageContent() {
     });
   };
 
+  const statusColumnOptions: ColumnOption[] = [
+    { id: TicketStatus.PENDING, label: "Đang chờ" },
+    { id: TicketStatus.OPEN, label: "Đang mở" },
+    { id: TicketStatus.IN_PROGRESS, label: "Đang xử lý" },
+    { id: TicketStatus.ON_HOLD, label: "Tạm dừng" },
+    { id: TicketStatus.RESOLVED, label: "Đã giải quyết" },
+    { id: TicketStatus.CLOSED, label: "Đã đóng" },
+    { id: TicketStatus.CANCELLED, label: "Đã hủy" },
+  ];
+
+  const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
+    setColumnVisibility((prev) => ({
+      ...prev,
+      [columnId]: visible,
+    }));
+  };
+
   return (
     <div className="flex h-full bg-background relative">
       {/* Navigation Rail Filter */}
       <NavigationRailFilter
-        className={
-          viewMode === "kanban"
-            ? "absolute inset-0 z-20 pointer-events-none"
-            : ""
-        }
         searchPlaceholder="Tìm kiếm theo mã ticket..."
         onSearchChange={handleSearchChange}
         searchDebounceMs={500}
@@ -316,12 +326,20 @@ function TicketListPageContent() {
         onTagRemove={handleTagRemove}
         onClearAll={handleClearFilters}
         onApplyFilters={() => {}}
-        orientation={viewMode === "kanban" ? "horizontal" : "vertical"}
-        verticalDockPositionClassName={
-          viewMode === "kanban" ? "absolute bottom-6" : "-translate-y-[20%]"
-        }
+        orientation={"vertical"}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        columnOptions={viewMode == "kanban" ? statusColumnOptions : undefined}
+        columnVisibility={columnVisibility}
+        onColumnVisibilityChange={handleColumnVisibilityChange}
+        kanbanPage={query.page ?? 1}
+        kanbanPageSize={query.page_size ?? 10}
+        kanbanTotalPages={data?.data?.total_pages ?? 1}
+        kanbanTotal={data?.data?.total ?? 0}
+        onKanbanPageChange={(page) => setQuery({ page })}
+        onKanbanPageSizeChange={(page_size) =>
+          setQuery({ page_size, page: 1 })
+        }
       />
 
       {/* Main Content */}
@@ -340,7 +358,33 @@ function TicketListPageContent() {
             />
           </div>
 
-          <div className="flex-1 min-h-0">
+          {/* Data toolbar: hiển thị ở Kanban (List đã có toolbar bên trong DataTable) */}
+          {viewMode === "kanban" && (
+            <div className="flex flex-col sm:flex-row gap-4 shrink-0">
+              <div className="flex flex-1 items-center gap-2">
+                <h2 className="text-lg font-semibold text-foreground">
+                  Quản lý Ticket
+                </h2>
+              </div>
+              <div className="flex items-center gap-2 justify-end">
+                <Button
+                  size="sm"
+                  className="h-8 gap-1"
+                  onClick={() => {
+                    setEditingTicket(null);
+                    setEditSheetOpen(true);
+                  }}
+                >
+                  <PlusCircle className="size-3.5" />
+                  <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
+                    Thêm mới
+                  </span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 flex flex-col gap-4">
             {viewMode === "list" ? (
               <DataTable
                 tickets={tickets}
@@ -353,10 +397,11 @@ function TicketListPageContent() {
             ) : (
               <TicketKanbanBoard
                 tickets={tickets}
-                onTicketUpdate={handleUpdateTicketPriority}
+                onTicketUpdate={handleUpdateTicketStatus}
                 isLoading={isLoading}
                 onDeleteTicket={handleDeleteTicket}
                 onEditTicket={handleEditTicket}
+                visibleStatuses={columnVisibility}
               />
             )}
           </div>

@@ -512,7 +512,7 @@ export default function TicketFlowStepper({
 
       {/* Right Column - Step Details (40% - 4 cols) */}
       <div className="col-span-4 pl-2">
-        <div className="max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-2">
+        <div className="scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-2">
           <AnimatePresence mode="wait">
             <TicketFlowInstanceDetail
               instance={selectedStepInstance}
