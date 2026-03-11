@@ -46,12 +46,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { TicketTag } from "../utils/schema";
 import { DataTablePagination } from "./ticket-tag-data-table-pagination";
 import { DataTableToolbar } from "./ticket-tag-data-table-toolbar";
-import {
-  useQueryParam,
-  NumberParam,
-  StringParam,
-  withDefault,
-} from "use-query-params";
+import { useQueryParam, NumberParam, StringParam, withDefault } from "use-query-params";
 import { EmptyData } from "@/components/empty-data";
 import { IconMoodEmpty } from "@tabler/icons-react";
 
@@ -62,6 +57,7 @@ interface DataTableProps {
   totalPages: number;
   totalRecords: number;
   isLoading?: boolean;
+  tagType?: "ticket" | "customer";
 }
 
 export function TicketTagDataTable({
@@ -71,13 +67,13 @@ export function TicketTagDataTable({
   totalPages,
   totalRecords,
   isLoading,
+  tagType = "ticket",
 }: DataTableProps) {
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
   const [pageSize, setPageSize] = useQueryParam(
     "page_size",
     withDefault(NumberParam, 10),
   );
-  const [search, setSearch] = useQueryParam("search", StringParam);
   const [sortBy, setSortBy] = useQueryParam("sort_by", StringParam);
   const [sortOrder, setSortOrder] = useQueryParam("sort_order", StringParam);
 
@@ -290,11 +286,7 @@ export function TicketTagDataTable({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar
-        table={table}
-        search={search}
-        onSearchChange={(value) => setSearch(value ?? undefined)}
-      />
+      <DataTableToolbar table={table} tagType={tagType} />
       <div className="rounded-md border">
         <Table>
           <TableHeader>

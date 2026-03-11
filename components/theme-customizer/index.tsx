@@ -39,8 +39,10 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
     useSidebarConfig();
 
   const [activeTab, setActiveTab] = React.useState("theme");
-  const [selectedTheme, setSelectedTheme] = React.useState("default");
-  const [selectedTweakcnTheme, setSelectedTweakcnTheme] = React.useState("");
+  // Mặc định dùng preset "notebook" (tweakcn) thay vì theme "default"
+  const [selectedTheme, setSelectedTheme] = React.useState("");
+  const [selectedTweakcnTheme, setSelectedTweakcnTheme] =
+    React.useState("notebook");
   const [selectedRadius, setSelectedRadius] = React.useState("0.5rem");
   const [importModalOpen, setImportModalOpen] = React.useState(false);
   const [importedTheme, setImportedTheme] =
@@ -50,8 +52,9 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
     // Complete reset to application defaults
 
     // 1. Reset all state variables to initial values
-    setSelectedTheme("default");
-    setSelectedTweakcnTheme("");
+    // Đưa về preset "notebook" làm mặc định
+    setSelectedTheme("");
+    setSelectedTweakcnTheme("notebook");
     setSelectedRadius("0.5rem");
     setImportedTheme(null); // Clear imported theme
     setBrandColorsValues({}); // Clear brand colors state

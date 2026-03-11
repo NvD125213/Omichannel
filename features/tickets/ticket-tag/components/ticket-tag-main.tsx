@@ -13,7 +13,11 @@ import {
 import { useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
-export function TicketTagMain() {
+interface TicketTagMainProps {
+  tagType?: "ticket" | "customer";
+}
+
+export function TicketTagMain({ tagType = "ticket" }: TicketTagMainProps) {
   const [editingTag, setEditingTag] = useState<TicketTag | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -30,6 +34,7 @@ export function TicketTagMain() {
     page: query.page,
     page_size: query.page_size,
     search: query.search || undefined,
+    tag_type: tagType,
   });
 
   const tags: TicketTag[] = (data?.data.tags as unknown as TicketTag[]) || [];
@@ -74,6 +79,7 @@ export function TicketTagMain() {
           onDeleteTag={handleDeleteTag}
           onEditTag={handleEditTag}
           isLoading={isLoading}
+          tagType={tagType}
         />
       </div>
 
@@ -81,6 +87,7 @@ export function TicketTagMain() {
         tag={editingTag}
         open={editDialogOpen}
         onOpenChange={handleEditDialogClose}
+        tagType={tagType}
       />
 
       <ConfirmDialog

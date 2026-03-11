@@ -655,7 +655,7 @@ export function NavigationRailFilter({
   };
 
   return (
-    <div className={cn("relative flex h-full", className)}>
+    <div className={cn("relative flex h-full bg-background", className)}>
       {/* Collapsed Dock (macOS-like) */}
       <AnimatePresence mode="wait">
         {!isExpanded && (
@@ -665,7 +665,7 @@ export function NavigationRailFilter({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              "flex items-center z-[10]",
+              "flex items-center z-10",
               orientation === "vertical" ? "h-full" : "w-full justify-center",
               verticalDockPositionClassName,
             )}
@@ -855,7 +855,7 @@ export function NavigationRailFilter({
               damping: 30,
               mass: 1,
             }}
-            className="flex flex-col bg-card border-r border-border overflow-hidden h-full pointer-events-auto"
+            className="flex flex-col bg-background border-r border-border overflow-hidden h-full pointer-events-auto"
           >
             {/* Header */}
             <motion.div

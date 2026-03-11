@@ -155,4 +155,11 @@
     mask-image: linear-gradient(to bottom, black calc(100% - 3rem), transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 3rem), transparent 100%);
   }
+
+  /* Sidebar gradient (khi theme đặt --sidebar-bg-image, ví dụ notebook) */
+  [data-sidebar="sidebar"] {
+    background-image: var(--sidebar-bg-image, none);
+    background-size: cover;
+    background-position: center;
+  }
 }

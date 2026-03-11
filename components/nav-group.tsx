@@ -38,7 +38,7 @@ export function NavGroup({ title, items }: NavGroup) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">
+      <SidebarGroupLabel className="text-xs font-medium uppercase tracking-wider text-sidebar-foreground/70">
         {title}
       </SidebarGroupLabel>
       <SidebarMenu className="gap-1">
@@ -66,21 +66,48 @@ export function NavGroup({ title, items }: NavGroup) {
   );
 }
 
+type NavBadgeColor =
+  | "violet"
+  | "green"
+  | "teal"
+  | "red"
+  | "blue"
+  | "yellow"
+  | "purple"
+  | "orange"
+  | "pink"
+  | "indigo"
+  | "default";
+
+const NAV_BADGE_COLORS: Record<NavBadgeColor, string> = {
+  violet: "bg-sidebar-primary/15 text-sidebar-primary",
+  green: "bg-green-500/15 text-green-400",
+  teal: "bg-teal-500/15 text-teal-400",
+  red: "bg-red-500/15 text-red-400",
+  blue: "bg-blue-500/15 text-blue-400",
+  yellow: "bg-amber-500/15 text-amber-400",
+  purple: "bg-purple-500/15 text-purple-400",
+  orange: "bg-orange-500/15 text-orange-400",
+  pink: "bg-pink-500/15 text-pink-400",
+  indigo: "bg-indigo-500/15 text-indigo-400",
+  default: "bg-sidebar-foreground/15 text-sidebar-foreground",
+};
+
 const NavBadge = ({
   children,
   color = "violet",
 }: {
   children: ReactNode;
-  color?: "violet" | "green";
+  color?: NavBadgeColor;
 }) => {
-  const colorClasses =
-    color === "green"
-      ? "bg-green-500/10 text-green-600 dark:text-green-400"
-      : "bg-violet-500/10 text-violet-600 dark:text-violet-400";
+  const colorClasses = NAV_BADGE_COLORS[color] ?? NAV_BADGE_COLORS.violet;
 
   return (
     <Badge
-      className={`ml-auto rounded-full border-0 px-2 py-0.5 text-[10px] font-medium ${colorClasses}`}
+      className={cn(
+        "ml-auto rounded-full border-0 px-2 py-0.5 text-[10px] font-medium",
+        colorClasses,
+      )}
     >
       {children}
     </Badge>
@@ -99,21 +126,21 @@ const SidebarMenuLink = ({ item, href }: { item: NavLink; href: string }) => {
         tooltip={item.title}
         className={cn(
           "group/link relative transition-all duration-200",
-          isActive && "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+          isActive && "bg-sidebar-primary/10 text-sidebar-primary",
         )}
       >
         <Link href={item.url} onClick={() => setOpenMobile(false)}>
           {/* Active indicator */}
           {isActive && (
-            <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-linear-to-b from-violet-500 to-fuchsia-500" />
+            <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
           )}
           {item.icon && (
             <item.icon
               className={cn(
                 "transition-colors",
                 isActive
-                  ? "text-violet-600 dark:text-violet-400"
-                  : "text-muted-foreground group-hover/link:text-foreground",
+                  ? "text-sidebar-primary"
+                  : "text-sidebar-foreground/80 group-hover/link:text-sidebar-foreground",
               )}
             />
           )}
@@ -145,7 +172,7 @@ const SidebarMenuCollapsible = ({
             tooltip={item.title}
             className={cn(
               "group/link transition-all duration-200",
-              isActive && "text-violet-600 dark:text-violet-400",
+              isActive && "text-sidebar-primary",
             )}
           >
             {item.icon && (
@@ -153,8 +180,8 @@ const SidebarMenuCollapsible = ({
                 className={cn(
                   "transition-colors",
                   isActive
-                    ? "text-violet-600 dark:text-violet-400"
-                    : "text-muted-foreground group-hover/link:text-foreground",
+                    ? "text-sidebar-primary"
+                    : "text-sidebar-foreground/80 group-hover/link:text-sidebar-foreground",
                 )}
               />
             )}
@@ -162,11 +189,11 @@ const SidebarMenuCollapsible = ({
             {item.badge && (
               <NavBadge color={item.badgeColor}>{item.badge}</NavBadge>
             )}
-            <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <ChevronRight className="ml-auto size-4 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent className="CollapsibleContent">
-          <SidebarMenuSub className="border-l-2 border-violet-500/20 ml-3.5">
+          <SidebarMenuSub className="border-l-2 border-sidebar-primary/20 ml-3.5">
             {item.items.map((subItem) => {
               const isSubActive = checkIsActive(href, subItem);
               return (
@@ -177,14 +204,16 @@ const SidebarMenuCollapsible = ({
                     className={cn(
                       "transition-all duration-200",
                       isSubActive &&
-                        "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+                        "bg-sidebar-primary/10 text-sidebar-primary",
                     )}
                   >
                     <Link
                       href={subItem.url}
                       onClick={() => setOpenMobile(false)}
                     >
-                      {subItem.icon && <subItem.icon className="size-4" />}
+                      {subItem.icon && (
+                        <subItem.icon className="size-4 text-white!" />
+                      )}
                       <span>{subItem.title}</span>
                       {subItem.badge && (
                         <NavBadge color={subItem.badgeColor}>
@@ -220,16 +249,15 @@ const SidebarMenuCollapsedDropdown = ({
             tooltip={item.title}
             className={cn(
               "transition-all duration-200",
-              isActive &&
-                "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+              isActive && "bg-sidebar-primary/10 text-sidebar-primary",
             )}
           >
             {item.icon && (
               <item.icon
                 className={cn(
                   isActive
-                    ? "text-violet-600 dark:text-violet-400"
-                    : "text-muted-foreground",
+                    ? "text-sidebar-primary"
+                    : "text-sidebar-foreground/80",
                 )}
               />
             )}
@@ -237,7 +265,7 @@ const SidebarMenuCollapsedDropdown = ({
             {item.badge && (
               <NavBadge color={item.badgeColor}>{item.badge}</NavBadge>
             )}
-            <ChevronRight className="ml-auto size-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <ChevronRight className="ml-auto size-4 text-sidebar-foreground/70 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent

@@ -167,14 +167,25 @@ function Sidebar({
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
   if (collapsible === "none") {
+    const { style: propsStyle, ...restProps } =
+      props as React.HTMLAttributes<HTMLDivElement>;
     return (
       <div
         data-slot="sidebar"
+        data-sidebar="sidebar"
         className={cn(
           "bg-sidebar text-sidebar-foreground flex h-full w-(--sidebar-width) flex-col",
           className,
         )}
-        {...props}
+        style={
+          {
+            ...propsStyle,
+            backgroundImage: "var(--sidebar-bg-image, none)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          } as React.CSSProperties
+        }
+        {...restProps}
       >
         {children}
       </div>
@@ -192,6 +203,9 @@ function Sidebar({
           style={
             {
               "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+              backgroundImage: "var(--sidebar-bg-image, none)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
             } as React.CSSProperties
           }
           side={side}
@@ -246,6 +260,13 @@ function Sidebar({
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
           className="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm"
+          style={
+            {
+              backgroundImage: "var(--sidebar-bg-image, none)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } as React.CSSProperties
+          }
         >
           {children}
         </div>

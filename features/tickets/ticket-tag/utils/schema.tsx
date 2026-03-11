@@ -6,12 +6,16 @@ export const ticketTagSchema = z.object({
   description: z.string(),
   tenant_id: z.string(),
   color: z.string(),
+  type: z.enum(["ticket", "customer"]),
 });
 
 export const ticketTagDefaultValues = {
+  id: undefined as string | undefined,
   name: "",
   description: "",
+  tenant_id: "",
   color: "",
+  type: "ticket" as "ticket" | "customer",
 };
 
 export const ticketTagFormSchema = z.object({
@@ -20,6 +24,7 @@ export const ticketTagFormSchema = z.object({
   description: z.string().min(1, "Mô tả không được để trống"),
   tenant_id: z.string().optional(),
   color: z.string().min(1, "Vui lòng chọn màu sắc"),
+  type: z.enum(["ticket", "customer"]),
 });
 
 export type TicketTag = z.infer<typeof ticketTagSchema>;

@@ -4,6 +4,13 @@
  */
 
 export const PERMISSIONS = {
+  // Customers
+  VIEW_CUSTOMERS: "view_customers",
+  VIEW_CUSTOMER_BY_ID: "view_customer_by_id",
+  CREATE_CUSTOMERS: "create_customers",
+  EDIT_CUSTOMERS: "edit_customers",
+  DELETE_CUSTOMERS: "delete_customers",
+
   // Users
   VIEW_USERS: "view_users",
   CREATE_USERS: "create_users",

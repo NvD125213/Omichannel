@@ -18,7 +18,18 @@ interface Team {
 interface BaseNavItem {
   title: string;
   badge?: string;
-  badgeColor?: "violet" | "green";
+  badgeColor?:
+    | "violet"
+    | "green"
+    | "teal"
+    | "red"
+    | "blue"
+    | "yellow"
+    | "purple"
+    | "orange"
+    | "pink"
+    | "indigo"
+    | "default";
   icon?: React.ElementType;
   permissions?: string[];
 }

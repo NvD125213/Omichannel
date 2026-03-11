@@ -8,6 +8,7 @@ export interface GetTagsParams {
   search?: string;
   sort_by?: string;
   sort?: string;
+  tag_type?: "ticket" | "customer";
 }
 
 export interface TicketTag {
@@ -15,12 +16,14 @@ export interface TicketTag {
   name: string;
   color: string;
   description: string;
+  type: "ticket" | "customer";
 }
 
 export interface CreateTagRequest {
   name: string;
   color: string;
   description: string;
+  type: "ticket" | "customer";
 }
 
 // Update tag - same as CreateTagRequest

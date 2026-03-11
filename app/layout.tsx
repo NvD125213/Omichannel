@@ -5,7 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { FontProvider } from "@/contexts/font-context";
 import { SocketProvider } from "@/contexts/socket-context";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Inter, Manrope } from "next/font/google";
+import { Geist, Geist_Mono, Manrope, Noto_Sans } from "next/font/google";
 import NextToploader from "nextjs-toploader";
 import "./globals.css";
 
@@ -19,9 +19,10 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const inter = Inter({
+const inter = Noto_Sans({
   variable: "--font-inter",
-  subsets: ["latin"],
+  subsets: ["latin", "vietnamese"],
+  weight: ["300", "400", "500", "700"],
 });
 
 const manrope = Manrope({

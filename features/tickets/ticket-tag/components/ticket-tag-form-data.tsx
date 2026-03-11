@@ -38,12 +38,14 @@ interface TagFormDialogProps {
   tag?: TicketTag | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  tagType?: "ticket" | "customer";
 }
 
 export function TagFormDialog({
   tag,
   open: controlledOpen,
   onOpenChange,
+  tagType = "ticket",
 }: TagFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled =
@@ -60,7 +62,7 @@ export function TagFormDialog({
 
   const form = useForm<TicketTagFormValues>({
     resolver: zodResolver(ticketTagFormSchema),
-    defaultValues: ticketTagDefaultValues,
+    defaultValues: ticketTagDefaultValues as TicketTagFormValues,
   });
 
   useEffect(() => {
@@ -71,21 +73,26 @@ export function TagFormDialog({
         description: tag.description,
         tenant_id: tag.tenant_id,
         color: tag.color,
+        type: tag.type,
       });
     } else if (!tag && open) {
       form.reset({
         ...ticketTagDefaultValues,
         tenant_id: currentUser?.tenant_id || "",
+        type: tagType,
       });
     }
-  }, [tag, open, form, currentUser]);
+  }, [tag, open, form, currentUser, tagType]);
 
   function onSubmit(data: TicketTagFormValues) {
-    const payload = removeEmptyFields(data);
+    const payload = removeEmptyFields({
+      ...data,
+      type: tagType,
+    }) as TicketTagFormValues;
 
     if (isEditMode && tag?.id) {
       updateTagMutation.mutate(
-        { id: tag.id, payload: payload as TicketTagFormValues },
+        { id: tag.id, payload },
         {
           onSuccess: () => {
             form.reset();
@@ -94,7 +101,7 @@ export function TagFormDialog({
         },
       );
     } else {
-      createTagMutation.mutate(payload as TicketTagFormValues, {
+      createTagMutation.mutate(payload, {
         onSuccess: () => {
           form.reset();
           setOpen(false);

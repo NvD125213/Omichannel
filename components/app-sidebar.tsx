@@ -42,7 +42,7 @@ export default function AppSidebar({
           <NavGroup key={nav.title} {...nav} />
         ))}
       </SidebarContent>
-      <SidebarFooter>
+      {/* <SidebarFooter>
         {user && (
           <NavUser
             user={{
@@ -52,7 +52,7 @@ export default function AppSidebar({
             }}
           />
         )}
-      </SidebarFooter>
+      </SidebarFooter> */}
       <SidebarRail />
     </UISidebar>
   );
