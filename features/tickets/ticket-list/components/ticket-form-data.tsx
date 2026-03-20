@@ -355,11 +355,11 @@ export default function TicketForm({
                   h-10 w-full rounded-md border
                   flex items-center justify-center gap-2
                   text-sm font-medium
-                  transition
+                  transition duration-150 ease-in-out
                   ${
                     isActive
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background hover:bg-primary hover:text-primary-foreground"
+                      ? "bg-primary text-primary-foreground border-primary hover:brightness-110"
+                      : "bg-background hover:bg-primary hover:text-primary-foreground hover:brightness-110"
                   }
                 `}
                       >

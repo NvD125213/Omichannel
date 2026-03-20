@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import Script from "next/script";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -59,6 +60,13 @@ export default function SignIn() {
 
   return (
     <div className="relative grid min-h-screen w-full lg:grid-cols-2">
+      <Script
+        src="https://dhtk.telesip.vn/public/chatbot/chat-widget.js"
+        strategy="afterInteractive"
+        data-api-base-url="https://dhtk.telesip.vn/api/v1"
+        data-faq-ai-config-id="1"
+        data-faq-suggestions-limit="6"
+      />
       {/* Left Column - Animated Background */}
       <div className="relative hidden overflow-hidden bg-zinc-950 lg:block">
         <div className="absolute inset-0 bg-linear-to-br from-violet-600/20 via-transparent to-cyan-600/20" />

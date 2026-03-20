@@ -53,11 +53,11 @@ export function TeamSwitcher({
                     <span className="truncate font-semibold">
                       {activeTeam.name}
                     </span>
-                    <span className="truncate text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="truncate text-xs text-white flex items-center gap-1">
                       {activeTeam.plan}
                     </span>
                   </div>
-                  <ChevronsUpDown className="ml-auto size-4 text-muted-foreground transition-colors group-hover/team:text-foreground" />
+                  <ChevronsUpDown className="ml-auto size-4 text-white transition-colors group-hover/team:text-foreground" />
                 </>
               )}
             </SidebarMenuButton>

@@ -20,6 +20,7 @@ import {
   IconUserPlus,
   IconShieldCheck,
   IconBuilding,
+  IconBuildingBroadcastTower,
   IconFingerprint,
   IconTag,
 } from "@tabler/icons-react";
@@ -155,9 +156,22 @@ export const sidebarData: SidebarData = {
         },
         {
           title: "Quản lý người dùng",
-          url: "/users",
           icon: IconUserPlus,
           permissions: [PERMISSIONS.VIEW_USERS],
+          items: [
+            {
+              title: "Quản lý người dùng",
+              url: "/users",
+              icon: IconUserPlus,
+              permissions: [PERMISSIONS.VIEW_USERS],
+            },
+            {
+              title: "Quản lý doanh nghiệp",
+              url: "/tenants",
+              icon: IconBuildingBroadcastTower,
+              // permissions: [PERMISSIONS.VIEW_TENANTS],
+            },
+          ],
         },
 
         {

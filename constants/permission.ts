@@ -114,6 +114,12 @@ export const PERMISSIONS = {
   EDIT_TAG: "edit_tag",
   DELETE_TAG: "delete_tag",
 
+  // Tenants
+  VIEW_TENANTS: "view_tenants",
+  CREATE_TENANT: "create_tenant",
+  EDIT_TENANT: "edit_tenant",
+  DELETE_TENANT: "delete_tenant",
+
   // Logs
   VIEW_LOGS: "view_logs",
 } as const;
