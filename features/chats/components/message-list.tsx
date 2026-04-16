@@ -1,8 +1,16 @@
 "use client";
 
 import { format, isToday, isYesterday } from "date-fns";
-import { CheckCheck, Copy, MoreVertical, Reply, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import {
+  CheckCheck,
+  Copy,
+  MoreVertical,
+  Reply,
+  SmilePlus,
+  Trash2,
+  User2,
+} from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -15,54 +23,247 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useListTenantConversationMessages } from "@/hooks/chatwoot/use-chatwoot";
+import type { ListTenantConversationMessagesResponse } from "@/services/chatwoot/interface";
 import type { ChatMessage, ChatUser } from "../utils/types";
 import { MessageAttachment } from "./message-attachment";
+
+const coerceMessageRecords = (
+  value: unknown,
+): Record<string, unknown>[] | null => {
+  if (!Array.isArray(value)) return null;
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === "object" && !Array.isArray(item),
+  );
+};
+
+const extractTenantMessagePayload = (
+  res: ListTenantConversationMessagesResponse | null | undefined,
+): Record<string, unknown>[] | null => {
+  const data = res?.data as Record<string, unknown> | undefined;
+  if (!data) return null;
+
+  const flatPayload = coerceMessageRecords(data.payload);
+  if (flatPayload) return flatPayload;
+
+  const nested = data.data as Record<string, unknown> | undefined;
+  const nestedPayload = coerceMessageRecords(nested?.payload);
+  if (nestedPayload) return nestedPayload;
+
+  const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
+  const chatwootPayloadDirect = coerceMessageRecords(chatwoot?.payload);
+  if (chatwootPayloadDirect) return chatwootPayloadDirect;
+  const chatwootData = chatwoot?.data as Record<string, unknown> | undefined;
+  const chatwootPayload = coerceMessageRecords(chatwootData?.payload);
+  if (chatwootPayload) return chatwootPayload;
+
+  const messagesPayload = coerceMessageRecords(data.messages);
+  if (messagesPayload) return messagesPayload;
+
+  return null;
+};
+
+const normalizeMessage = (
+  message: Record<string, unknown>,
+  currentConversationId: string,
+): ChatMessage => {
+  const sender = (message.sender ?? {}) as Record<string, unknown>;
+  const attachments = Array.isArray(message.attachments)
+    ? message.attachments
+    : [];
+  return {
+    id:
+      typeof message.id === "number" || typeof message.id === "string"
+        ? String(message.id)
+        : `msg-${currentConversationId}-${String(message.created_at ?? message.updated_at ?? message.content ?? "")}`,
+    content:
+      (typeof message.content === "string" && message.content) ||
+      (typeof message.processed_message_content === "string" &&
+        message.processed_message_content) ||
+      "",
+    created_at:
+      (typeof message.created_at === "string" && message.created_at) ||
+      (typeof message.updated_at === "string" && message.updated_at) ||
+      new Date().toISOString(),
+    updated_at:
+      (typeof message.updated_at === "string" && message.updated_at) ||
+      (typeof message.created_at === "string" && message.created_at) ||
+      new Date().toISOString(),
+    conversation_id:
+      typeof message.conversation_id === "number" ||
+      typeof message.conversation_id === "string"
+        ? String(message.conversation_id)
+        : currentConversationId,
+    sender_id:
+      typeof message.sender_id === "number" ||
+      typeof message.sender_id === "string"
+        ? String(message.sender_id)
+        : typeof sender.id === "number"
+          ? String(sender.id)
+          : undefined,
+    sender: {
+      id: 1,
+      name: typeof sender.name === "string" ? sender.name : undefined,
+      available_name:
+        typeof sender.available_name === "string"
+          ? sender.available_name
+          : undefined,
+      avatar_url:
+        typeof sender.avatar_url === "string" ? sender.avatar_url : undefined,
+      type: typeof sender.type === "string" ? sender.type : undefined,
+      availability_status:
+        typeof sender.availability_status === "string"
+          ? sender.availability_status
+          : undefined,
+      thumbnail:
+        typeof sender.thumbnail === "string" ? sender.thumbnail : undefined,
+    },
+    attachments: attachments
+      .map((attachment) => {
+        const item =
+          attachment && typeof attachment === "object"
+            ? (attachment as Record<string, unknown>)
+            : {};
+        return {
+          id:
+            typeof item.id === "number" || typeof item.id === "string"
+              ? String(item.id)
+              : undefined,
+          message_id:
+            typeof item.message_id === "number" ||
+            typeof item.message_id === "string"
+              ? String(item.message_id)
+              : undefined,
+          file_type:
+            typeof item.file_type === "string" ? item.file_type : undefined,
+          extension:
+            typeof item.extension === "string" ? item.extension : undefined,
+          data_url:
+            typeof item.data_url === "string" ? item.data_url : undefined,
+          thumb_url:
+            typeof item.thumb_url === "string" ? item.thumb_url : undefined,
+          file_size:
+            typeof item.file_size === "number" ? item.file_size : undefined,
+          width: typeof item.width === "number" ? item.width : undefined,
+          height: typeof item.height === "number" ? item.height : undefined,
+        };
+      })
+      .slice(0, 1) as ChatMessage["attachments"],
+  };
+};
 
 interface MessageListProps {
   messages: ChatMessage[];
   users: ChatUser[];
   currentUserId?: string;
+  tenantId?: string;
+  conversationId?: string | null;
 }
 
 export function MessageList({
   messages,
   users,
   currentUserId = "current-user",
+  tenantId = "",
+  conversationId = null,
 }: MessageListProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
   const isInitialLoadRef = useRef(true);
-  const previousConversationRef = useRef<string | null>(null);
+  const previousConversationRef = useRef<string | null>(conversationId);
 
-  useEffect(() => {
-    const currentConversationId =
-      messages.length > 0 ? messages[0]?.id?.split("-")[0] : null;
-    if (currentConversationId !== previousConversationRef.current) {
-      isInitialLoadRef.current = true;
-      previousConversationRef.current = currentConversationId;
+  const { data: tenantMessagesResponse } = useListTenantConversationMessages(
+    tenantId,
+    conversationId ?? "",
+  );
+
+  const apiMessages = useMemo(() => {
+    if (!conversationId) return [];
+    const payload = extractTenantMessagePayload(tenantMessagesResponse);
+    if (!payload) return [];
+    return payload
+      .map((message) => normalizeMessage(message, conversationId))
+      .sort(
+        (a, b) =>
+          new Date(a.created_at ?? 0).getTime() -
+          new Date(b.created_at ?? 0).getTime(),
+      );
+  }, [tenantMessagesResponse, conversationId]);
+
+  const resolvedMessages = useMemo(() => {
+    if (apiMessages.length === 0) return messages;
+    if (messages.length === 0) return apiMessages;
+
+    const merged = new Map<string, ChatMessage>();
+    for (const message of apiMessages) {
+      merged.set(String(message.id ?? ""), message);
     }
-  }, [messages]);
+    for (const message of messages) {
+      merged.set(
+        String(
+          message.id ??
+            `local-${message.conversation_id ?? ""}-${message.created_at ?? message.updated_at ?? message.content ?? ""}`,
+        ),
+        message,
+      );
+    }
+    return Array.from(merged.values()).sort(
+      (a, b) =>
+        new Date(a.created_at ?? 0).getTime() -
+        new Date(b.created_at ?? 0).getTime(),
+    );
+  }, [apiMessages, messages]);
 
   useEffect(() => {
+    if (conversationId !== previousConversationRef.current) {
+      isInitialLoadRef.current = true;
+      previousConversationRef.current = conversationId;
+    }
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (resolvedMessages.length === 0) return;
+
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
-      previousMessageCountRef.current = messages.length;
+      previousMessageCountRef.current = resolvedMessages.length;
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
       return;
     }
 
     if (
-      messages.length > previousMessageCountRef.current &&
+      resolvedMessages.length > previousMessageCountRef.current &&
       bottomRef.current
     ) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
 
-    previousMessageCountRef.current = messages.length;
-  }, [messages]);
+    previousMessageCountRef.current = resolvedMessages.length;
+  }, [resolvedMessages]);
 
-  const getUserById = (userId: string) => {
-    if (userId === currentUserId) {
+  const getMessageSenderId = (message: ChatMessage): string => {
+    if (typeof message.sender_id === "string" && message.sender_id.length > 0) {
+      return message.sender_id;
+    }
+    if (typeof message.sender?.id === "number") {
+      return String(message.sender.id);
+    }
+    return "unknown-user";
+  };
+
+  const getMessageTimestamp = (message: ChatMessage): string =>
+    message.created_at ?? message.updated_at ?? new Date().toISOString();
+
+  const getMessageContent = (message: ChatMessage): string =>
+    message.content ?? message.processed_message_content ?? "";
+
+  const getMessageId = (message: ChatMessage, index: number): string =>
+    message.id ? String(message.id) : `message-${index}`;
+
+  const getUserById = (userId: string, isOwnMessage: boolean) => {
+    if (isOwnMessage) {
       return {
         id: currentUserId,
         name: "You",
@@ -89,31 +290,34 @@ export function MessageList({
   };
 
   const shouldShowAvatar = (message: ChatMessage, index: number) => {
-    if (message.senderId === currentUserId) return false;
+    const senderId = getMessageSenderId(message);
+    if (senderId === currentUserId) return false;
     if (index === 0) return true;
 
-    const prevMessage = messages[index - 1];
-    return prevMessage.senderId !== message.senderId;
+    const prevMessage = resolvedMessages[index - 1];
+    return getMessageSenderId(prevMessage) !== senderId;
   };
 
   const shouldShowName = (message: ChatMessage, index: number) => {
-    if (message.senderId === currentUserId) return false;
+    const senderId = getMessageSenderId(message);
+    if (senderId === currentUserId) return false;
     if (index === 0) return true;
 
-    const prevMessage = messages[index - 1];
-    return prevMessage.senderId !== message.senderId;
+    const prevMessage = resolvedMessages[index - 1];
+    return getMessageSenderId(prevMessage) !== senderId;
   };
 
   const isConsecutiveMessage = (message: ChatMessage, index: number) => {
     if (index === 0) return false;
 
-    const prevMessage = messages[index - 1];
+    const prevMessage = resolvedMessages[index - 1];
     const timeDiff =
-      new Date(message.timestamp).getTime() -
-      new Date(prevMessage.timestamp).getTime();
+      new Date(getMessageTimestamp(message)).getTime() -
+      new Date(getMessageTimestamp(prevMessage)).getTime();
 
     return (
-      prevMessage.senderId === message.senderId && timeDiff < 5 * 60 * 1000
+      getMessageSenderId(prevMessage) === getMessageSenderId(message) &&
+      timeDiff < 5 * 60 * 1000
     );
   };
 
@@ -121,7 +325,10 @@ export function MessageList({
     const groups: { date: string; messages: ChatMessage[] }[] = [];
 
     msgs.forEach((message) => {
-      const messageDate = format(new Date(message.timestamp), "yyyy-MM-dd");
+      const messageDate = format(
+        new Date(getMessageTimestamp(message)),
+        "yyyy-MM-dd",
+      );
       const lastGroup = groups[groups.length - 1];
 
       if (lastGroup && lastGroup.date === messageDate) {
@@ -148,7 +355,7 @@ export function MessageList({
     }
   };
 
-  const messageGroups = groupMessagesByDay(messages);
+  const messageGroups = groupMessagesByDay(resolvedMessages);
 
   return (
     <ScrollArea className="flex-1 h-full overflow-auto" ref={scrollAreaRef}>
@@ -163,134 +370,144 @@ export function MessageList({
 
             <div className="space-y-3">
               {group.messages.map((message, messageIndex) => {
-                const user = getUserById(message.senderId);
-                const isOwnMessage = message.senderId === currentUserId;
-                const showAvatar = shouldShowAvatar(message, messageIndex);
-                const showName = shouldShowName(message, messageIndex);
+                const senderId = getMessageSenderId(message);
+                const isCustomerMessage = message.sender?.type !== "user";
+                const isOwnMessage =
+                  message.sender?.type === "user" || senderId === currentUserId;
+                const user = getUserById(senderId, isOwnMessage);
+
+                const showName =
+                  isCustomerMessage && shouldShowName(message, messageIndex);
                 const isConsecutive = isConsecutiveMessage(
                   message,
                   messageIndex,
                 );
+                const messageId = getMessageId(message, messageIndex);
+                const messageTimestamp = getMessageTimestamp(message);
+                const messageContent = getMessageContent(message);
+                const attachments = Array.isArray(message.attachments)
+                  ? message.attachments
+                  : [];
 
                 return (
                   <div
-                    key={message.id}
+                    key={messageId}
                     className={cn(
                       "flex gap-3 group",
                       isOwnMessage && "flex-row-reverse",
-                      isConsecutive && !isOwnMessage && "ml-12",
+                      // isConsecutive && !isOwnMessage && "ml-12",
                     )}
                   >
-                    {!isOwnMessage && (
-                      <div className="w-8">
-                        {showAvatar && user && (
-                          <Avatar className="size-8 cursor-pointer">
-                            <AvatarImage src={user.avatar} alt={user.name} />
-                            <AvatarFallback className="text-xs">
-                              {user.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                        )}
-                      </div>
-                    )}
+                    <div className="w-8">
+                      <Avatar className="size-8 cursor-pointer">
+                        <AvatarImage />
+                        <AvatarFallback className="text-xs bg-linear-to-br from-primary/20 to-primary/10">
+                          G
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
 
                     <div
                       className={cn(
-                        "flex-1 max-w-[70%]",
+                        "max-w-[70%] w-full min-w-0",
                         isOwnMessage && "flex flex-col items-end",
                       )}
                     >
-                      {showName && user && !isOwnMessage && (
-                        <div className="text-sm font-medium text-foreground mb-1">
-                          {user.name}
+                      {showName && user && isCustomerMessage && (
+                        <div className="mb-1 flex items-center gap-1 text-sm font-medium text-foreground">
+                          <User2 className="size-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{user.name}</span>
                         </div>
                       )}
 
-                      <div className="relative group/message">
+                      <div
+                        className={cn(
+                          "group/message flex items-center gap-2 w-full",
+                          isOwnMessage ? "justify-end" : "justify-start",
+                        )}
+                      >
                         <div
                           className={cn(
-                            "rounded-2xl px-4 py-2.5 text-sm wrap-break-word shadow-sm",
+                            "flex items-center gap-1 opacity-0 transition-all duration-200 pointer-events-none group-hover/message:opacity-100 group-hover/message:pointer-events-auto",
+                            isOwnMessage ? "order-1 mr-2" : "order-2 ml-2",
+                          )}
+                        >
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                          >
+                            <SmilePlus className="size-4" />
+                          </Button>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                          >
+                            <Reply className="size-4" />
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                              >
+                                <MoreVertical className="size-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align={isOwnMessage ? "start" : "end"}
+                            >
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Reply className="size-4" />
+                                Reply
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Copy className="size-4" />
+                                Copy
+                              </DropdownMenuItem>
+                              {isOwnMessage && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                                    <Trash2 className="size-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        <div
+                          className={cn(
+                            "rounded-2xl px-4 py-2.5 text-sm shadow-sm w-fit max-w-full wrap-break-word whitespace-pre-wrap",
+                            isOwnMessage ? "order-2" : "order-1",
                             isOwnMessage
-                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              ? "bg-primary text-primary-foreground rounded-br-md ml-auto"
                               : "bg-muted rounded-bl-md",
                             isConsecutive && "mt-1",
                           )}
                         >
-                          <div className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/message:opacity-100 transition-opacity z-10">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={cn(
-                                    "size-6 rounded-full",
-                                    isOwnMessage
-                                      ? "hover:bg-primary-foreground/20 text-primary-foreground/70 hover:text-primary-foreground"
-                                      : "hover:bg-background/50 text-muted-foreground hover:text-foreground",
-                                  )}
-                                >
-                                  <MoreVertical className="size-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align={isOwnMessage ? "start" : "end"}
-                              >
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Reply className="size-4" />
-                                  Reply
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Copy className="size-4" />
-                                  Copy
-                                </DropdownMenuItem>
-                                {isOwnMessage && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
-                                      <Trash2 className="size-4" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                          <p>{messageContent}</p>
 
-                          <p>{message.content}</p>
-
-                          {message.attachments &&
-                            message.attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {message.attachments.map((attachment) => (
+                          {attachments.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {attachments.map(
+                                (attachment, attachmentIndex) => (
                                   <MessageAttachment
-                                    key={attachment.id}
+                                    key={`${messageId}-attachment-${attachment.id ?? attachmentIndex}`}
                                     attachment={attachment}
                                     isOwnMessage={isOwnMessage}
                                   />
-                                ))}
-                              </div>
-                            )}
-
-                          {message.reactions.length > 0 && (
-                            <div className="flex gap-1 mt-2">
-                              {message.reactions.map((reaction, idx) => (
-                                <div
-                                  key={idx}
-                                  className={cn(
-                                    "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border cursor-pointer",
-                                    "bg-background/90 backdrop-blur-sm shadow-sm",
-                                  )}
-                                >
-                                  <span>{reaction.emoji}</span>
-                                  <span className="text-muted-foreground">
-                                    {reaction.count}
-                                  </span>
-                                </div>
-                              ))}
+                                ),
+                              )}
                             </div>
                           )}
 
@@ -302,10 +519,7 @@ export function MessageList({
                                 : "text-muted-foreground",
                             )}
                           >
-                            <span>{formatMessageTime(message.timestamp)}</span>
-                            {message.isEdited && (
-                              <span className="italic">(edited)</span>
-                            )}
+                            <span>{formatMessageTime(messageTimestamp)}</span>
                             {isOwnMessage && (
                               <div className="flex">
                                 <CheckCheck className="size-3" />

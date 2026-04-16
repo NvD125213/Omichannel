@@ -74,10 +74,18 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
           ? {
               ...conv,
               lastMessage: {
-                id: message.id,
-                content: message.content,
-                timestamp: message.timestamp,
-                senderId: message.senderId,
+                id: String(message.id ?? `msg-${Date.now()}`),
+                content:
+                  message.content ?? message.processed_message_content ?? "",
+                timestamp:
+                  message.created_at ??
+                  message.updated_at ??
+                  new Date().toISOString(),
+                senderId:
+                  message.sender_id ??
+                  (typeof message.sender?.id === "number"
+                    ? String(message.sender.id)
+                    : "unknown-user"),
               },
             }
           : conv,

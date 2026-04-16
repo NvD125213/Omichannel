@@ -1,3 +1,5 @@
+"use client";
+
 import chatConversations from "@/constants/chat-conversation.json";
 import chatMessages from "@/constants/chat-messages.json";
 import chatUsers from "@/constants/chat-users.json";
@@ -7,19 +9,25 @@ import {
   ChatMessage,
   ChatUser,
 } from "@/features/chats/utils/types";
+import { AppBreadcrumb } from "@/components/breadcrumb";
+import { Home } from "lucide-react";
+import { IconMessages } from "@tabler/icons-react";
 
 export default function ChatsPage() {
   return (
-    <>
-      <div className="px-4 py-4 lg:px-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Chats</h1>
-          <p className="text-muted-foreground">
-            Chat with your customers and team members.
-          </p>
-        </div>
+    <div className="flex-1 space-y-8 text-foreground animate-in fade-in duration-500 overflow-auto">
+      <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
+        <AppBreadcrumb
+          items={[
+            { label: "Home", href: "/", icon: <Home className="size-4" /> },
+            {
+              label: "Trò chuyện",
+              href: "/chats",
+              icon: <IconMessages className="size-4" />,
+            },
+          ]}
+        />
       </div>
-
       <div className="@container/main px-4 lg:px-6 space-y-6">
         <Chat
           conversations={chatConversations as ChatConversation[]}
@@ -27,6 +35,6 @@ export default function ChatsPage() {
           users={chatUsers as ChatUser[]}
         />
       </div>
-    </>
+    </div>
   );
 }

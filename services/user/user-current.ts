@@ -10,6 +10,7 @@ export interface UserCurrentResponse {
     fullname: string;
     is_active: number;
     role: string;
+    level: string;
     tenant_id: string;
     permissions: string[];
   };

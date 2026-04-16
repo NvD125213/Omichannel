@@ -2,10 +2,13 @@ import { LinkProps } from "next/link";
 
 interface User {
   id: string;
-  name: string;
+  username: string;
+  fullname: string;
   email: string;
-  avatar: string;
   role?: string;
+  level?: string;
+  tenant_id?: string;
+  is_active?: number;
   permissions?: string[];
 }
 

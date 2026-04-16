@@ -25,13 +25,26 @@ export function MessageAttachment({
   isOwnMessage,
 }: MessageAttachmentProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const fileType = (attachment.file_type ?? "").toLowerCase();
+  const extension = (attachment.extension ?? "").toLowerCase();
+  const dataUrl = attachment.data_url ?? attachment.thumb_url ?? "";
+  const fileName = extension ? `Tệp .${extension}` : "Tệp đính kèm";
+  const readableSize =
+    typeof attachment.file_size === "number"
+      ? attachment.file_size >= 1024 * 1024
+        ? `${(attachment.file_size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.max(1, Math.round(attachment.file_size / 1024))} KB`
+      : "Không rõ dung lượng";
+  const isImage = fileType.startsWith("image/");
+  const isPdf = fileType.includes("pdf") || extension === "pdf";
+  const isAudio = fileType.startsWith("audio/");
 
-  if (attachment.type === "image") {
+  if (isImage && dataUrl) {
     return (
       <div className="w-[140px] overflow-hidden rounded-lg">
         <Image
-          src={attachment.url}
-          alt={attachment.name}
+          src={dataUrl}
+          alt={fileName}
           width={140}
           height={100}
           className="w-[140px] h-[100px] cursor-pointer object-cover transition-transform hover:scale-105"
@@ -40,7 +53,7 @@ export function MessageAttachment({
     );
   }
 
-  if (attachment.type === "pdf") {
+  if (isPdf) {
     return (
       <div
         className={cn(
@@ -70,7 +83,7 @@ export function MessageAttachment({
               isOwnMessage ? "text-primary-foreground" : "text-foreground",
             )}
           >
-            {attachment.name}
+            {fileName}
           </p>
           <p
             className={cn(
@@ -80,15 +93,17 @@ export function MessageAttachment({
                 : "text-muted-foreground",
             )}
           >
-            {attachment.size}
+            {readableSize}
           </p>
         </div>
         <div className="flex gap-1">
           <Button
             variant="ghost"
             size="icon"
+            disabled={!dataUrl}
             className={cn(
               "size-8",
+              !dataUrl && "cursor-not-allowed opacity-50",
               isOwnMessage && "hover:bg-primary-foreground/20",
             )}
           >
@@ -97,8 +112,10 @@ export function MessageAttachment({
           <Button
             variant="ghost"
             size="icon"
+            disabled={!dataUrl}
             className={cn(
               "size-8",
+              !dataUrl && "cursor-not-allowed opacity-50",
               isOwnMessage && "hover:bg-primary-foreground/20",
             )}
           >
@@ -109,7 +126,7 @@ export function MessageAttachment({
     );
   }
 
-  if (attachment.type === "audio") {
+  if (isAudio) {
     return (
       <div
         className={cn(
@@ -168,7 +185,7 @@ export function MessageAttachment({
                   : "text-muted-foreground",
               )}
             >
-              {isPlaying ? "0:45" : "0:00"} / {attachment.duration || "2:34"}
+              {isPlaying ? "0:45" : "0:00"} / 2:34
             </span>
             <Headphones
               className={cn(
@@ -213,7 +230,7 @@ export function MessageAttachment({
             isOwnMessage ? "text-primary-foreground" : "text-foreground",
           )}
         >
-          {attachment.name}
+          {fileName}
         </p>
         <p
           className={cn(
@@ -223,14 +240,16 @@ export function MessageAttachment({
               : "text-muted-foreground",
           )}
         >
-          {attachment.size}
+          {readableSize}
         </p>
       </div>
       <Button
         variant="ghost"
         size="icon"
+        disabled={!dataUrl}
         className={cn(
           "size-8",
+          !dataUrl && "cursor-not-allowed opacity-50",
           isOwnMessage && "hover:bg-primary-foreground/20",
         )}
       >

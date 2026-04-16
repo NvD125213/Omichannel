@@ -1,6 +1,7 @@
 import { QueryProvider } from "@/components/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/auth-context";
 import { FontProvider } from "@/contexts/font-context";
 import { SocketProvider } from "@/contexts/socket-context";
@@ -71,21 +72,23 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <FontProvider>
-            <NextToploader
-              color="var(--primary)"
-              showSpinner={false}
-              showForHashAnchor={false}
-            />
-            <QueryProvider>
-              <AuthProvider>
-                <SocketProvider>
-                  {children}
-                  <Toaster richColors />
-                </SocketProvider>
-              </AuthProvider>
-            </QueryProvider>
-          </FontProvider>
+          <TooltipProvider delayDuration={0}>
+            <FontProvider>
+              <NextToploader
+                color="var(--primary)"
+                showSpinner={false}
+                showForHashAnchor={false}
+              />
+              <QueryProvider>
+                <AuthProvider>
+                  <SocketProvider>
+                    {children}
+                    <Toaster richColors />
+                  </SocketProvider>
+                </AuthProvider>
+              </QueryProvider>
+            </FontProvider>
+          </TooltipProvider>
         </ThemeProvider>
       </body>
     </html>

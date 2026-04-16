@@ -86,14 +86,14 @@ export const sidebarData: SidebarData = {
     {
       title: "Quản lý hệ thống",
       items: [
-        {
-          title: "Mail",
-          url: "/mail",
-          icon: MailIcon,
-          // badge: "Coming Soon",
-          badge: "New",
-          badgeColor: "green",
-        },
+        // {
+        //   title: "Mail",
+        //   url: "/mail",
+        //   icon: MailIcon,
+        //   // badge: "Coming Soon",
+        //   badge: "New",
+        //   badgeColor: "green",
+        // },
         // {
         //   title: "Discord",
         //   url: "/discord",
@@ -101,41 +101,41 @@ export const sidebarData: SidebarData = {
         //   badge: "New",
         //   badgeColor: "green",
         // },
-        {
-          title: "Tasks",
-          url: "/tasks",
-          icon: IconChecklist,
-        },
-        {
-          title: "Quản lý ticket",
-          icon: IconReportMoney,
-          items: [
-            {
-              title: "Quản lý ticket",
-              url: "/tickets",
-              icon: IconCreditCard,
-              permissions: [PERMISSIONS.VIEW_TICKETS],
-            },
-            {
-              title: "Quản lý luồng ticket",
-              url: "/tickets/flows",
-              icon: Workflow,
-              permissions: [PERMISSIONS.VIEW_TICKET_FLOWS],
-            },
-            {
-              title: "Quản lý tag",
-              url: "/tickets/tags",
-              icon: IconTag,
-              permissions: [PERMISSIONS.VIEW_TAGS],
-            },
-            // {
-            //   title: "Quản lý template",
-            //   url: "/tickets/templates",
-            //   icon: IconCategory2,
-            //   permissions: [PERMISSIONS.VIEW_TICKET_TEMPLATES],
-            // },
-          ],
-        },
+        // {
+        //   title: "Tasks",
+        //   url: "/tasks",
+        //   icon: IconChecklist,
+        // },
+        // {
+        //   title: "Quản lý ticket",
+        //   icon: IconReportMoney,
+        //   items: [
+        //     {
+        //       title: "Quản lý ticket",
+        //       url: "/tickets",
+        //       icon: IconCreditCard,
+        //       permissions: [PERMISSIONS.VIEW_TICKETS],
+        //     },
+        //     {
+        //       title: "Quản lý luồng ticket",
+        //       url: "/tickets/flows",
+        //       icon: Workflow,
+        //       permissions: [PERMISSIONS.VIEW_TICKET_FLOWS],
+        //     },
+        //     {
+        //       title: "Quản lý tag",
+        //       url: "/tickets/tags",
+        //       icon: IconTag,
+        //       permissions: [PERMISSIONS.VIEW_TAGS],
+        //     },
+        //     // {
+        //     //   title: "Quản lý template",
+        //     //   url: "/tickets/templates",
+        //     //   icon: IconCategory2,
+        //     //   permissions: [PERMISSIONS.VIEW_TICKET_TEMPLATES],
+        //     // },
+        //   ],
+        // },
         {
           title: "Quản lý khách hàng",
           icon: IconUsers,

@@ -41,11 +41,11 @@ const salesData = [
 const chartConfig = {
   sales: {
     label: "Sales",
-    color: "var(--primary)",
+    color: "#3b82f6",
   },
   target: {
     label: "Target",
-    color: "var(--primary)",
+    color: "#f59e0b",
   },
 };
 

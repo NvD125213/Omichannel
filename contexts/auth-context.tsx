@@ -49,9 +49,13 @@ function decodeToken(token: string): Partial<User> | null {
     const payload = JSON.parse(atob(token.split(".")[1]));
     return {
       id: payload.sub || payload.user_id || payload.id || "",
-      name: payload.name || payload.username || "User",
+      username: payload.username || "User",
+      fullname: payload.fullname || "User",
       email: payload.email || "",
       role: payload.role || "user",
+      level: payload.level || "user",
+      tenant_id: payload.tenant_id || "",
+      is_active: payload.is_active || 1,
     };
   } catch {
     return null;
@@ -120,10 +124,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         setUser({
           id: userData.id || "",
-          name: userData.name || username,
+          username: userData.username || username,
+          fullname: userData.fullname || "User",
           email: userData.email || "",
-          avatar: "",
           role: userData.role || "user",
+          level: userData.level || "user",
+          tenant_id: userData.tenant_id || "",
+          is_active: userData.is_active || 1,
         });
       }
     },
@@ -174,10 +181,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Backend trả về thông tin user hợp lệ -> Update state
       const userData: User = {
         id: meData.id,
-        name: meData.fullname || meData.username,
+        username: meData.username,
+        fullname: meData.fullname,
         email: meData.email,
-        avatar: "", // Bổ sung field avatar nếu API có trả về
         role: meData.role,
+        level: meData.level,
+        tenant_id: meData.tenant_id,
+        is_active: meData.is_active,
         permissions: meData.permissions || [],
       };
 

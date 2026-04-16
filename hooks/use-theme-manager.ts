@@ -66,6 +66,7 @@ export function useThemeManager() {
       "sidebar-border",
       "sidebar-ring",
       "sidebar-bg-image",
+      "body-bg-image",
 
       // Font variables that might be in imported themes
       "font-sans",

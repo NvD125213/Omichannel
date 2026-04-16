@@ -47,9 +47,8 @@ export function ProfileDropdown() {
       }
     : authUser
       ? {
-          name: authUser.name,
+          name: authUser.fullname,
           email: authUser.email,
-          avatar: authUser.avatar,
         }
       : null;
 

@@ -39,10 +39,10 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
     useSidebarConfig();
 
   const [activeTab, setActiveTab] = React.useState("theme");
-  // Mặc định dùng preset "notebook" (tweakcn) thay vì theme "default"
+  // Mặc định dùng preset "violet-bloom" (tweakcn) thay vì theme "default"
   const [selectedTheme, setSelectedTheme] = React.useState("");
   const [selectedTweakcnTheme, setSelectedTweakcnTheme] =
-    React.useState("notebook");
+    React.useState("violet-bloom");
   const [selectedRadius, setSelectedRadius] = React.useState("0.5rem");
   const [importModalOpen, setImportModalOpen] = React.useState(false);
   const [importedTheme, setImportedTheme] =
@@ -52,9 +52,9 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
     // Complete reset to application defaults
 
     // 1. Reset all state variables to initial values
-    // Đưa về preset "notebook" làm mặc định
+    // Đưa về preset "violet-bloom" làm mặc định
     setSelectedTheme("");
-    setSelectedTweakcnTheme("notebook");
+    setSelectedTweakcnTheme("violet-bloom");
     setSelectedRadius("0.5rem");
     setImportedTheme(null); // Clear imported theme
     setBrandColorsValues({}); // Clear brand colors state
@@ -156,7 +156,7 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
             </SheetDescription>
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
             <Tabs
               value={activeTab}
               onValueChange={setActiveTab}

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertCircle,
   Bell,
   BellOff,
   Info,
@@ -24,7 +25,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { ChatConversation, ChatUser } from "../utils/types";
@@ -45,8 +45,9 @@ export function ChatHeader({
   if (!conversation) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">
-          Select a conversation to start chatting
+        <p className="text-muted-foreground flex items-center gap-2">
+          <AlertCircle className="size-4" />
+          Lựa chọn một cuộc hội thoại để bắt đầu trò chuyện
         </p>
       </div>
     );
@@ -137,60 +138,58 @@ export function ChatHeader({
 
       {/* Right side - Action buttons */}
       <div className="flex items-center gap-1">
-        <TooltipProvider>
-          {/* Search */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="cursor-pointer">
-                <Search className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Search in conversation</p>
-            </TooltipContent>
-          </Tooltip>
+        {/* Search */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="cursor-pointer">
+              <Search className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Search in conversation</p>
+          </TooltipContent>
+        </Tooltip>
 
-          {/* Phone call */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="cursor-pointer">
-                <Phone className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Voice call</p>
-            </TooltipContent>
-          </Tooltip>
+        {/* Phone call */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="cursor-pointer">
+              <Phone className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Voice call</p>
+          </TooltipContent>
+        </Tooltip>
 
-          {/* Video call */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="cursor-pointer">
-                <Video className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Video call</p>
-            </TooltipContent>
-          </Tooltip>
+        {/* Video call */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" className="cursor-pointer">
+              <Video className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Video call</p>
+          </TooltipContent>
+        </Tooltip>
 
-          {/* Info */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleInfo}
-                className="cursor-pointer"
-              >
-                <Info className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Conversation info</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {/* Info */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggleInfo}
+              className="cursor-pointer"
+            >
+              <Info className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Conversation info</p>
+          </TooltipContent>
+        </Tooltip>
 
         {/* More options */}
         <DropdownMenu>
