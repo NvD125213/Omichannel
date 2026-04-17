@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Hash, Pin, Search, Users, VolumeX, Inbox } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyData } from "@/components/empty-data";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
@@ -28,8 +34,11 @@ interface ConversationListProps {
   selectedConversation: string | null;
   isCollapsed?: boolean;
   isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
   /** Meta từ GET conversations (mine_count, all_count, …) */
   conversationsMeta?: TenantConversationsListMeta | null;
+  onLoadMore?: () => void;
   onSelectConversation: (conversationId: string) => void;
 }
 
@@ -39,11 +48,29 @@ export function ChatConversationList({
   selectedConversation,
   isCollapsed = false,
   isLoading = false,
+  isLoadingMore = false,
+  hasMore = false,
   conversationsMeta = null,
+  onLoadMore,
   onSelectConversation,
 }: ConversationListProps) {
   const { searchQuery, setSearchQuery } = useChat();
   const [activeTab, setActiveTab] = useState<"mine" | "unread" | "all">("all");
+  const SCROLL_BOTTOM_THRESHOLD = 100;
+
+  const handleConversationScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      if (!onLoadMore || !hasMore || isLoadingMore) return;
+      const target = event.currentTarget;
+      const reachedBottom =
+        target.scrollTop + target.clientHeight >=
+        target.scrollHeight - SCROLL_BOTTOM_THRESHOLD;
+      if (reachedBottom) {
+        onLoadMore();
+      }
+    },
+    [hasMore, isLoadingMore, onLoadMore],
+  );
 
   const mineConversations = useMemo(
     () =>
@@ -120,7 +147,74 @@ export function ChatConversationList({
 
     return (
       <div className="flex h-full flex-col overflow-hidden">
-        <ScrollArea className="flex-1 h-0 min-h-0">
+        <div className="p-2 border-b">
+          <Select
+            value={activeTab}
+            onValueChange={(value) =>
+              setActiveTab(value as "mine" | "unread" | "all")
+            }
+          >
+            <SelectTrigger
+              size="sm"
+              className="w-full h-8 px-2 text-xs rounded-lg"
+              aria-label="Lọc cuộc trò chuyện"
+            >
+              {activeTab === "all" ? (
+                <span className="flex items-center gap-2">
+                  {/* <span>Tất cả</span> */}
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-green-500 text-[11px] font-semibold tabular-nums text-white">
+                    {tabAllCount}
+                  </span>
+                </span>
+              ) : activeTab === "mine" ? (
+                <span className="flex items-center gap-2">
+                  {/* <span>Dành cho bạn</span> */}
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-semibold tabular-nums text-white">
+                    {tabMineCount}
+                  </span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  {/* <span>Chưa đọc</span> */}
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-amber-500 text-[11px] font-semibold tabular-nums text-white">
+                    {tabUnreadCount}
+                  </span>
+                </span>
+              )}
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                <span className="flex items-center gap-2">
+                  <span>Tất cả</span>
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-green-500 text-[11px] font-semibold tabular-nums text-white">
+                    {tabAllCount}
+                  </span>
+                </span>
+              </SelectItem>
+              <SelectItem value="mine">
+                <span className="flex items-center gap-2">
+                  <span>Dành cho bạn</span>
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-semibold tabular-nums text-white">
+                    {tabMineCount}
+                  </span>
+                </span>
+              </SelectItem>
+              <SelectItem value="unread">
+                <span className="flex items-center gap-2">
+                  <span>Chưa đọc</span>
+                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-amber-500 text-[11px] font-semibold tabular-nums text-white">
+                    {tabUnreadCount}
+                  </span>
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <ScrollArea
+          className="flex-1 h-0 min-h-0"
+          onScrollCapture={handleConversationScroll}
+        >
           <div className="p-2 space-y-2">
             {sortedConversations.map((conversation) => (
               <Tooltip key={conversation.id}>
@@ -136,7 +230,7 @@ export function ChatConversationList({
                     )}
                     aria-label={conversation.name}
                   >
-                    <Avatar className="h-9 w-9">
+                    <Avatar className="h-10 w-10">
                       <AvatarImage
                         src={conversation.avatar}
                         alt={conversation.name}
@@ -160,6 +254,12 @@ export function ChatConversationList({
                 </TooltipContent>
               </Tooltip>
             ))}
+            {isLoadingMore && (
+              <div className="space-y-2 pt-1">
+                <Skeleton className="mx-auto size-11 rounded-xl" />
+                <Skeleton className="mx-auto size-11 rounded-xl" />
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -354,7 +454,10 @@ export function ChatConversationList({
             transition={{ duration: 0.22, ease: "easeOut" }}
             className="flex-1 h-0 min-h-0"
           >
-            <ScrollArea className="h-full">
+            <div
+              className="h-full overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+              onScroll={handleConversationScroll}
+            >
               <div className="p-2 space-y-1">
                 {sortedConversations.map((conversation) => (
                   <motion.div
@@ -452,8 +555,14 @@ export function ChatConversationList({
                     </div>
                   </motion.div>
                 ))}
+                {isLoadingMore && (
+                  <div className="px-2 py-3 space-y-2">
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                    <Skeleton className="h-16 w-full rounded-xl" />
+                  </div>
+                )}
               </div>
-            </ScrollArea>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

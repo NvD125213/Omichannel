@@ -1,16 +1,19 @@
 "use client";
 
 import {
+  Lock,
   FileText,
+  Maximize2,
   Image as ImageIcon,
   Mic,
   MoreHorizontal,
   Paperclip,
+  Sparkles,
   Send,
   Smile,
 } from "lucide-react";
 import { useRef, useState } from "react";
-
+// import { SendMessageRequest } from "../utils/types";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +28,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import {} from "@/hooks/chatwoot/use-chatwoot";
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
@@ -38,7 +42,9 @@ export function MessageInput({
   placeholder = "Type a message...",
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [composerMode, setComposerMode] = useState<"reply" | "private-note">(
+    "reply",
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSendMessage = () => {
@@ -46,7 +52,6 @@ export function MessageInput({
     if (trimmedMessage && !disabled) {
       onSendMessage(trimmedMessage);
       setMessage("");
-      setIsTyping(false);
 
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -67,13 +72,7 @@ export function MessageInput({
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-
-    if (value.trim() && !isTyping) {
-      setIsTyping(true);
-    } else if (!value.trim() && isTyping) {
-      setIsTyping(false);
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
     }
   };
 
@@ -82,126 +81,165 @@ export function MessageInput({
   };
 
   return (
-    <div className="border-t p-4">
-      <div className="flex items-end gap-2">
-        <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  disabled={disabled}
-                  className="cursor-pointer disabled:cursor-not-allowed"
+    <div className="border-t bg-background p-3">
+      <div className="rounded-2xl border bg-muted/20 p-3 shadow-sm">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="inline-flex items-center rounded-md bg-muted p-1">
+            <Button
+              type="button"
+              size="sm"
+              variant={composerMode === "reply" ? "secondary" : "ghost"}
+              onClick={() => setComposerMode("reply")}
+              className="h-7 rounded-md px-2 text-xs"
+            >
+              Trả lời
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={composerMode === "private-note" ? "secondary" : "ghost"}
+              onClick={() => setComposerMode("private-note")}
+              className="h-7 rounded-md px-2 text-xs"
+            >
+              <Lock className="size-3.5" />
+              Lưu ý riêng
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              disabled={disabled}
+            >
+              <Sparkles className="size-4 text-violet-500" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              disabled={disabled}
+            >
+              <Maximize2 className="size-4" />
+            </Button>
+          </div>
+        </div>
+
+        <Textarea
+          ref={textareaRef}
+          placeholder={placeholder}
+          value={message}
+          onChange={handleTextareaChange}
+          onKeyDown={handleKeyPress}
+          disabled={disabled}
+          className={cn(
+            "max-h-[150px] resize-none border-0 bg-transparent px-1 py-1 text-sm shadow-none focus-visible:ring-0",
+            "cursor-text disabled:cursor-not-allowed",
+          )}
+          rows={3}
+        />
+
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={disabled}
+                      className="size-8 cursor-pointer rounded-md disabled:cursor-not-allowed"
+                    >
+                      <Paperclip className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Đính kèm file</p>
+                </TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent side="top" align="start">
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload("image")}
+                  className="cursor-pointer"
                 >
-                  <Paperclip className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Attach file</p>
-            </TooltipContent>
-          </Tooltip>
-          <DropdownMenuContent side="top" align="start">
-            <DropdownMenuItem
-              onClick={() => handleFileUpload("image")}
-              className="cursor-pointer"
-            >
-              <ImageIcon className="size-4 mr-2" />
-              Photo or video
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleFileUpload("file")}
-              className="cursor-pointer"
-            >
-              <FileText className="size-4 mr-2" />
-              Document
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                  <ImageIcon className="mr-2 size-4" />
+                  Gửi ảnh hoặc video
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleFileUpload("file")}
+                  className="cursor-pointer"
+                >
+                  <FileText className="mr-2 size-4" />
+                  Gửi tài liệu
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-        <div className="flex-1 relative">
-          <Textarea
-            ref={textareaRef}
-            placeholder={placeholder}
-            value={message}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyPress}
-            disabled={disabled}
-            className={cn(
-              "min-h-[40px] max-h-[120px] resize-none cursor-text disabled:cursor-not-allowed",
-              "pr-20",
-            )}
-            rows={1}
-          />
-
-          <div className="absolute right-2 bottom-2 flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  type="button"
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   disabled={disabled}
-                  className="size-6 p-0 cursor-pointer disabled:cursor-not-allowed"
+                  className="size-8 rounded-md"
                 >
                   <Smile className="size-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Add emoji</p>
-              </TooltipContent>
+              <TooltipContent>Thêm cảm xúc</TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  type="button"
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   disabled={disabled}
-                  className="size-6 p-0 cursor-pointer disabled:cursor-not-allowed"
+                  className="size-8 rounded-md"
+                >
+                  <Mic className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Ghi âm</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={disabled}
+                  className="size-8 rounded-md"
                 >
                   <MoreHorizontal className="size-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>More options</p>
-              </TooltipContent>
+              <TooltipContent>Thêm tùy chọn</TooltipContent>
             </Tooltip>
           </div>
-        </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {message.trim() ? (
-              <Button
-                onClick={handleSendMessage}
-                disabled={disabled}
-                className="cursor-pointer disabled:cursor-not-allowed"
-              >
-                <Send className="size-4" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                disabled={disabled}
-                className="cursor-pointer disabled:cursor-not-allowed"
-              >
-                <Mic className="size-4" />
-              </Button>
+          <Button
+            onClick={handleSendMessage}
+            disabled={disabled || !message.trim()}
+            className={cn(
+              "h-8 rounded-md px-3 text-xs font-medium",
+              message.trim() ? "opacity-100" : "opacity-70",
             )}
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{message.trim() ? "Gửi tin nhắn" : "Gửi giọng nói"}</p>
-          </TooltipContent>
-        </Tooltip>
-      </div>
-
-      {isTyping && (
-        <div className="text-xs text-muted-foreground mt-2">
-          Bạn đang nhập tin nhắn...
+          >
+            Gửi (Nhấn Enter)
+            <Send className="size-4" />
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

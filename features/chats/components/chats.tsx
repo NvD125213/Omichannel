@@ -7,10 +7,8 @@ import {
   X,
   MessagesSquare,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import {
-  useListTenantConversations,
-} from "@/hooks/chatwoot/use-chatwoot";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useListTenantConversations } from "@/hooks/chatwoot/use-chatwoot";
 import type {
   ListTenantConversationsData,
   ListTenantConversationsParams,
@@ -36,6 +34,8 @@ import {
 import { ChatHeader } from "./chat-header";
 import { MessageInput } from "./message-input";
 import { MessageList } from "./message-list";
+import { EmptyData } from "@/components/empty-data";
+import { StringParam, useQueryParams } from "use-query-params";
 
 interface ChatProps {
   conversations: ChatConversation[];
@@ -58,6 +58,15 @@ const toIsoString = (value: unknown): string => {
     return new Date(value * 1000).toISOString();
   }
   return new Date().toISOString();
+};
+
+const toNumericId = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
 };
 
 const normalizeConversation = (
@@ -156,6 +165,25 @@ const extractTenantListPayload = (
   return null;
 };
 
+const extractTenantListPayloadFromPages = (
+  pages: (ListTenantConversationsResponse | undefined)[] | undefined,
+): Record<string, unknown>[] | null => {
+  if (!pages || pages.length === 0) return null;
+
+  const merged: Record<string, unknown>[] = [];
+  let hasExtractablePayload = false;
+
+  pages.forEach((page) => {
+    const payload = extractTenantListPayload(page);
+    if (payload !== null) {
+      hasExtractablePayload = true;
+      merged.push(...payload);
+    }
+  });
+
+  return hasExtractablePayload ? merged : null;
+};
+
 const extractTenantListMeta = (
   res: ListTenantConversationsResponse | null | undefined,
 ): TenantConversationsListMeta | null => {
@@ -173,7 +201,23 @@ const extractTenantListMeta = (
   return null;
 };
 
+const extractTenantListMetaFromPages = (
+  pages: (ListTenantConversationsResponse | undefined)[] | undefined,
+): TenantConversationsListMeta | null => {
+  if (!pages || pages.length === 0) return null;
+  for (let i = pages.length - 1; i >= 0; i -= 1) {
+    const meta = extractTenantListMeta(pages[i]);
+    if (meta) return meta;
+  }
+  return null;
+};
+
 export function Chat({ conversations, messages, users }: ChatProps) {
+  const [query, setQuery] = useQueryParams({
+    conversation_id: StringParam,
+  });
+  const selectedConversationFromQuery = query.conversation_id ?? null;
+
   // Biến state để lọc danh sách hội thoại theo assignee
   const [sidebarConversationAssignee, setSidebarConversationAssignee] =
     useState<ConversationSidebarAssigneeFilter>("me");
@@ -197,12 +241,17 @@ export function Chat({ conversations, messages, users }: ChatProps) {
     data: chatwootConversationsList,
     isLoading: isChatwootLoading,
     isFetching: isChatwootFetching,
+    isFetchingNextPage: isChatwootFetchingNextPage,
+    fetchNextPage: fetchNextConversationPage,
+    hasNextPage: hasNextConversationPage,
   } = useListTenantConversations(tenantId, conversationListQueryParams);
+
+  const chatwootConversationPages = chatwootConversationsList?.pages;
 
   // Lấy payload từ data trả về (thành phần trong response là payload)
   const chatwootPayload = useMemo(
-    () => extractTenantListPayload(chatwootConversationsList),
-    [chatwootConversationsList],
+    () => extractTenantListPayloadFromPages(chatwootConversationPages),
+    [chatwootConversationPages],
   );
 
   // Map payload thành dạng ChatConversation
@@ -221,7 +270,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
 
   // Lấy meta từ data trả về (thành phần trong response là meta)
   const chatwootConversationsMeta = useMemo(() => {
-    const apiMeta = extractTenantListMeta(chatwootConversationsList);
+    const apiMeta = extractTenantListMetaFromPages(chatwootConversationPages);
     if (apiMeta) return apiMeta;
 
     // API có payload nhưng không trả meta -> tạo meta fallback để UI tab hiển thị đúng.
@@ -238,16 +287,25 @@ export function Chat({ conversations, messages, users }: ChatProps) {
 
     return null;
   }, [
-    chatwootConversationsList,
+    chatwootConversationPages,
     chatwootPayload,
     mappedChatwootConversations.length,
     sidebarConversationAssignee,
   ]);
 
+  const handleLoadMoreConversations = useCallback(() => {
+    if (!hasNextConversationPage || isChatwootFetchingNextPage) return;
+    void fetchNextConversationPage();
+  }, [
+    fetchNextConversationPage,
+    hasNextConversationPage,
+    isChatwootFetchingNextPage,
+  ]);
+
   // Lấy store chat từ context
   const chatStore = useChat();
   const {
-    selectedConversation,
+    selectedConversation: selectedConversationInStore,
     setSelectedConversation,
     setConversations,
     setMessages,
@@ -255,6 +313,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
     addMessage,
     toggleMute,
   } = chatStore;
+  const selectedConversation = selectedConversationFromQuery;
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationSidebarCollapsed, setIsNotificationSidebarCollapsed] =
@@ -289,20 +348,20 @@ export function Chat({ conversations, messages, users }: ChatProps) {
         setMessages(conversationId, conversationMessages);
       },
     );
-
-    if (!selectedConversation && displayConversations.length > 0) {
-      setSelectedConversation(displayConversations[0].id);
-    }
   }, [
     displayConversations,
     messages,
     users,
-    selectedConversation,
     setConversations,
     setMessages,
     setUsers,
-    setSelectedConversation,
   ]);
+
+  useEffect(() => {
+    if (selectedConversationInStore !== selectedConversation) {
+      setSelectedConversation(selectedConversation);
+    }
+  }, [selectedConversation, selectedConversationInStore, setSelectedConversation]);
 
   // Lấy conversation sau khi đã chọn
   const currentConversation = displayConversations.find(
@@ -310,9 +369,20 @@ export function Chat({ conversations, messages, users }: ChatProps) {
   );
 
   const storeMessages = chatStore.messages;
-  const currentMessages = selectedConversation
-    ? storeMessages[selectedConversation] || messages[selectedConversation] || []
-    : [];
+  const currentMessages = useMemo(
+    () =>
+      selectedConversation
+        ? storeMessages[selectedConversation] ||
+          messages[selectedConversation] ||
+          []
+        : [],
+    [messages, selectedConversation, storeMessages],
+  );
+
+  const initialBeforeMessageId = useMemo(() => {
+    if (!selectedConversation) return undefined;
+    return toNumericId(currentConversation?.lastMessage.id);
+  }, [currentConversation?.lastMessage.id, selectedConversation]);
 
   const handleSendMessage = (content: string) => {
     if (!selectedConversation) return;
@@ -340,10 +410,10 @@ export function Chat({ conversations, messages, users }: ChatProps) {
   const sidebarDesktopWidthClass = isSidebarFullyExpanded
     ? "lg:w-2/5"
     : !isNotificationSidebarCollapsed && isConversationListCollapsed
-      ? "lg:w-[calc(13.333333%+4rem)]"
+      ? "lg:w-[calc(13.333333%+5rem)]"
       : isNotificationSidebarCollapsed && !isConversationListCollapsed
         ? "lg:w-[calc(26.666667%+4rem)]"
-        : "lg:w-32";
+        : "lg:w-36";
 
   return (
     <TooltipProvider delayDuration={450} skipDelayDuration={200}>
@@ -473,7 +543,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                 isNotificationSidebarCollapsed
                   ? "w-16"
                   : isConversationListCollapsed
-                    ? "w-[calc(100%-4rem)]"
+                    ? "w-[calc(100%-5rem)]"
                     : "w-1/3",
               )}
             >
@@ -490,7 +560,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
               className={cn(
                 "min-w-0 border-l bg-background transition-[width] duration-500 ease-in-out",
                 isConversationListCollapsed
-                  ? "w-16"
+                  ? "w-20"
                   : isNotificationSidebarCollapsed
                     ? "w-[calc(100%-4rem)]"
                     : "flex-1",
@@ -502,9 +572,12 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                 selectedConversation={selectedConversation}
                 isCollapsed={isConversationListCollapsed}
                 isLoading={isChatwootLoading}
+                isLoadingMore={isChatwootFetchingNextPage}
+                hasMore={Boolean(hasNextConversationPage)}
                 conversationsMeta={chatwootConversationsMeta}
+                onLoadMore={handleLoadMoreConversations}
                 onSelectConversation={(id: string) => {
-                  setSelectedConversation(id);
+                  setQuery({ conversation_id: id }, "replaceIn");
                   setIsSidebarOpen(false);
                 }}
               />
@@ -540,6 +613,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                   users={users}
                   tenantId={tenantId}
                   conversationId={selectedConversation}
+                  initialBeforeMessageId={initialBeforeMessageId}
                 />
 
                 <MessageInput
@@ -548,15 +622,14 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                 />
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-2">
-                    Welcome to Chat
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Select a conversation to start messaging
-                  </p>
-                </div>
+              <div className="flex-1 p-4">
+                <EmptyData
+                  icon={MessagesSquare}
+                  title="Chưa chọn cuộc trò chuyện"
+                  description="Vui lòng chọn một cuộc trò chuyện ở danh sách bên trái để bắt đầu."
+                  showButton={false}
+                  className="h-full"
+                />
               </div>
             )}
           </div>

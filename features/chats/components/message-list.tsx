@@ -2,6 +2,7 @@
 
 import { format, isToday, isYesterday } from "date-fns";
 import {
+  ChevronDown,
   CheckCheck,
   Copy,
   MoreVertical,
@@ -10,7 +11,7 @@ import {
   Trash2,
   User2,
 } from "lucide-react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -159,6 +160,7 @@ interface MessageListProps {
   currentUserId?: string;
   tenantId?: string;
   conversationId?: string | null;
+  initialBeforeMessageId?: number;
 }
 
 export function MessageList({
@@ -167,23 +169,55 @@ export function MessageList({
   currentUserId = "current-user",
   tenantId = "",
   conversationId = null,
+  initialBeforeMessageId,
 }: MessageListProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
+  const previousLastMessageIdRef = useRef<string | null>(null);
+  const pendingPrependScrollAdjustmentRef = useRef<{
+    element: HTMLDivElement;
+    previousScrollHeight: number;
+    previousScrollTop: number;
+  } | null>(null);
+  const [showBackToLatestButton, setShowBackToLatestButton] = useState(false);
   const isInitialLoadRef = useRef(true);
   const previousConversationRef = useRef<string | null>(conversationId);
+  const SCROLL_TOP_THRESHOLD = 80;
+  const SHOW_BACK_TO_LATEST_THRESHOLD = 140;
 
-  const { data: tenantMessagesResponse } = useListTenantConversationMessages(
+  const messageQueryParams = useMemo(
+    () =>
+      typeof initialBeforeMessageId === "number" &&
+      Number.isFinite(initialBeforeMessageId)
+        ? ({ before: initialBeforeMessageId } as const)
+        : undefined,
+    [initialBeforeMessageId],
+  );
+
+  const {
+    data: tenantMessagesResponse,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useListTenantConversationMessages(
     tenantId,
     conversationId ?? "",
+    messageQueryParams,
   );
 
   const apiMessages = useMemo(() => {
     if (!conversationId) return [];
-    const payload = extractTenantMessagePayload(tenantMessagesResponse);
-    if (!payload) return [];
-    return payload
+    const pages = tenantMessagesResponse?.pages ?? [];
+    if (pages.length === 0) return [];
+
+    const mergedPayload = pages.flatMap(
+      (page) => extractTenantMessagePayload(page) ?? [],
+    );
+    if (mergedPayload.length === 0) return [];
+
+    return mergedPayload
       .map((message) => normalizeMessage(message, conversationId))
       .sort(
         (a, b) =>
@@ -220,28 +254,91 @@ export function MessageList({
     if (conversationId !== previousConversationRef.current) {
       isInitialLoadRef.current = true;
       previousConversationRef.current = conversationId;
+      previousLastMessageIdRef.current = null;
+      pendingPrependScrollAdjustmentRef.current = null;
+      setShowBackToLatestButton(false);
     }
   }, [conversationId]);
 
   useEffect(() => {
     if (resolvedMessages.length === 0) return;
 
+    const latestMessage = resolvedMessages[resolvedMessages.length - 1];
+    const latestMessageId = String(
+      latestMessage.id ??
+        `latest-${latestMessage.conversation_id ?? ""}-${latestMessage.created_at ?? latestMessage.updated_at ?? latestMessage.content ?? ""}`,
+    );
+
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false;
       previousMessageCountRef.current = resolvedMessages.length;
+      previousLastMessageIdRef.current = latestMessageId;
       bottomRef.current?.scrollIntoView({ behavior: "auto" });
       return;
     }
 
     if (
       resolvedMessages.length > previousMessageCountRef.current &&
+      previousLastMessageIdRef.current !== latestMessageId &&
       bottomRef.current
     ) {
       bottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
 
     previousMessageCountRef.current = resolvedMessages.length;
+    previousLastMessageIdRef.current = latestMessageId;
   }, [resolvedMessages]);
+
+  useEffect(() => {
+    if (isFetchingNextPage) return;
+    const pendingState = pendingPrependScrollAdjustmentRef.current;
+    if (!pendingState) return;
+
+    pendingPrependScrollAdjustmentRef.current = null;
+    if (!pendingState.element.isConnected) return;
+
+    const nextScrollHeight = pendingState.element.scrollHeight;
+    const heightDelta = nextScrollHeight - pendingState.previousScrollHeight;
+    pendingState.element.scrollTop =
+      pendingState.previousScrollTop + heightDelta;
+  }, [isFetchingNextPage, resolvedMessages]);
+
+  const handleScrollCapture = (event: React.UIEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof HTMLDivElement)) return;
+    scrollViewportRef.current = target;
+    const distanceToBottom =
+      target.scrollHeight - (target.scrollTop + target.clientHeight);
+    setShowBackToLatestButton(distanceToBottom > SHOW_BACK_TO_LATEST_THRESHOLD);
+
+    if (!hasNextPage || isFetchingNextPage) return;
+    if (target.scrollTop > SCROLL_TOP_THRESHOLD) return;
+
+    pendingPrependScrollAdjustmentRef.current = {
+      element: target,
+      previousScrollHeight: target.scrollHeight,
+      previousScrollTop: target.scrollTop,
+    };
+    void fetchNextPage();
+  };
+
+  const handleBackToLatestMessage = () => {
+    const viewport =
+      scrollViewportRef.current ??
+      (scrollAreaRef.current?.querySelector(
+        '[data-slot="scroll-area-viewport"]',
+      ) as HTMLDivElement | null) ??
+      null;
+
+    if (viewport) {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+      setShowBackToLatestButton(false);
+      return;
+    }
+
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    setShowBackToLatestButton(false);
+  };
 
   const getMessageSenderId = (message: ChatMessage): string => {
     if (typeof message.sender_id === "string" && message.sender_id.length > 0) {
@@ -287,15 +384,6 @@ export function MessageList({
     } else {
       return format(date, "MMM d, HH:mm");
     }
-  };
-
-  const shouldShowAvatar = (message: ChatMessage, index: number) => {
-    const senderId = getMessageSenderId(message);
-    if (senderId === currentUserId) return false;
-    if (index === 0) return true;
-
-    const prevMessage = resolvedMessages[index - 1];
-    return getMessageSenderId(prevMessage) !== senderId;
   };
 
   const shouldShowName = (message: ChatMessage, index: number) => {
@@ -358,186 +446,210 @@ export function MessageList({
   const messageGroups = groupMessagesByDay(resolvedMessages);
 
   return (
-    <ScrollArea className="flex-1 h-full overflow-auto" ref={scrollAreaRef}>
-      <div className="space-y-4 py-4 px-4">
-        {messageGroups.map((group) => (
-          <div key={group.date}>
-            <div className="flex items-center justify-center py-4">
-              <div className="text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full">
-                {formatDateHeader(group.date)}
+    <div className="relative flex-1 min-h-0">
+      <ScrollArea
+        className="h-full overflow-auto"
+        ref={scrollAreaRef}
+        onScrollCapture={handleScrollCapture}
+      >
+        <div className="space-y-4 py-4 px-4">
+          {messageGroups.map((group) => (
+            <div key={group.date}>
+              <div className="flex items-center justify-center py-4">
+                <div className="text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full">
+                  {formatDateHeader(group.date)}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-3">
-              {group.messages.map((message, messageIndex) => {
-                const senderId = getMessageSenderId(message);
-                const isCustomerMessage = message.sender?.type !== "user";
-                const isOwnMessage =
-                  message.sender?.type === "user" || senderId === currentUserId;
-                const user = getUserById(senderId, isOwnMessage);
+              <div className="space-y-3">
+                {group.messages.map((message, messageIndex) => {
+                  const senderId = getMessageSenderId(message);
+                  const isCustomerMessage = message.sender?.type !== "user";
+                  const isOwnMessage =
+                    message.sender?.type === "user" ||
+                    senderId === currentUserId;
+                  const user = getUserById(senderId, isOwnMessage);
 
-                const showName =
-                  isCustomerMessage && shouldShowName(message, messageIndex);
-                const isConsecutive = isConsecutiveMessage(
-                  message,
-                  messageIndex,
-                );
-                const messageId = getMessageId(message, messageIndex);
-                const messageTimestamp = getMessageTimestamp(message);
-                const messageContent = getMessageContent(message);
-                const attachments = Array.isArray(message.attachments)
-                  ? message.attachments
-                  : [];
+                  const showName =
+                    isCustomerMessage && shouldShowName(message, messageIndex);
+                  const isConsecutive = isConsecutiveMessage(
+                    message,
+                    messageIndex,
+                  );
+                  const messageId = getMessageId(message, messageIndex);
+                  const messageTimestamp = getMessageTimestamp(message);
+                  const messageContent = getMessageContent(message);
+                  const attachments = Array.isArray(message.attachments)
+                    ? message.attachments
+                    : [];
 
-                return (
-                  <div
-                    key={messageId}
-                    className={cn(
-                      "flex gap-3 group",
-                      isOwnMessage && "flex-row-reverse",
-                      // isConsecutive && !isOwnMessage && "ml-12",
-                    )}
-                  >
-                    <div className="w-8">
-                      <Avatar className="size-8 cursor-pointer">
-                        <AvatarImage />
-                        <AvatarFallback className="text-xs bg-linear-to-br from-primary/20 to-primary/10">
-                          G
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-
+                  return (
                     <div
+                      key={messageId}
                       className={cn(
-                        "max-w-[70%] w-full min-w-0",
-                        isOwnMessage && "flex flex-col items-end",
+                        "flex gap-3 group",
+                        isOwnMessage && "flex-row-reverse",
+                        // isConsecutive && !isOwnMessage && "ml-12",
                       )}
                     >
-                      {showName && user && isCustomerMessage && (
-                        <div className="mb-1 flex items-center gap-1 text-sm font-medium text-foreground">
-                          <User2 className="size-3.5 shrink-0 text-muted-foreground" />
-                          <span className="truncate">{user.name}</span>
-                        </div>
-                      )}
+                      <div className="w-8">
+                        <Avatar className="size-8 cursor-pointer">
+                          <AvatarImage />
+                          <AvatarFallback className="text-xs bg-linear-to-br from-primary/20 to-primary/10">
+                            G
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
 
                       <div
                         className={cn(
-                          "group/message flex items-center gap-2 w-full",
-                          isOwnMessage ? "justify-end" : "justify-start",
+                          "min-w-0 max-w-[70%]",
+                          isOwnMessage
+                            ? "w-fit flex flex-col items-end"
+                            : "w-full",
                         )}
                       >
-                        <div
-                          className={cn(
-                            "flex items-center gap-1 opacity-0 transition-all duration-200 pointer-events-none group-hover/message:opacity-100 group-hover/message:pointer-events-auto",
-                            isOwnMessage ? "order-1 mr-2" : "order-2 ml-2",
-                          )}
-                        >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
-                          >
-                            <SmilePlus className="size-4" />
-                          </Button>
-
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
-                          >
-                            <Reply className="size-4" />
-                          </Button>
-
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
-                              >
-                                <MoreVertical className="size-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align={isOwnMessage ? "start" : "end"}
-                            >
-                              <DropdownMenuItem className="cursor-pointer">
-                                <Reply className="size-4" />
-                                Reply
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer">
-                                <Copy className="size-4" />
-                                Copy
-                              </DropdownMenuItem>
-                              {isOwnMessage && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
-                                    <Trash2 className="size-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
+                        {showName && user && isCustomerMessage && (
+                          <div className="mb-1 flex items-center gap-1 text-sm font-medium text-foreground">
+                            <User2 className="size-3.5 shrink-0 text-muted-foreground" />
+                            <span className="truncate">{user.name}</span>
+                          </div>
+                        )}
 
                         <div
                           className={cn(
-                            "rounded-2xl px-4 py-2.5 text-sm shadow-sm w-fit max-w-full wrap-break-word whitespace-pre-wrap",
-                            isOwnMessage ? "order-2" : "order-1",
+                            "group/message flex items-center gap-2",
                             isOwnMessage
-                              ? "bg-primary text-primary-foreground rounded-br-md ml-auto"
-                              : "bg-muted rounded-bl-md",
-                            isConsecutive && "mt-1",
+                              ? "justify-end w-auto"
+                              : "justify-start w-full",
                           )}
                         >
-                          <p>{messageContent}</p>
+                          <div
+                            className={cn(
+                              "flex items-center gap-1 opacity-0 transition-all duration-200 pointer-events-none group-hover/message:opacity-100 group-hover/message:pointer-events-auto",
+                              isOwnMessage ? "order-1 mr-2" : "order-2 ml-2",
+                            )}
+                          >
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                            >
+                              <SmilePlus className="size-4" />
+                            </Button>
 
-                          {attachments.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {attachments.map(
-                                (attachment, attachmentIndex) => (
-                                  <MessageAttachment
-                                    key={`${messageId}-attachment-${attachment.id ?? attachmentIndex}`}
-                                    attachment={attachment}
-                                    isOwnMessage={isOwnMessage}
-                                  />
-                                ),
-                              )}
-                            </div>
-                          )}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                            >
+                              <Reply className="size-4" />
+                            </Button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                                >
+                                  <MoreVertical className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent
+                                align={isOwnMessage ? "start" : "end"}
+                              >
+                                <DropdownMenuItem className="cursor-pointer">
+                                  <Reply className="size-4" />
+                                  Reply
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="cursor-pointer">
+                                  <Copy className="size-4" />
+                                  Copy
+                                </DropdownMenuItem>
+                                {isOwnMessage && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
+                                      <Trash2 className="size-4" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
 
                           <div
                             className={cn(
-                              "flex items-center gap-1 mt-1 text-xs",
+                              "rounded-2xl px-4 py-2.5 text-sm shadow-sm w-fit max-w-full wrap-break-word whitespace-pre-wrap",
+                              isOwnMessage ? "order-2" : "order-1",
                               isOwnMessage
-                                ? "text-primary-foreground/70 justify-end"
-                                : "text-muted-foreground",
+                                ? "bg-primary text-primary-foreground rounded-br-md ml-auto"
+                                : "bg-muted rounded-bl-md",
+                              isConsecutive && "mt-1",
                             )}
                           >
-                            <span>{formatMessageTime(messageTimestamp)}</span>
-                            {isOwnMessage && (
-                              <div className="flex">
-                                <CheckCheck className="size-3" />
+                            <p>{messageContent}</p>
+
+                            {attachments.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mt-2">
+                                {attachments.map(
+                                  (attachment, attachmentIndex) => (
+                                    <MessageAttachment
+                                      key={`${messageId}-attachment-${attachment.id ?? attachmentIndex}`}
+                                      attachment={attachment}
+                                      isOwnMessage={isOwnMessage}
+                                    />
+                                  ),
+                                )}
                               </div>
                             )}
+
+                            <div
+                              className={cn(
+                                "flex items-center gap-1 mt-1 text-xs",
+                                isOwnMessage
+                                  ? "text-primary-foreground/70 justify-end"
+                                  : "text-muted-foreground",
+                              )}
+                            >
+                              <span>{formatMessageTime(messageTimestamp)}</span>
+                              {isOwnMessage && (
+                                <div className="flex">
+                                  <CheckCheck className="size-3" />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        <div ref={bottomRef} />
-      </div>
-    </ScrollArea>
+          <div ref={bottomRef} />
+        </div>
+      </ScrollArea>
+
+      {showBackToLatestButton && (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={handleBackToLatestMessage}
+          className="absolute bottom-4 right-4 z-20 gap-1.5 rounded-full shadow-md"
+        >
+          <ChevronDown className="size-4" />
+          Trở lại
+        </Button>
+      )}
+    </div>
   );
 }

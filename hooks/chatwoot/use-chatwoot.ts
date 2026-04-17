@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import type {
@@ -108,14 +113,66 @@ export const useListTenantConversationMessages = (
 
   const enabled = isValidId(safeTenantId) && isValidId(safeConversationId);
 
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ["tenantMessages", safeTenantId, safeConversationId, params],
-    queryFn: () =>
+    initialPageParam: params?.before ?? null,
+    queryFn: ({ pageParam }) =>
       chatwootService.listTenantConversationMessages(
         safeTenantId,
         safeConversationId,
-        params,
+        {
+          ...params,
+          before:
+            typeof pageParam === "number" && Number.isFinite(pageParam)
+              ? pageParam
+              : params?.before,
+        },
       ),
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      const data = lastPage?.data as Record<string, unknown> | undefined;
+      const payloadCandidate =
+        data?.payload ??
+        (data?.data as Record<string, unknown> | undefined)?.payload ??
+        (data?.chatwoot as Record<string, unknown> | undefined)?.payload ??
+        (
+          (data?.chatwoot as Record<string, unknown> | undefined)?.data as
+            | Record<string, unknown>
+            | undefined
+        )?.payload ??
+        data?.messages;
+      if (!Array.isArray(payloadCandidate) || payloadCandidate.length < 20) {
+        return undefined;
+      }
+      const messageIds = payloadCandidate
+        .map((message) =>
+          message && typeof message === "object"
+            ? Number((message as Record<string, unknown>).id)
+            : NaN,
+        )
+        .filter((id) => Number.isFinite(id));
+
+      if (messageIds.length === 0) {
+        return undefined;
+      }
+      const currentCursor =
+        typeof lastPageParam === "number" && Number.isFinite(lastPageParam)
+          ? lastPageParam
+          : typeof params?.before === "number" && Number.isFinite(params.before)
+            ? params.before
+            : null;
+
+      // Cursor kế tiếp phải nhỏ hơn cursor hiện tại (lùi về tin nhắn cũ hơn).
+      const olderIds =
+        currentCursor === null
+          ? messageIds
+          : messageIds.filter((id) => id < currentCursor);
+
+      if (olderIds.length === 0) {
+        return undefined;
+      }
+
+      return Math.min(...olderIds);
+    },
     enabled,
   });
 };
@@ -136,11 +193,38 @@ export const useListTenantConversations = (
   tenantId: string,
   params?: ListTenantConversationsParams,
 ) => {
-  return useQuery({
-    queryKey: chatwootOmniKeys.tenantConversations(tenantId, params),
-    queryFn: () => chatwootService.listTenantConversations(tenantId, params),
+  const paramsWithoutPage: ListTenantConversationsParams = {
+    ...(params ?? {}),
+  };
+  delete paramsWithoutPage.page;
+
+  return useInfiniteQuery({
+    queryKey: chatwootOmniKeys.tenantConversations(tenantId, paramsWithoutPage),
+    initialPageParam: params?.page ?? 1,
+    queryFn: ({ pageParam }) =>
+      chatwootService.listTenantConversations(tenantId, {
+        ...paramsWithoutPage,
+        page:
+          typeof pageParam === "number" && Number.isFinite(pageParam)
+            ? pageParam
+            : 1,
+      }),
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      const data = lastPage?.data as Record<string, unknown> | undefined;
+      const payloadCandidate =
+        data?.payload ??
+        (data?.data as Record<string, unknown> | undefined)?.payload ??
+        (
+          (data?.chatwoot as Record<string, unknown> | undefined)?.data as
+            | Record<string, unknown>
+            | undefined
+        )?.payload;
+      if (!Array.isArray(payloadCandidate) || payloadCandidate.length === 0) {
+        return undefined;
+      }
+      return typeof lastPageParam === "number" ? lastPageParam + 1 : 2;
+    },
     enabled: !!tenantId,
-    placeholderData: (previousData) => previousData,
   });
 };
 
