@@ -164,7 +164,7 @@ export function ChartAreaInteractive() {
   return (
     <Card className="@container/card bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm">
       <CardHeader>
-        <CardTitle>Total Visitors</CardTitle>
+        <CardTitle>Hiệu suất nhân viên</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
             Total for the last 3 months

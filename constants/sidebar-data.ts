@@ -23,12 +23,12 @@ import {
   IconBuildingBroadcastTower,
   IconFingerprint,
   IconTag,
+  IconSubtitles,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
   Command,
   GalleryVerticalEnd,
-  MailIcon,
   Workflow,
 } from "lucide-react";
 import { PERMISSIONS } from "@/constants/permission";
@@ -106,36 +106,36 @@ export const sidebarData: SidebarData = {
         //   url: "/tasks",
         //   icon: IconChecklist,
         // },
-        // {
-        //   title: "Quản lý ticket",
-        //   icon: IconReportMoney,
-        //   items: [
-        //     {
-        //       title: "Quản lý ticket",
-        //       url: "/tickets",
-        //       icon: IconCreditCard,
-        //       permissions: [PERMISSIONS.VIEW_TICKETS],
-        //     },
-        //     {
-        //       title: "Quản lý luồng ticket",
-        //       url: "/tickets/flows",
-        //       icon: Workflow,
-        //       permissions: [PERMISSIONS.VIEW_TICKET_FLOWS],
-        //     },
-        //     {
-        //       title: "Quản lý tag",
-        //       url: "/tickets/tags",
-        //       icon: IconTag,
-        //       permissions: [PERMISSIONS.VIEW_TAGS],
-        //     },
-        //     // {
-        //     //   title: "Quản lý template",
-        //     //   url: "/tickets/templates",
-        //     //   icon: IconCategory2,
-        //     //   permissions: [PERMISSIONS.VIEW_TICKET_TEMPLATES],
-        //     // },
-        //   ],
-        // },
+        {
+          title: "Quản lý ticket",
+          icon: IconReportMoney,
+          items: [
+            {
+              title: "Quản lý ticket",
+              url: "/tickets",
+              icon: IconCreditCard,
+              permissions: [PERMISSIONS.VIEW_TICKETS],
+            },
+            {
+              title: "Quản lý luồng ticket",
+              url: "/tickets/flows",
+              icon: Workflow,
+              permissions: [PERMISSIONS.VIEW_TICKET_FLOWS],
+            },
+            {
+              title: "Quản lý tag",
+              url: "/tickets/tags",
+              icon: IconTag,
+              permissions: [PERMISSIONS.VIEW_TAGS],
+            },
+            // {
+            //   title: "Quản lý template",
+            //   url: "/tickets/templates",
+            //   icon: IconCategory2,
+            //   permissions: [PERMISSIONS.VIEW_TICKET_TEMPLATES],
+            // },
+          ],
+        },
         {
           title: "Quản lý khách hàng",
           icon: IconUsers,
@@ -320,22 +320,27 @@ export const sidebarData: SidebarData = {
               icon: IconUserCog,
             },
             {
-              title: "Account",
+              title: "Đại lý",
+              url: "/settings/agent",
+              icon: IconSubtitles,
+            },
+            {
+              title: "Thiết lập account",
               url: "/settings/account",
               icon: IconTool,
             },
             {
-              title: "Appearance",
+              title: "Giao diện",
               url: "/settings/appearance",
               icon: IconPalette,
             },
             {
-              title: "Notifications",
+              title: "Thông báo",
               url: "/settings/notifications",
               icon: IconNotification,
             },
             {
-              title: "Display",
+              title: "Hiển thị",
               url: "/settings/display",
               icon: IconBrowserCheck,
             },

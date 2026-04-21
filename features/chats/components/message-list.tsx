@@ -160,7 +160,6 @@ interface MessageListProps {
   currentUserId?: string;
   tenantId?: string;
   conversationId?: string | null;
-  initialBeforeMessageId?: number;
 }
 
 export function MessageList({
@@ -169,7 +168,6 @@ export function MessageList({
   currentUserId = "current-user",
   tenantId = "",
   conversationId = null,
-  initialBeforeMessageId,
 }: MessageListProps) {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
@@ -187,15 +185,6 @@ export function MessageList({
   const SCROLL_TOP_THRESHOLD = 80;
   const SHOW_BACK_TO_LATEST_THRESHOLD = 140;
 
-  const messageQueryParams = useMemo(
-    () =>
-      typeof initialBeforeMessageId === "number" &&
-      Number.isFinite(initialBeforeMessageId)
-        ? ({ before: initialBeforeMessageId } as const)
-        : undefined,
-    [initialBeforeMessageId],
-  );
-
   const {
     data: tenantMessagesResponse,
     fetchNextPage,
@@ -204,7 +193,7 @@ export function MessageList({
   } = useListTenantConversationMessages(
     tenantId,
     conversationId ?? "",
-    messageQueryParams,
+    undefined,
   );
 
   const apiMessages = useMemo(() => {

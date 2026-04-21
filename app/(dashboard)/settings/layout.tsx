@@ -11,33 +11,39 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { IconSubtitles } from "@tabler/icons-react";
 import { Bell, Monitor, Palette, UserCog, Wrench } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 const sidebarNavItems = [
   {
-    title: "Profile",
+    title: "Hồ sơ cá nhân",
     href: "/settings",
     icon: UserCog,
   },
   {
-    title: "Account",
+    title: "Đại lý",
+    href: "/settings/agent",
+    icon: IconSubtitles,
+  },
+  {
+    title: "Thiết lập account",
     href: "/settings/account",
     icon: Wrench,
   },
   {
-    title: "Appearance",
+    title: "Giao diện",
     href: "/settings/appearance",
     icon: Palette,
   },
   {
-    title: "Notifications",
+    title: "Thông báo",
     href: "/settings/notifications",
     icon: Bell,
   },
   {
-    title: "Display",
+    title: "Hiển thị",
     href: "/settings/display",
     icon: Monitor,
   },

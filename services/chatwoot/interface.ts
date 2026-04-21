@@ -98,6 +98,25 @@ export type ListTenantChatwootAgentBotsResponse =
 export type CreateChatwootAgentBotResponse = ApiResponse<ChatwootJsonPayload>;
 export type ListAllChatwootAgentBotsResponse = ApiResponse<ChatwootJsonPayload>;
 
+// —— Tenant account agent bots ——
+
+export interface CreateTenantAccountAgentBotRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateTenantAccountAgentBotRequest {
+  [key: string]: unknown;
+}
+
+export type GetTenantAccountAgentBotResponse = ApiResponse<ChatwootJsonPayload>;
+export type ListTenantAccountAgentBotsResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type CreateTenantAccountAgentBotResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type UpdateTenantAccountAgentBotResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type DeleteTenantAccountAgentBotResponse = ApiResponse<void>;
+
 // —— Agents ——
 
 export interface CreateChatwootAgentRequest {
@@ -181,6 +200,73 @@ export type GetTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
 export type ListTenantConversationMessagesResponse =
   ApiResponse<ChatwootJsonPayload>;
 export type AssignTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
+
+export interface CreateTenantConversationRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateTenantConversationRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateTenantConversationMessageRequest {
+  [key: string]: unknown;
+}
+
+export interface ToggleTenantConversationStatusRequest {
+  [key: string]: unknown;
+}
+
+export interface SetTenantConversationLabelsRequest {
+  labels: string[];
+}
+
+export interface ToggleTenantConversationTypingRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateTenantConversationCustomAttributesRequest {
+  custom_attributes: Record<string, unknown>;
+}
+
+export type CreateTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
+export type UpdateTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
+export type CreateTenantConversationMessageResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type DeleteTenantConversationMessageResponse = ApiResponse<void>;
+export type ToggleTenantConversationStatusResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type GetTenantConversationLabelsResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type SetTenantConversationLabelsResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type ToggleTenantConversationTypingResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type UpdateTenantConversationCustomAttributesResponse =
+  ApiResponse<ChatwootJsonPayload>;
+
+// —— Inboxes / teams / labels ——
+
+export interface CreateTenantInboxRequest {
+  [key: string]: unknown;
+}
+
+export interface UpdateTenantInboxRequest {
+  [key: string]: unknown;
+}
+
+export interface CreateTenantLabelRequest {
+  [key: string]: unknown;
+}
+
+export type ListTenantInboxesResponse = ApiResponse<ChatwootJsonPayload>;
+export type GetTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
+export type CreateTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
+export type UpdateTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
+export type ListTenantTeamsResponse = ApiResponse<ChatwootJsonPayload>;
+export type ListTenantLabelsResponse = ApiResponse<ChatwootJsonPayload>;
+export type CreateTenantLabelResponse = ApiResponse<ChatwootJsonPayload>;
+export type DeleteTenantLabelResponse = ApiResponse<void>;
 
 // —— Users + SSO ——
 

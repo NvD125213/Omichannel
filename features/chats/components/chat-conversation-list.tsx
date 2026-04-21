@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Hash, Pin, Search, Users, VolumeX, Inbox } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -55,8 +55,23 @@ export function ChatConversationList({
   onSelectConversation,
 }: ConversationListProps) {
   const { searchQuery, setSearchQuery } = useChat();
+  const [searchInput, setSearchInput] = useState(searchQuery);
   const [activeTab, setActiveTab] = useState<"mine" | "unread" | "all">("all");
   const SCROLL_BOTTOM_THRESHOLD = 100;
+
+  useEffect(() => {
+    setSearchInput(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const debounceTimer = window.setTimeout(() => {
+      if (searchInput !== searchQuery) {
+        setSearchQuery(searchInput);
+      }
+    }, 300);
+
+    return () => window.clearTimeout(debounceTimer);
+  }, [searchInput, searchQuery, setSearchQuery]);
 
   const handleConversationScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -305,8 +320,8 @@ export function ChatConversationList({
             <Input
               type="text"
               placeholder="Tìm kiếm cuộc trò chuyện..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="pl-9 cursor-text"
               aria-label="Search Conversations"
             />
@@ -375,8 +390,8 @@ export function ChatConversationList({
           <Input
             type="text"
             placeholder="Tìm kiếm cuộc trò chuyện..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="pl-9 cursor-text"
             aria-label="Search Conversations"
           />
@@ -518,7 +533,7 @@ export function ChatConversationList({
                     <div className="flex-1 min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between mb-1 min-w-0">
                         <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden pr-2">
-                          <h3 className="font-medium truncate min-w-0 max-w-[160px] lg:max-w-[180px]">
+                          <h3 className="font-medium whitespace-nowrap min-w-0 max-w-[160px] lg:max-w-[180px]">
                             {conversation.name}
                           </h3>
                           {conversation.isPinned && (
@@ -536,7 +551,7 @@ export function ChatConversationList({
                       </div>
 
                       <div className="flex items-center justify-between gap-2 min-w-0">
-                        <p className="text-sm text-muted-foreground truncate flex-1 min-w-0 max-w-[180px] lg:max-w-[200px] pr-2">
+                        <p className="text-sm text-muted-foreground truncate flex-1 min-w-0 max-w-[300px] pr-2">
                           {conversation.lastMessage.content}
                         </p>
 

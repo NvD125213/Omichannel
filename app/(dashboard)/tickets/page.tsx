@@ -337,9 +337,7 @@ function TicketListPageContent() {
         kanbanTotalPages={data?.data?.total_pages ?? 1}
         kanbanTotal={data?.data?.total ?? 0}
         onKanbanPageChange={(page) => setQuery({ page })}
-        onKanbanPageSizeChange={(page_size) =>
-          setQuery({ page_size, page: 1 })
-        }
+        onKanbanPageSizeChange={(page_size) => setQuery({ page_size, page: 1 })}
       />
 
       {/* Main Content */}

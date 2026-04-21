@@ -39,7 +39,7 @@ export function DashboardStatsCards() {
       <Card className="border-l-4 border-l-blue-500 shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-700">
-            Trạng thái Server
+            Trạng thái hệ thống
           </CardTitle>
           <div className="p-2 bg-blue-100 rounded-full">
             <Server className="text-blue-600 h-4 w-4" />
@@ -66,7 +66,7 @@ export function DashboardStatsCards() {
       <Card className="border-l-4 border-l-emerald-500 shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-700">
-            Kết nối Active
+            Total Conversations{" "}
           </CardTitle>
           <div className="p-2 bg-emerald-100 rounded-full">
             <Activity className="text-emerald-600 h-4 w-4" />
@@ -86,7 +86,7 @@ export function DashboardStatsCards() {
       <Card className="border-l-4 border-l-purple-500 shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-700">
-            User Online
+            Active Conversations
           </CardTitle>
           <div className="p-2 bg-purple-100 rounded-full">
             <Users className="text-purple-600 h-4 w-4" />
@@ -97,7 +97,7 @@ export function DashboardStatsCards() {
             {stats.data?.unique_users_online}
           </div>
           <p className="text-muted-foreground text-xs mt-1">
-            Người dùng đang online
+            lượng hội thoại đang hoạt động
           </p>
         </CardContent>
       </Card>
@@ -106,7 +106,7 @@ export function DashboardStatsCards() {
       <Card className="border-l-4 border-l-orange-500 shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-slate-700">
-            Tenants Active
+            Pending
           </CardTitle>
           <div className="p-2 bg-orange-100 rounded-full">
             <Globe className="text-orange-600 h-4 w-4" />
@@ -117,7 +117,7 @@ export function DashboardStatsCards() {
             {stats.data?.tenants_with_users}
           </div>
           <p className="text-muted-foreground text-xs mt-1">
-            Tenants có user online
+            lượng hội thoại đang chờ xử lý
           </p>
         </CardContent>
       </Card>

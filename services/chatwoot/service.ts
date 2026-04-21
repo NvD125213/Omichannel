@@ -3,35 +3,69 @@ import apiClient from "@/lib/api-client";
 import type {
   AssignTenantConversationRequest,
   AssignTenantConversationResponse,
+  CreateTenantAccountAgentBotRequest,
+  CreateTenantAccountAgentBotResponse,
   CreateChatwootAgentBotRequest,
   CreateChatwootAgentBotResponse,
   CreateChatwootAgentRequest,
   CreateChatwootAgentResponse,
+  CreateTenantConversationMessageRequest,
+  CreateTenantConversationMessageResponse,
+  CreateTenantConversationRequest,
+  CreateTenantConversationResponse,
+  CreateTenantInboxRequest,
+  CreateTenantInboxResponse,
+  CreateTenantLabelRequest,
+  CreateTenantLabelResponse,
   CreateChatwootUserRequest,
   CreateChatwootUserResponse,
+  DeleteTenantAccountAgentBotResponse,
   DeleteChatwootAgentBotResponse,
   DeleteChatwootAgentResponse,
+  DeleteTenantConversationMessageResponse,
+  DeleteTenantLabelResponse,
   DeleteChatwootUserResponse,
   DeleteTenantChatwootAccountResponse,
   GetChatwootAgentBotResponse,
+  GetTenantAccountAgentBotResponse,
+  GetTenantConversationLabelsResponse,
+  GetTenantInboxResponse,
   GetChatwootUserResponse,
   GetChatwootUserSsoLinkResponse,
   GetTenantChatwootAccountResponse,
   GetTenantConversationResponse,
   ListAllChatwootAgentBotsResponse,
   ListChatwootAgentsResponse,
+  ListTenantAccountAgentBotsResponse,
   ListTenantChatwootAgentBotsResponse,
+  ListTenantInboxesResponse,
+  ListTenantLabelsResponse,
   ListTenantConversationMessagesParams,
   ListTenantConversationMessagesResponse,
   ListTenantConversationsParams,
   ListTenantConversationsResponse,
+  ListTenantTeamsResponse,
   ProvisionChatwootAccountRequest,
   ProvisionChatwootAccountResponse,
+  SetTenantConversationLabelsRequest,
+  SetTenantConversationLabelsResponse,
   SyncChatwootIntegrationAccountUserResponse,
+  ToggleTenantConversationStatusRequest,
+  ToggleTenantConversationStatusResponse,
+  ToggleTenantConversationTypingRequest,
+  ToggleTenantConversationTypingResponse,
+  UpdateTenantAccountAgentBotRequest,
+  UpdateTenantAccountAgentBotResponse,
   UpdateChatwootAgentBotRequest,
   UpdateChatwootAgentBotResponse,
   UpdateChatwootAgentRequest,
   UpdateChatwootAgentResponse,
+  UpdateTenantConversationCustomAttributesRequest,
+  UpdateTenantConversationCustomAttributesResponse,
+  UpdateTenantConversationRequest,
+  UpdateTenantConversationResponse,
+  UpdateTenantInboxRequest,
+  UpdateTenantInboxResponse,
   UpdateChatwootUserRequest,
   UpdateChatwootUserResponse,
   UpdateTenantChatwootAccountRequest,
@@ -157,6 +191,64 @@ export const chatwootService = {
     return response.data;
   },
 
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/account-agent-bots/:agent_bot_id */
+  getTenantAccountAgentBot: async (
+    tenantId: string,
+    agentBotId: string,
+  ): Promise<GetTenantAccountAgentBotResponse> => {
+    const response = await apiClient.get<GetTenantAccountAgentBotResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/account-agent-bots/${agentBotId}`,
+    );
+    return response.data;
+  },
+
+  /** PATCH /api/v1/chatwoot/tenants/:tenant_id/account-agent-bots/:agent_bot_id */
+  updateTenantAccountAgentBot: async (
+    tenantId: string,
+    agentBotId: string,
+    data: UpdateTenantAccountAgentBotRequest,
+  ): Promise<UpdateTenantAccountAgentBotResponse> => {
+    const response = await apiClient.patch<UpdateTenantAccountAgentBotResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/account-agent-bots/${agentBotId}`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** DELETE /api/v1/chatwoot/tenants/:tenant_id/account-agent-bots/:agent_bot_id */
+  deleteTenantAccountAgentBot: async (
+    tenantId: string,
+    agentBotId: string,
+  ): Promise<DeleteTenantAccountAgentBotResponse> => {
+    const response =
+      await apiClient.delete<DeleteTenantAccountAgentBotResponse>(
+        `${CHATWOOT_BASE}/tenants/${tenantId}/account-agent-bots/${agentBotId}`,
+      );
+    return response.data;
+  },
+
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/account-agent-bots */
+  listTenantAccountAgentBots: async (
+    tenantId: string,
+  ): Promise<ListTenantAccountAgentBotsResponse> => {
+    const response = await apiClient.get<ListTenantAccountAgentBotsResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/account-agent-bots`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/account-agent-bots */
+  createTenantAccountAgentBot: async (
+    tenantId: string,
+    data: CreateTenantAccountAgentBotRequest,
+  ): Promise<CreateTenantAccountAgentBotResponse> => {
+    const response = await apiClient.post<CreateTenantAccountAgentBotResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/account-agent-bots`,
+      data,
+    );
+    return response.data;
+  },
+
   /** GET /api/v1/chatwoot/tenants/:tenant_id/agents */
   listChatwootAgents: async (
     tenantId: string,
@@ -203,6 +295,95 @@ export const chatwootService = {
     return response.data;
   },
 
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/inboxes */
+  listTenantInboxes: async (
+    tenantId: string,
+  ): Promise<ListTenantInboxesResponse> => {
+    const response = await apiClient.get<ListTenantInboxesResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/inboxes`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/inboxes */
+  createTenantInbox: async (
+    tenantId: string,
+    data: CreateTenantInboxRequest,
+  ): Promise<CreateTenantInboxResponse> => {
+    const response = await apiClient.post<CreateTenantInboxResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/inboxes`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/inboxes/:inbox_id */
+  getTenantInbox: async (
+    tenantId: string,
+    inboxId: string,
+  ): Promise<GetTenantInboxResponse> => {
+    const response = await apiClient.get<GetTenantInboxResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/inboxes/${inboxId}`,
+    );
+    return response.data;
+  },
+
+  /** PATCH /api/v1/chatwoot/tenants/:tenant_id/inboxes/:inbox_id */
+  updateTenantInbox: async (
+    tenantId: string,
+    inboxId: string,
+    data: UpdateTenantInboxRequest,
+  ): Promise<UpdateTenantInboxResponse> => {
+    const response = await apiClient.patch<UpdateTenantInboxResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/inboxes/${inboxId}`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/teams */
+  listTenantTeams: async (
+    tenantId: string,
+  ): Promise<ListTenantTeamsResponse> => {
+    const response = await apiClient.get<ListTenantTeamsResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams`,
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/labels */
+  listTenantLabels: async (
+    tenantId: string,
+  ): Promise<ListTenantLabelsResponse> => {
+    const response = await apiClient.get<ListTenantLabelsResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/labels`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/labels */
+  createTenantLabel: async (
+    tenantId: string,
+    data: CreateTenantLabelRequest,
+  ): Promise<CreateTenantLabelResponse> => {
+    const response = await apiClient.post<CreateTenantLabelResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/labels`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** DELETE /api/v1/chatwoot/tenants/:tenant_id/labels/:label */
+  deleteTenantLabel: async (
+    tenantId: string,
+    label: string,
+  ): Promise<DeleteTenantLabelResponse> => {
+    const response = await apiClient.delete<DeleteTenantLabelResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/labels/${encodeURIComponent(label)}`,
+    );
+    return response.data;
+  },
+
   /** GET /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/messages */
   listTenantConversationMessages: async (
     tenantId: string,
@@ -213,6 +394,99 @@ export const chatwootService = {
       await apiClient.get<ListTenantConversationMessagesResponse>(
         `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/messages`,
         { params },
+      );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/messages */
+  createTenantConversationMessage: async (
+    tenantId: string,
+    conversationId: string,
+    data: CreateTenantConversationMessageRequest,
+  ): Promise<CreateTenantConversationMessageResponse> => {
+    const response =
+      await apiClient.post<CreateTenantConversationMessageResponse>(
+        `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/messages`,
+        data,
+      );
+    return response.data;
+  },
+
+  /** DELETE /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/messages/:message_id */
+  deleteTenantConversationMessage: async (
+    tenantId: string,
+    conversationId: string,
+    messageId: string,
+  ): Promise<DeleteTenantConversationMessageResponse> => {
+    const response =
+      await apiClient.delete<DeleteTenantConversationMessageResponse>(
+        `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/messages/${messageId}`,
+      );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/toggle_status */
+  toggleTenantConversationStatus: async (
+    tenantId: string,
+    conversationId: string,
+    data: ToggleTenantConversationStatusRequest,
+  ): Promise<ToggleTenantConversationStatusResponse> => {
+    const response =
+      await apiClient.post<ToggleTenantConversationStatusResponse>(
+        `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/toggle_status`,
+        data,
+      );
+    return response.data;
+  },
+
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/labels */
+  getTenantConversationLabels: async (
+    tenantId: string,
+    conversationId: string,
+  ): Promise<GetTenantConversationLabelsResponse> => {
+    const response = await apiClient.get<GetTenantConversationLabelsResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/labels`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/labels */
+  setTenantConversationLabels: async (
+    tenantId: string,
+    conversationId: string,
+    data: SetTenantConversationLabelsRequest,
+  ): Promise<SetTenantConversationLabelsResponse> => {
+    const response = await apiClient.post<SetTenantConversationLabelsResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/labels`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/toggle_typing_status */
+  toggleTenantConversationTyping: async (
+    tenantId: string,
+    conversationId: string,
+    data: ToggleTenantConversationTypingRequest,
+  ): Promise<ToggleTenantConversationTypingResponse> => {
+    const response =
+      await apiClient.post<ToggleTenantConversationTypingResponse>(
+        `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/toggle_typing_status`,
+        data,
+      );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id/custom_attributes */
+  updateTenantConversationCustomAttributes: async (
+    tenantId: string,
+    conversationId: string,
+    data: UpdateTenantConversationCustomAttributesRequest,
+  ): Promise<UpdateTenantConversationCustomAttributesResponse> => {
+    const response =
+      await apiClient.post<UpdateTenantConversationCustomAttributesResponse>(
+        `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/custom_attributes`,
+        data,
       );
     return response.data;
   },
@@ -249,6 +523,31 @@ export const chatwootService = {
     const response = await apiClient.get<ListTenantConversationsResponse>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/conversations`,
       { params },
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/conversations */
+  createTenantConversation: async (
+    tenantId: string,
+    data: CreateTenantConversationRequest,
+  ): Promise<CreateTenantConversationResponse> => {
+    const response = await apiClient.post<CreateTenantConversationResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/conversations`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** PATCH /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id */
+  updateTenantConversation: async (
+    tenantId: string,
+    conversationId: string,
+    data: UpdateTenantConversationRequest,
+  ): Promise<UpdateTenantConversationResponse> => {
+    const response = await apiClient.patch<UpdateTenantConversationResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}`,
+      data,
     );
     return response.data;
   },

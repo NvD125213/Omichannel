@@ -71,7 +71,7 @@ export function UserFormDialog({
   const { data: levelsData, isLoading: isLoadingLevels } = useGetLevels({});
 
   // Lấy thông tin user hiện tại để get tenant_id
-  const { data: currentUser, isLoading: isLoadingUser } = useMe();
+  const { data: currentUser } = useMe();
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),

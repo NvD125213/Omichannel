@@ -8,14 +8,26 @@ import { toast } from "sonner";
 
 import type {
   AssignTenantConversationRequest,
+  CreateTenantAccountAgentBotRequest,
   CreateChatwootAgentBotRequest,
   CreateChatwootAgentRequest,
+  CreateTenantConversationMessageRequest,
+  CreateTenantConversationRequest,
+  CreateTenantInboxRequest,
+  CreateTenantLabelRequest,
   CreateChatwootUserRequest,
   ListTenantConversationMessagesParams,
   ListTenantConversationsParams,
   ProvisionChatwootAccountRequest,
+  SetTenantConversationLabelsRequest,
+  ToggleTenantConversationStatusRequest,
+  ToggleTenantConversationTypingRequest,
+  UpdateTenantAccountAgentBotRequest,
   UpdateChatwootAgentBotRequest,
   UpdateChatwootAgentRequest,
+  UpdateTenantConversationCustomAttributesRequest,
+  UpdateTenantConversationRequest,
+  UpdateTenantInboxRequest,
   UpdateChatwootUserRequest,
   UpdateTenantChatwootAccountRequest,
 } from "@/services/chatwoot/interface";
@@ -33,15 +45,28 @@ export const chatwootOmniKeys = {
     [...chatwootOmniKeys.tenant(tenantId), "agent-bots"] as const,
   tenantAgentBot: (tenantId: string, botId: string) =>
     [...chatwootOmniKeys.tenantAgentBots(tenantId), botId] as const,
+  tenantAccountAgentBots: (tenantId: string) =>
+    [...chatwootOmniKeys.tenant(tenantId), "account-agent-bots"] as const,
+  tenantAccountAgentBot: (tenantId: string, agentBotId: string) =>
+    [...chatwootOmniKeys.tenantAccountAgentBots(tenantId), agentBotId] as const,
   tenantAgents: (tenantId: string) =>
     [...chatwootOmniKeys.tenant(tenantId), "agents"] as const,
+  tenantInboxes: (tenantId: string) =>
+    [...chatwootOmniKeys.tenant(tenantId), "inboxes"] as const,
+  tenantInbox: (tenantId: string, inboxId: string) =>
+    [...chatwootOmniKeys.tenantInboxes(tenantId), inboxId] as const,
+  tenantTeams: (tenantId: string) =>
+    [...chatwootOmniKeys.tenant(tenantId), "teams"] as const,
+  tenantLabels: (tenantId: string) =>
+    [...chatwootOmniKeys.tenant(tenantId), "labels"] as const,
+  tenantConversationsBase: (tenantId: string) =>
+    [...chatwootOmniKeys.tenant(tenantId), "conversations"] as const,
   tenantConversations: (
     tenantId: string,
     params?: ListTenantConversationsParams,
   ) =>
     [
-      ...chatwootOmniKeys.tenant(tenantId),
-      "conversations",
+      ...chatwootOmniKeys.tenantConversationsBase(tenantId),
       params ?? {},
     ] as const,
   tenantConversation: (tenantId: string, conversationId: string) =>
@@ -59,6 +84,21 @@ export const chatwootOmniKeys = {
       ...chatwootOmniKeys.tenantConversation(tenantId, conversationId),
       "messages",
       params ?? {},
+    ] as const,
+  tenantConversationMessage: (
+    tenantId: string,
+    conversationId: string,
+    messageId: string,
+  ) =>
+    [
+      ...chatwootOmniKeys.tenantConversation(tenantId, conversationId),
+      "messages",
+      messageId,
+    ] as const,
+  tenantConversationLabels: (tenantId: string, conversationId: string) =>
+    [
+      ...chatwootOmniKeys.tenantConversation(tenantId, conversationId),
+      "labels",
     ] as const,
   user: (userId: string) => [...chatwootOmniKeys.all, "user", userId] as const,
   userSsoLink: (userId: string) =>
@@ -95,6 +135,58 @@ export const useListChatwootAgents = (tenantId: string) => {
   return useQuery({
     queryKey: chatwootOmniKeys.tenantAgents(tenantId),
     queryFn: () => chatwootService.listChatwootAgents(tenantId),
+    enabled: !!tenantId,
+  });
+};
+
+export const useGetTenantAccountAgentBot = (
+  tenantId: string,
+  agentBotId: string,
+) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantAccountAgentBot(tenantId, agentBotId),
+    queryFn: () =>
+      chatwootService.getTenantAccountAgentBot(tenantId, agentBotId),
+    enabled: !!tenantId && !!agentBotId,
+  });
+};
+
+export const useListTenantAccountAgentBots = (tenantId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantAccountAgentBots(tenantId),
+    queryFn: () => chatwootService.listTenantAccountAgentBots(tenantId),
+    enabled: !!tenantId,
+  });
+};
+
+export const useListTenantInboxes = (tenantId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantInboxes(tenantId),
+    queryFn: () => chatwootService.listTenantInboxes(tenantId),
+    enabled: !!tenantId,
+  });
+};
+
+export const useGetTenantInbox = (tenantId: string, inboxId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantInbox(tenantId, inboxId),
+    queryFn: () => chatwootService.getTenantInbox(tenantId, inboxId),
+    enabled: !!tenantId && !!inboxId,
+  });
+};
+
+export const useListTenantTeams = (tenantId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantTeams(tenantId),
+    queryFn: () => chatwootService.listTenantTeams(tenantId),
+    enabled: !!tenantId,
+  });
+};
+
+export const useListTenantLabels = (tenantId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantLabels(tenantId),
+    queryFn: () => chatwootService.listTenantLabels(tenantId),
     enabled: !!tenantId,
   });
 };
@@ -185,6 +277,21 @@ export const useGetTenantConversation = (
     queryKey: chatwootOmniKeys.tenantConversation(tenantId, conversationId),
     queryFn: () =>
       chatwootService.getTenantConversation(tenantId, conversationId),
+    enabled: !!tenantId && !!conversationId,
+  });
+};
+
+export const useGetTenantConversationLabels = (
+  tenantId: string,
+  conversationId: string,
+) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantConversationLabels(
+      tenantId,
+      conversationId,
+    ),
+    queryFn: () =>
+      chatwootService.getTenantConversationLabels(tenantId, conversationId),
     enabled: !!tenantId && !!conversationId,
   });
 };
@@ -580,7 +687,9 @@ export const useAssignTenantConversation = () => {
       if (res.status_code === 200 || res.status_code === 201) {
         toast.success(res.message || "Gán hội thoại thành công");
         queryClient.invalidateQueries({
-          queryKey: chatwootOmniKeys.tenantConversations(variables.tenantId),
+          queryKey: chatwootOmniKeys.tenantConversationsBase(
+            variables.tenantId,
+          ),
         });
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.tenantConversation(
@@ -596,6 +705,565 @@ export const useAssignTenantConversation = () => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Có lỗi khi gán hội thoại";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useCreateTenantAccountAgentBot = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: CreateTenantAccountAgentBotRequest;
+    }) => chatwootService.createTenantAccountAgentBot(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Tạo account agent bot thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantAccountAgentBots(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Tạo account agent bot thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi tạo account agent bot";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateTenantAccountAgentBot = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      agentBotId,
+      data,
+    }: {
+      tenantId: string;
+      agentBotId: string;
+      data: UpdateTenantAccountAgentBotRequest;
+    }) =>
+      chatwootService.updateTenantAccountAgentBot(tenantId, agentBotId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Cập nhật account agent bot thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantAccountAgentBots(variables.tenantId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantAccountAgentBot(
+            variables.tenantId,
+            variables.agentBotId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật account agent bot thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật account agent bot";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useDeleteTenantAccountAgentBot = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      agentBotId,
+    }: {
+      tenantId: string;
+      agentBotId: string;
+    }) => chatwootService.deleteTenantAccountAgentBot(tenantId, agentBotId),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Xóa account agent bot thành công");
+        queryClient.removeQueries({
+          queryKey: chatwootOmniKeys.tenantAccountAgentBot(
+            variables.tenantId,
+            variables.agentBotId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantAccountAgentBots(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Xóa account agent bot thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi xóa account agent bot";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useCreateTenantInbox = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: CreateTenantInboxRequest;
+    }) => chatwootService.createTenantInbox(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Tạo inbox thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantInboxes(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Tạo inbox thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi tạo inbox";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateTenantInbox = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      inboxId,
+      data,
+    }: {
+      tenantId: string;
+      inboxId: string;
+      data: UpdateTenantInboxRequest;
+    }) => chatwootService.updateTenantInbox(tenantId, inboxId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Cập nhật inbox thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantInboxes(variables.tenantId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantInbox(
+            variables.tenantId,
+            variables.inboxId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật inbox thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật inbox";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useCreateTenantLabel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: CreateTenantLabelRequest;
+    }) => chatwootService.createTenantLabel(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Tạo nhãn thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantLabels(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Tạo nhãn thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi tạo nhãn";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useDeleteTenantLabel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ tenantId, label }: { tenantId: string; label: string }) =>
+      chatwootService.deleteTenantLabel(tenantId, label),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Xóa nhãn thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantLabels(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Xóa nhãn thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi xóa nhãn";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useCreateTenantConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: CreateTenantConversationRequest;
+    }) => chatwootService.createTenantConversation(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Tạo hội thoại thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversations(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Tạo hội thoại thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi tạo hội thoại";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateTenantConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+      data,
+    }: {
+      tenantId: string;
+      conversationId: string;
+      data: UpdateTenantConversationRequest;
+    }) =>
+      chatwootService.updateTenantConversation(tenantId, conversationId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Cập nhật hội thoại thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationsBase(
+            variables.tenantId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversation(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật hội thoại thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật hội thoại";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useCreateTenantConversationMessage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+      data,
+    }: {
+      tenantId: string;
+      conversationId: string;
+      data: CreateTenantConversationMessageRequest;
+    }) =>
+      chatwootService.createTenantConversationMessage(
+        tenantId,
+        conversationId,
+        data,
+      ),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationMessages(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversation(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationsBase(
+            variables.tenantId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Gửi tin nhắn thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi gửi tin nhắn";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useDeleteTenantConversationMessage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+      messageId,
+    }: {
+      tenantId: string;
+      conversationId: string;
+      messageId: string;
+    }) =>
+      chatwootService.deleteTenantConversationMessage(
+        tenantId,
+        conversationId,
+        messageId,
+      ),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Xóa tin nhắn thành công");
+        queryClient.removeQueries({
+          queryKey: chatwootOmniKeys.tenantConversationMessage(
+            variables.tenantId,
+            variables.conversationId,
+            variables.messageId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationMessages(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Xóa tin nhắn thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi xóa tin nhắn";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useToggleTenantConversationStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+      data,
+    }: {
+      tenantId: string;
+      conversationId: string;
+      data: ToggleTenantConversationStatusRequest;
+    }) =>
+      chatwootService.toggleTenantConversationStatus(
+        tenantId,
+        conversationId,
+        data,
+      ),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(
+          res.message || "Cập nhật trạng thái hội thoại thành công",
+        );
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversation(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationsBase(
+            variables.tenantId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật trạng thái hội thoại thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật trạng thái hội thoại";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useSetTenantConversationLabels = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+      data,
+    }: {
+      tenantId: string;
+      conversationId: string;
+      data: SetTenantConversationLabelsRequest;
+    }) =>
+      chatwootService.setTenantConversationLabels(
+        tenantId,
+        conversationId,
+        data,
+      ),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Cập nhật nhãn hội thoại thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationLabels(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversation(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật nhãn hội thoại thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật nhãn hội thoại";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useToggleTenantConversationTyping = () => {
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+      data,
+    }: {
+      tenantId: string;
+      conversationId: string;
+      data: ToggleTenantConversationTypingRequest;
+    }) =>
+      chatwootService.toggleTenantConversationTyping(
+        tenantId,
+        conversationId,
+        data,
+      ),
+    onSuccess: (res) => {
+      if (res.status_code !== 200 && res.status_code !== 201) {
+        toast.error(res.message || "Cập nhật typing status thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật typing status";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateTenantConversationCustomAttributes = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+      data,
+    }: {
+      tenantId: string;
+      conversationId: string;
+      data: UpdateTenantConversationCustomAttributesRequest;
+    }) =>
+      chatwootService.updateTenantConversationCustomAttributes(
+        tenantId,
+        conversationId,
+        data,
+      ),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Cập nhật custom attributes thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversation(
+            variables.tenantId,
+            variables.conversationId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật custom attributes thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật custom attributes";
       toast.error(msg);
     },
   });

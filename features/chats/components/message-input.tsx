@@ -13,7 +13,6 @@ import {
   Smile,
 } from "lucide-react";
 import { useRef, useState } from "react";
-// import { SendMessageRequest } from "../utils/types";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,15 +27,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import {} from "@/hooks/chatwoot/use-chatwoot";
+import { useCreateTenantConversationMessage } from "@/hooks/chatwoot/use-chatwoot";
 
 interface MessageInputProps {
+  tenantId: string;
+  conversationId: string;
   onSendMessage: (content: string) => void;
   disabled?: boolean;
   placeholder?: string;
 }
 
 export function MessageInput({
+  tenantId,
+  conversationId,
   onSendMessage,
   disabled = false,
   placeholder = "Type a message...",
@@ -46,17 +49,45 @@ export function MessageInput({
     "reply",
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { mutate: createTenantConversationMessage, isPending: isSending } =
+    useCreateTenantConversationMessage();
+  const isComposerDisabled = disabled || isSending;
 
   const handleSendMessage = () => {
     const trimmedMessage = message.trim();
-    if (trimmedMessage && !disabled) {
-      onSendMessage(trimmedMessage);
-      setMessage("");
-
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto";
-      }
+    if (
+      !trimmedMessage ||
+      isComposerDisabled ||
+      !tenantId.trim() ||
+      !conversationId.trim()
+    ) {
+      return;
     }
+
+    createTenantConversationMessage(
+      {
+        tenantId,
+        conversationId,
+        data: {
+          content: trimmedMessage,
+          message_type: "outgoing",
+          private: composerMode === "private-note",
+          content_type: "text",
+          content_attributes: {},
+          campaign_id: 1,
+          template_params: {},
+        },
+      },
+      {
+        onSuccess: () => {
+          onSendMessage(trimmedMessage);
+          setMessage("");
+          if (textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+          }
+        },
+      },
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -112,7 +143,7 @@ export function MessageInput({
               variant="ghost"
               size="icon"
               className="size-7"
-              disabled={disabled}
+              disabled={isComposerDisabled}
             >
               <Sparkles className="size-4 text-violet-500" />
             </Button>
@@ -121,7 +152,7 @@ export function MessageInput({
               variant="ghost"
               size="icon"
               className="size-7"
-              disabled={disabled}
+              disabled={isComposerDisabled}
             >
               <Maximize2 className="size-4" />
             </Button>
@@ -134,7 +165,7 @@ export function MessageInput({
           value={message}
           onChange={handleTextareaChange}
           onKeyDown={handleKeyPress}
-          disabled={disabled}
+          disabled={isComposerDisabled}
           className={cn(
             "max-h-[150px] resize-none border-0 bg-transparent px-1 py-1 text-sm shadow-none focus-visible:ring-0",
             "cursor-text disabled:cursor-not-allowed",
@@ -152,7 +183,7 @@ export function MessageInput({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      disabled={disabled}
+                      disabled={isComposerDisabled}
                       className="size-8 cursor-pointer rounded-md disabled:cursor-not-allowed"
                     >
                       <Paperclip className="size-4" />
@@ -187,7 +218,7 @@ export function MessageInput({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  disabled={disabled}
+                  disabled={isComposerDisabled}
                   className="size-8 rounded-md"
                 >
                   <Smile className="size-4" />
@@ -202,7 +233,7 @@ export function MessageInput({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  disabled={disabled}
+                  disabled={isComposerDisabled}
                   className="size-8 rounded-md"
                 >
                   <Mic className="size-4" />
@@ -217,7 +248,7 @@ export function MessageInput({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  disabled={disabled}
+                  disabled={isComposerDisabled}
                   className="size-8 rounded-md"
                 >
                   <MoreHorizontal className="size-4" />
@@ -229,13 +260,13 @@ export function MessageInput({
 
           <Button
             onClick={handleSendMessage}
-            disabled={disabled || !message.trim()}
+            disabled={isComposerDisabled || !message.trim()}
             className={cn(
               "h-8 rounded-md px-3 text-xs font-medium",
               message.trim() ? "opacity-100" : "opacity-70",
             )}
           >
-            Gửi (Nhấn Enter)
+            {isSending ? "Đang gửi..." : "Gửi (Nhấn Enter)"}
             <Send className="size-4" />
           </Button>
         </div>

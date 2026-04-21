@@ -1,0 +1,624 @@
+﻿  1 [Normal] T├èN T├üC PHß║¿M
+  4 [Normal] PHß║ªN M├è╠ÇM SINH TRß║«C Hß╗îC V├Ç Xß╗¼ L├¥ GIß╗îNG N├ôI
+  7 [Normal] Chß╗º sß╗ƒ hß╗»u quyß╗ün t├íc giß║ú: C├┤ng ty Cß╗ò phß║ºn Viß╗àn th├┤ng CGV
+ 12 [Normal] T├íc giß║ú:
+ 15 [Heading 1] L├¬ V─ân Hiß║┐u Mai V─ân Tuß║Ñn
+ 17 [Body Text] Contents
+ 20 [Heading 1] Lß╗¥i n├│i ─æß║ºu
+ 21 [Body Text] Trong kß╗╖ nguy├¬n sß╗æ h├│a v├á giao dß╗ïch trß╗▒c tuyß║┐n ng├áy c├áng ph├ít triß╗ân, viß╗çc x├íc thß╗▒c danh t├¡nh ng╞░ß╗¥i d├╣ng mß╗Öt c├ích an to├án, nhanh ch├│ng v├á tiß╗çn lß╗úi l├á m
+ 22 [Body Text] ─Éß╗â giß║úi quyß║┐t nhß╗»ng th├ích thß╗⌐c n├áy, c├┤ng nghß╗ç Sinh trß║»c hß╗ìc giß╗ìng n├│i (Voice Biometrics) ─æ├ú ra ─æß╗¥i v├á trß╗ƒ th├ánh mß╗Öt giß║úi ph├íp ─æß╗Öt ph├í. Dß╗▒a tr├¬n nguy├¬n
+ 23 [Body Text] T├ái liß╗çu n├áy tr├¼nh b├áy chi tiß║┐t vß╗ü Giß║úi ph├íp X├íc thß╗▒c giß╗ìng n├│i (Voice Biometrics), bao gß╗ôm kiß║┐n tr├║c tß╗òng thß╗â, c├íc c├┤ng nghß╗ç l├╡i ti├¬n tiß║┐n ─æ╞░ß╗úc ├íp dß╗Ñ
+ 25 [Heading 1] Danh mß╗Ñc tß╗½ viß║┐t tß║»t v├á thuß║¡t ngß╗»
+ 30 [Heading 1] PHß║ªN 1: Tß╗òng quan vß╗ü phß║ºn mß╗üm x├íc th╞░╠úc gio╠úng n├│i Voice Biometrics
+ 32 [Heading 1] Giß╗¢i thiß╗çu chung
+ 33 [Body Text] Phß║ºn mß╗üm x├íc thß╗▒c giß╗ìng n├│i Voice Biometrics l├á mß╗Öt ch╞░╞íng tr├¼nh m├íy t├¡nh vß╗¢i nß╗ün tß║úng l├á tr├¡ th├┤ng minh nh├ón tß║ío (AI), c├│ khß║ú n─âng hß╗ù trß╗ú thay thß║┐ co
+ 34 [Body Text] Thay v├¼ phß║úi cung cß║Ñp c├íc loß║íi giß║Ñy tß╗¥ t├╣y th├ón kh├íc nhau, hoß║╖c phß║úi nhß╗¢ mß╗Öt d├úy mß║¡t khß║⌐u d├ái phß╗⌐c tß║íp, vß╗¢i c├┤ng nghß╗ç n├áy ng╞░ß╗¥i d├╣ng chß╗ë cß║ºn n├│i mß╗Öt c
+ 35 [Heading 1] Nß╗ün tß║úng c├┤ng nghß╗ç sß║ún phß║⌐m
+ 36 [Body Text] Hß╗ç thß╗æng ─æ╞░ß╗úc x├óy dß╗▒ng tr├¬n c├íc nß╗ün tß║úng c├┤ng nghß╗ç hiß╗çn ─æß║íi, m├ú nguß╗ôn mß╗ƒ v├á c├│ t├¡nh ß╗òn ─æß╗ïnh cao, ─æß║úm bß║úo khß║ú n─âng mß╗ƒ rß╗Öng v├á dß╗à d├áng bß║úo tr├¼:
+ 37 [List Paragraph] Hß╗ç ─æiß╗üu h├ánh tr├¬n m├íy chß╗º: Redhat Enterprise Linux hoß║╖c Ubuntu Server, ─æß║úm bß║úo hiß╗çu n─âng cao v├á bß║úo mß║¡t tß╗æt.
+ 38 [List Paragraph] Hß╗ç quß║ún trß╗ï c╞í sß╗ƒ dß╗» liß╗çu nghiß╗çp vß╗Ñ: MySQL (cho dß╗» liß╗çu c├│ cß║Ñu tr├║c) kß║┐t hß╗úp vß╗¢i Redis (cho caching v├á xß╗¡ l├╜ luß╗ông dß╗» liß╗çu tß╗æc ─æß╗Ö cao).
+ 39 [List Paragraph] Giao thß╗⌐c giao tiß║┐p giß╗»a c├íc hß╗ç thß╗æng: RESTful API, Webservice (SOAP), gRPC, ─æß║úm bß║úo khß║ú n─âng t├¡ch hß╗úp linh hoß║ít vß╗¢i c├íc hß╗ç thß╗æng ngoß║íi vi.
+ 40 [List Paragraph] Ng├┤n ngß╗» ph├ít triß╗ân ß╗⌐ng dß╗Ñng: Python (cho c├íc module AI/Deep Learning), Java v├á
+ 41 [Body Text] C++ (cho c├íc module xß╗¡ l├╜ core cß║ºn hiß╗çu n─âng cao).
+ 42 [List Paragraph] M├┤i tr╞░ß╗¥ng khai th├íc cß╗ºa ng╞░ß╗¥i d├╣ng: Hß╗ù trß╗ú ─æa nß╗ün tß║úng bao gß╗ôm c├íc tr├¼nh duyß╗çt web phß╗ò biß║┐n (Firefox, Chrome, Safari, Edge) v├á c├íc ß╗⌐ng dß╗Ñng di ─æß╗Öng (
+ 43 [Heading 1] Nß╗ün tß║úng c├┤ng nghß╗ç l├╡i
+ 44 [Body Text] C├┤ng nghß╗ç nhß║¡n dß║íng giß╗ìng n├│i l├á c├┤ng nghß╗ç nhß║¡n biß║┐t ng╞░ß╗¥i n├│i bß║▒ng ch├¡nh giß╗ìng n├│i cß╗ºa ng╞░ß╗¥i ─æ├│. Voiceprint (dß║Ñu v├ón tay giß╗ìng n├│i) c├│ thß╗â hiß╗âu l├á bi
+ 46 [Body Text] phß╗ò tß║ºn sß╗æ giß╗ìng n├│i, ─æ╞░ß╗úc t├¡nh bß║▒ng ph╞░╞íng ph├íp ph├ón t├¡ch mß║½u giß╗ìng n├│i theo miß╗ün thß╗¥i gian v├á tß║ºn sß╗æ. T├╣y thuß╗Öc v├áo tß╗½ng ß╗⌐ng dß╗Ñng cß╗Ñ thß╗â, c├┤ng nghß╗ç 
+ 47 [List Paragraph] C├┤ng nghß╗ç x├íc th╞░╠úc ng╞░ß╗¥i n├│i (Speaker Verification - SV): B├ái to├ín 1:1. X├íc ─æß╗ïnh xem mß╗Öt c├óu n├│i ─æß║ºu v├áo c├│ thß╗▒c sß╗▒ thuß╗Öc vß╗ü mß╗Öt ng╞░ß╗¥i cß╗Ñ thß╗â ─æang ─æ╞░
+ 48 [List Paragraph] C├┤ng nghß╗ç ─æß╗ïnh danh ng╞░ß╗¥i n├│i (Speaker Identification - SI): B├ái to├ín 1:N. T├¼m mß║½u giß╗ìng khß╗¢p nhß║Ñt vß╗¢i mß╗Öt c├óu n├│i bß║Ñt kß╗│ trong to├án bß╗Ö c╞í sß╗ƒ dß╗» liß╗çu 
+ 49 [Body Text] T├╣y theo y├¬u cß║ºu vß╗ü nß╗Öi dung ph├ít ng├┤n, c├┤ng nghß╗ç n├áy tiß║┐p tß╗Ñc ─æ╞░ß╗úc ph├ón loß║íi th├ánh:
+ 50 [List Paragraph] Phß╗Ñ thuß╗Öc nß╗Öi dung (Text-Dependent): Qu├í tr├¼nh ─æ─âng k├╜ v├á x├íc thß╗▒c y├¬u cß║ºu ng╞░ß╗¥i n├│i phß║úi ─æß╗ìc ─æ├║ng nhß╗»ng c├óu c├│ nß╗Öi dung, tß╗½ kh├│a giß╗æng nhau (v├¡ dß╗Ñ: "
+ 51 [List Paragraph] Kh├┤ng phß╗Ñ thuß╗Öc nß╗Öi dung (Text-Independent): Qu├í tr├¼nh ─æ─âng k├╜ v├á x├íc thß╗▒c kh├┤ng y├¬u cß║ºu vß╗ü nß╗Öi dung cß╗ºa c├óu n├│i. Ng╞░ß╗¥i n├│i c├│ thß╗â n├│i nhß╗»ng c├óu t├╣y ├╜
+ 52 [Body Text] Qu├í tr├¼nh hoß║ít ─æß╗Öng cß╗ºa c├┤ng nghß╗ç l├╡i bao gß╗ôm hai pha ch├¡nh: Pha huß║Ñn luyß╗çn (Training Phase) v├á Pha sß╗¡ dß╗Ñng (Inference Phase).
+ 53 [Body Text] Pha huß║Ñn luyß╗çn: Dß╗» liß╗çu huß║Ñn luyß╗çn bao gß╗ôm h├áng chß╗Ñc ngh├¼n giß╗¥ audio v├á nh├ún ng╞░ß╗¥i n├│i t╞░╞íng ß╗⌐ng. Hiß╗çn tß║íi, bß╗Ö dß╗» liß╗çu cß╗ºa ch├║ng t├┤i sß╗¡ dß╗Ñng h╞ín 15.00
+ 56 [Normal] H├¼nh 1: Quy tr├¼nh ─É─âng k├╜ (Enrollment) v├á X├íc thß╗▒c (Verification) giß╗ìng n├│i
+ 59 [Heading 1] Pha sß╗¡ dß╗Ñng (bao gß╗ôm ─É─âng k├╜ v├á X├íc th╞░╠úc):
+ 60 [List Paragraph] ─É─âng k├╜ (Enrollment): Cß║ºn mß╗Öt hoß║╖c nhiß╗üu mß║½u audio cß╗ºa ng╞░ß╗¥i d├╣ng. C├íc mß║½u n├áy ─æi qua m├┤ h├¼nh m├ú h├│a ─æß╗â tß║ío th├ánh c├íc vector ─æß║╖c tr╞░ng, sau ─æ├│ ─æ╞░ß╗úc t├¡
+ 61 [List Paragraph] X├íc th╞░╠úc (Verification): Mß║½u audio cß║ºn kiß╗âm tra sß║╜ ─æi qua m├┤ h├¼nh m├ú h├│a ─æß╗â tß║ío th├ánh mß╗Öt vector kiß╗âm tra (Test Vector). Hß╗ç thß╗æng sß╗¡ dß╗Ñng ─æß╗Ö ─æo khoß║ún
+ 64 [Heading 1] PHß║ªN 2: Kiß║┐n tr├║c v├á T├¡nh n─âng hß╗ç thß╗æng
+ 66 [Heading 1] Kiß║┐n tr├║c tß╗òng thß╗â hß╗ç thß╗æng
+ 67 [Body Text] Hß╗ç thß╗æng Voice Biometrics ─æ╞░ß╗úc thiß║┐t kß║┐ theo kiß║┐n tr├║c ph├ón lß╗¢p (layered architecture) v├á vi dß╗ïch vß╗Ñ (microservices), t├ích biß╗çt c├íc module ─æß╗Öc lß║¡p nhß║▒
+ 70 [Normal] H├¼nh 2: Kiß║┐n tr├║c tß╗òng thß╗â hß╗ç thß╗æng Voice Biometrics
+ 71 [Body Text] Hß╗ç thß╗æng bao gß╗ôm 3 tß║ºng ch├¡nh:
+ 72 [List Paragraph] Tß║ºng Client (Client Layer): Bao gß╗ôm c├íc thiß║┐t bß╗ï v├á ß╗⌐ng dß╗Ñng ─æß║ºu cuß╗æi t╞░╞íng t├íc vß╗¢i ng╞░ß╗¥i d├╣ng nh╞░ Mobile App, Web Browser, ─æiß╗çn thoß║íi tß╗òng ─æ├ái, hoß║╖c 
+ 73 [List Paragraph] Tß║ºng C├┤ng nghß╗ç l├╡i (Core Platform Layer): Chß╗⌐a c├íc module AI xß╗¡ l├╜ nghiß╗çp vß╗Ñ ch├¡nh nh╞░ Kiß╗âm tra chß║Ñt l╞░ß╗úng ├óm thanh, ─É─âng k├╜ giß╗ìng n├│i, X├íc thß╗▒c giß╗ìng
+ 74 [List Paragraph] Tß║ºng Hß║í tß║ºng & Dß╗» liß╗çu (Infrastructure Layer): Bao gß╗ôm Load Balancer ─æß╗â ph├ón tß║úi, MySQL ─æß╗â l╞░u trß╗» dß╗» liß╗çu nghiß╗çp vß╗Ñ v├á Voiceprint (─æ├ú m├ú h├│a), Redis 
+ 75 [Heading 1] C├íc th├ánh phß║ºn c├┤ng nghß╗ç l├╡i
+ 76 [Heading 1] C├┤ng nghß╗ç kiß╗âm tra chß║Ñt l╞░ß╗úng ├óm thanh ─æß║ºu v├áo (Audio Quality Check)
+ 77 [Body Text] T├¡nh n─âng n├áy ph├ít hiß╗çn c├íc file ├óm thanh kh├┤ng ─æß║úm bß║úo ti├¬u chuß║⌐n (qu├í ß╗ôn, tiß║┐ng n├│i qu├í nhß╗Å, bß╗ï nhiß╗àu s├│ng nß║╖ng, hoß║╖c c├│ nhiß╗üu ng╞░ß╗¥i n├│i c├╣ng l├║c) ─æ
+ 79 [Heading 1] C├┤ng nghß╗ç ─æ─âng k├╜ gio╠úng n├│i (Speaker Enrollment)
+ 80 [Body Text] Module n├áy biß║┐n ─æß╗òi c├íc file ghi ├óm th├┤ th├ánh dß╗» liß╗çu ─æß║╖c tr╞░ng (Voiceprint). ╞»u ─æiß╗âm nß╗òi bß║¡t l├á hß╗ç thß╗æng chß╗ë cß║ºn khoß║úng 10 gi├óy tiß║┐ng n├│i thß╗▒c tß║┐ cß╗ºa
+ 81 [Heading 1] C├┤ng nghß╗ç x├íc th╞░╠úc gio╠úng n├│i (Speaker Verification)
+ 82 [Body Text] ─É├óy l├á tr├íi tim cß╗ºa hß╗ç thß╗æng, thß╗▒c hiß╗çn t├¡nh to├ín ─æß╗Ö t╞░╞íng ─æß╗ông giß╗»a file ├óm thanh ─æß║ºu v├áo v├á Voiceprint ─æ├ú l╞░u. Hß╗ç thß╗æng tß╗▒ h├áo l├á mß╗Öt trong nhß╗»ng gi
+ 83 [List Paragraph] M├┤ h├¼nh 16kHz (Wideband): ├üp dß╗Ñng cho m├┤i tr╞░ß╗¥ng App, Web (├óm thanh chß║Ñt l╞░ß╗úng cao). Chß╗ë sß╗æ lß╗ùi EER ─æß║ít mß╗⌐c xuß║Ñt sß║»c l├á 5%.
+ 84 [List Paragraph] M├┤ h├¼nh 8kHz (Narrowband): ├üp dß╗Ñng cho m├┤i tr╞░ß╗¥ng tß╗òng ─æ├ái ─æiß╗çn thoß║íi, Callbot (├óm thanh bß╗ï n├⌐n v├á suy hao). Chß╗ë sß╗æ lß╗ùi EER ─æß║ít 7%.
+ 85 [Body Text] Hß╗ç thß╗æng chß╗ë cß║ºn 3 gi├óy tiß║┐ng n├│i ─æß╗â ─æ╞░a ra quyß║┐t ─æß╗ïnh x├íc thß╗▒c. Trong tr╞░ß╗¥ng hß╗úp cuß╗Öc gß╗ìi ch╞░a ─æ╞░ß╗úc t├ích k├¬nh (lß║½n giß╗ìng Agent v├á Customer), hß╗ç thß╗æng
+ 86 [Heading 1] C├┤ng nghß╗ç ph├ít hiß╗çn giß║ú mß║ío ghi ├óm (Anti-Spoofing Detection)
+ 87 [Body Text] Vß╗¢i sß╗▒ ph├ít triß╗ân cß╗ºa c├┤ng nghß╗ç, kß║╗ gian c├│ thß╗â sß╗¡ dß╗Ñng m├íy ghi ├óm ─æß╗â ph├ít lß║íi giß╗ìng n├│i cß╗ºa kh├ích h├áng (Replay Attack), hoß║╖c sß╗¡ dß╗Ñng AI ─æß╗â tß╗òng hß╗úp/g
+ 90 [Normal] H├¼nh 3: C╞í chß║┐ hoß║ít ─æß╗Öng cß╗ºa hß╗ç thß╗æng ph├ít hiß╗çn giß║ú mß║ío (Anti-Spoofing)
+ 91 [Body Text] Module n├áy ├íp dß╗Ñng c├íc kiß║┐n tr├║c mß║íng n╞í-ron ti├¬n tiß║┐n (nh╞░ LCNN - Light CNN hoß║╖c RawNet) ─æ╞░ß╗úc huß║Ñn luyß╗çn tr├¬n c├íc tß║¡p dß╗» liß╗çu tß║Ñn c├┤ng giß║ú mß║ío quy m├┤
+ 92 [Heading 1] C├íc hß╗ç thß╗æng giao tiß║┐p vß╗¢i Chß╗º ─æß║ºu t╞░
+ 93 [Body Text] Hß╗ç thß╗æng Voice Biometrics ─æ╞░ß╗úc thiß║┐t kß║┐ ─æß╗â t├¡ch hß╗úp s├óu rß╗Öng v├áo hß╗ç sinh th├íi c├┤ng nghß╗ç hiß╗çn hß╗»u cß╗ºa Chß╗º ─æß║ºu t╞░ (Ng├ón h├áng, Tß╗ò chß╗⌐c t├ái ch├¡nh):
+ 94 [List Paragraph] Hß╗ç thß╗æng Tß╗òng ─æ├ái (Call Center/IVR): Kß║┐t nß╗æi trß╗▒c tiß║┐p qua SIP/RTP hoß║╖c API ─æß╗â nhß║¡n luß╗ông ├óm thanh realtime. Hß╗ù trß╗ú c├íc nß╗ün tß║úng phß╗ò biß║┐n nh╞░ Avaya, C
+ 95 [List Paragraph] Hß╗ç thß╗æng CRM: Hiß╗ân thß╗ï tß╗⌐c th├¼ (realtime) trß║íng th├íi x├íc thß╗▒c giß╗ìng n├│i (─æiß╗âm sß╗æ, kß║┐t quß║ú) ngay tr├¬n m├án h├¼nh cß╗ºa ─Éiß╗çn thoß║íi vi├¬n (Agent) khi cuß╗Öc gß╗ìi
+ 96 [List Paragraph] Hß╗ç thß╗æng Agent Desktop: Hß╗ù trß╗ú kß╗ïch bß║ún chuyß╗ân m├íy (transfer) m╞░ß╗út m├á. Nß║┐u IVR x├íc thß╗▒c thß║Ñt bß║íi, cuß╗Öc gß╗ìi ─æ╞░ß╗úc chuyß╗ân ─æß║┐n Agent k├¿m theo to├án bß╗Ö th├┤n
+ 97 [List Paragraph] Hß╗ç thß╗æng LOS/ACL (Loan Origination System): T├¡ch hß╗úp ─æß╗â l├ám gi├áu dß╗» liß╗çu, map sß╗æ ─æiß╗çn thoß║íi vß╗¢i th├┤ng tin ─æß╗ïnh danh kh├ích h├áng (CCCD, ng├áy sinh) ─æß╗â x├ó
+ 99 [Heading 1] PHß║ªN 3: M├┤ h├¼nh triß╗ân khai DC - DR
+101 [Heading 1] M├┤ h├¼nh triß╗ân khai hß╗ç thß╗æng
+102 [Body Text] Hß╗ç thß╗æng Voice Biometrics ─æ╞░ß╗úc ─æ├│ng g├│i d╞░ß╗¢i dß║íng container (Docker/Kubernetes), cho ph├⌐p triß╗ân khai linh hoß║ít tr├¬n nhiß╗üu m├┤i tr╞░ß╗¥ng hß║í tß║ºng kh├íc nhau
+103 [List Paragraph] Disaster Recovery).
+105 [Normal] H├¼nh 4: M├┤ h├¼nh triß╗ân khai dß╗▒ ph├▓ng DC - DR
+106 [Body Text] Hß╗ç thß╗æng ─æ╞░ß╗úc ph├ón chia th├ánh c├íc m├┤i tr╞░ß╗¥ng ri├¬ng biß╗çt:
+107 [List Paragraph] M├┤i tr╞░ß╗¥ng Production (DC Site): L├á trung t├óm dß╗» liß╗çu ch├¡nh, xß╗¡ l├╜ 100% l╞░u l╞░ß╗úng giao dß╗ïch trong ─æiß╗üu kiß╗çn b├¼nh th╞░ß╗¥ng. C├íc th├ánh phß║ºn Web/App v├á Dat
+108 [List Paragraph] M├┤i tr╞░ß╗¥ng D╞░╠ú ph├▓ng (DR Site): ─Éß║╖t tß║íi mß╗Öt vß╗ï tr├¡ ─æß╗ïa l├╜ kh├íc. ─É╞░ß╗úc cß║Ñu h├¼nh sß║╡n s├áng tiß║┐p quß║ún dß╗ïch vß╗Ñ (Failover) khi DC Site gß║╖p sß╗▒ cß╗æ thß║úm hß╗ìa (mß║Ñ
+109 [List Paragraph] M├┤i tr╞░ß╗¥ng Kiß╗âm thß╗¡ (Staging/UAT): M├┤i tr╞░ß╗¥ng c├│ cß║Ñu h├¼nh t╞░╞íng ─æ╞░╞íng Production d├╣ng ─æß╗â kiß╗âm thß╗¡ c├íc t├¡nh n─âng mß╗¢i, bß║ún v├í bß║úo mß║¡t tr╞░ß╗¢c khi ─æ╞░a l├¬n 
+111 [Heading 1] C╞í chß║┐ sao l╞░u v├á ─æß╗ông bß╗Ö dß╗» liß╗çu
+112 [Body Text] Ti├¬u ch├¡ cao nhß║Ñt cß╗ºa hß╗ç thß╗æng l├á ─æ├íp ß╗⌐ng c├íc chß╗ë sß╗æ RTO (Recovery Time Objective - Thß╗¥i gian phß╗Ñc hß╗ôi dß╗ïch vß╗Ñ) v├á RPO (Recovery Point Objective - L╞░ß╗ú
+113 [List Paragraph] Vß╗ü mß║╖t ß╗¿ng dß╗Ñng: Tß║íi DC v├á DR, c├íc module ß╗⌐ng dß╗Ñng (Master API, Core Services) ─æ╞░ß╗úc triß╗ân khai giß╗æng hß╗çt nhau (Active-Standby ß╗ƒ mß╗⌐c Site). Khi c├│ sß╗▒ c
+114 [List Paragraph] Vß╗ü mß║╖t C╞í sß╗ƒ dß╗» liß╗çu: Sß╗¡ dß╗Ñng c╞í chß║┐ Clustering Master-MultiSlave. MySQL tß║íi DC ─æ├│ng vai tr├▓ Master (Read/Write), MySQL tß║íi DR ─æ├│ng vai tr├▓ Slave (Rea
+115 [List Paragraph] Quy tr├¼nh Failover: Khi DC sß║¡p, quß║ún trß╗ï vi├¬n chß╗ë cß║ºn thß╗▒c hiß╗çn lß╗çnh promote MySQL Slave tß║íi DR l├¬n th├ánh Master. ß╗¿ng dß╗Ñng tß║íi DR sß║╜ kß║┐t nß╗æi v├áo DB nß╗Ö
+116 [List Paragraph] Backup ─æß╗ïnh kß╗│: Ngo├ái replication, dß╗» liß╗çu c├▓n ─æ╞░ß╗úc backup ─æß╗ïnh kß╗│ (Daily Incremental, Weekly Full Backup) ra hß╗ç thß╗æng l╞░u trß╗» ngoß║íi tuyß║┐n (Tape/S3) ─æ
+117 [Heading 1] C╞í chß║┐ ph├ón tß║úi v├á mß╗ƒ rß╗Öng hß╗ç thß╗æng
+118 [Body Text] Hß╗ç thß╗æng hß╗ù trß╗ú cß║ú ph├ón tß║úi mß╗üm (HAProxy, Nginx) v├á ph├ón tß║úi cß╗⌐ng (F5, A10 Networks). C├íc request ─æ╞░ß╗úc ph├ón phß╗æi theo thuß║¡t to├ín Round-Robin hoß║╖c Leas
+119 [Body Text] Khß║ú n─âng mß╗ƒ rß╗Öng (Scalability) ─æ╞░ß╗úc thiß║┐t kß║┐ to├án diß╗çn:
+120 [List Paragraph] Scale-up (Mß╗ƒ rß╗Öng theo chiß╗üu do╠úc): T─âng c╞░ß╗¥ng t├ái nguy├¬n (CPU, RAM, GPU) cho c├íc m├íy chß╗º ß║úo hiß╗çn tß║íi. C├íc module AI ─æß║╖c biß╗çt h╞░ß╗ƒng lß╗úi lß╗¢n khi ─æ╞░ß╗úc c
+121 [List Paragraph] Scale-out (Mß╗ƒ rß╗Öng theo chiß╗üu ngang): Khi l╞░u l╞░ß╗úng t─âng ─æß╗Öt biß║┐n, quß║ún trß╗ï vi├¬n c├│ thß╗â dß╗à d├áng spin-up th├¬m c├íc node Core Services mß╗¢i. C├íc node n├áy 
+123 [Heading 1] PHß║ªN 4: T├¡ch hß╗úp hß╗ç thß╗æng
+124 [Body Text] Giß║úi ph├íp Voice Biometrics cung cß║Ñp bß╗Ö API/SDK phong ph├║, hß╗ù trß╗ú ─æa dß║íng c├íc giao thß╗⌐c (REST, SOAP, Websocket, JDBC) ─æß╗â t├¡ch hß╗úp s├óu v├áo quy tr├¼nh ngh
+126 [Heading 1] T├¡ch hß╗úp Inbound (Cuß╗Öc go╠úi v├áo)
+127 [List Paragraph] T├¡ch hß╗úp IVR: Khi kh├ích h├áng gß╗ìi v├áo tß╗òng ─æ├ái, IVR y├¬u cß║ºu kh├ích h├áng n├│i mß╗Öt c├óu tß╗▒ nhi├¬n (VD: "T├┤i muß╗æn kiß╗âm tra sß╗æ d╞░"). Luß╗ông ├óm thanh ─æ╞░ß╗úc stream
+128 [List Paragraph] T├¡ch hß╗úp Voicebot: T╞░╞íng tß╗▒ IVR, Voicebot sß╗¡ dß╗Ñng Voice Biometrics ─æß╗â x├íc thß╗▒c ngß║ºm kh├ích h├áng tr╞░ß╗¢c khi cho ph├⌐p thß╗▒c hiß╗çn c├íc lß╗çnh nhß║íy cß║úm nh╞░ k├¡ch
+129 [List Paragraph] T├¡ch hß╗úp CRM Callcenter: Kß║┐t quß║ú x├íc thß╗▒c (Score, Status) ─æ╞░ß╗úc ─æß║⌐y realtime l├¬n m├án h├¼nh CRM cß╗ºa Agent qua API, gi├║p Agent c├í nh├ón h├│a lß╗¥i ch├áo v├á tiß║┐
+130 [Heading 1] T├¡ch hß╗úp Outbound (Cuß╗Öc go╠úi ra)
+131 [List Paragraph] Chiß║┐n dß╗ïch Telesales/Telemarketing: Khi hß╗ç thß╗æng Auto-dialer (Genesys/Avaya) gß╗ìi ra cho kh├ích h├áng, Voice Biometrics ph├ón t├¡ch giß╗ìng n├│i ng╞░ß╗¥i bß║»t m├íy
+132 [List Paragraph] Thu thß║¡p Voiceprint thß╗Ñ ─æß╗Öng: T├¡ch hß╗úp vß╗¢i c├íc hß╗ç thß╗æng ghi ├óm (Recording Systems) cß╗ºa Soft call 3CX, Siemens Hipath, Panasonic ─æß╗â chß║íy batch-processi
+134 [Heading 1] PHß║ªN 5: Bß║úo mß║¡t v├á An to├án th├┤ng tin
+135 [Body Text] L├á mß╗Öt hß╗ç thß╗æng xß╗¡ l├╜ dß╗» liß╗çu sinh trß║»c hß╗ìc nhß║íy cß║úm cß╗ºa ng├ánh t├ái ch├¡nh, Voice Biometrics tu├ón thß╗º c├íc ti├¬u chuß║⌐n bß║úo mß║¡t khß║»t khe nhß║Ñt (nh╞░ PCI-DSS,
+136 [Heading 1] Ph├ón quyß╗ün v├á X├íc th╞░╠úc
+137 [List Paragraph] ├üp dß╗Ñng nguy├¬n tß║»c ─Éß║╖c quyß╗ün tß╗æi thiß╗âu (Principle of Least Privilege). Chß╗ë cß║Ñp quyß╗ün truy cß║¡p ─æ├║ng vß╗¢i vai tr├▓ cß╗ºa ng╞░ß╗¥i d├╣ng (Admin, Operator, Audito
+138 [List Paragraph] Hß╗ù trß╗ú t├¡ch hß╗úp vß╗¢i hß╗ç thß╗æng Active Directory (AD/LDAP) cß╗ºa Ng├ón h├áng ─æß╗â quß║ún l├╜ ─æß╗ïnh danh tß║¡p trung (SSO).
+139 [List Paragraph] Giao diß╗çn quß║ún trß╗ï (Dashboard) kh├┤ng ─æ╞░ß╗úc public ra Internet. Truy cß║¡p phß║úi th├┤ng qua mß║íng nß╗Öi bß╗Ö (LAN/VPN) v├á y├¬u cß║ºu x├íc thß╗▒c ─æa nh├ón tß╗æ (MFA/2FA).
+140 [List Paragraph] Mß║¡t khß║⌐u quß║ún trß╗ï vi├¬n phß║úi tu├ón thß╗º ch├¡nh s├ích ─æß╗Ö phß╗⌐c tß║íp cao, m├ú h├│a mß╗Öt chiß╗üu (Bcrypt/Argon2) khi l╞░u trß╗», v├á tß╗▒ ─æß╗Öng kh├│a t├ái khoß║ún sau 5 lß║ºn ─æ─ân
+142 [Heading 1] Kiß╗âm so├ít dß╗» liß╗çu ─æß║ºu v├áo v├á ─æß║ºu ra
+143 [List Paragraph] ─Éß║ºu v├áo: Mß╗ìi dß╗» liß╗çu tß╗½ client (API payload, HTTP headers, file upload) ─æß╗üu ─æ╞░ß╗úc validate chß║╖t chß║╜ tß║íi ph├¡a Server (Backend validation). Sß╗¡ dß╗Ñng white
+144 [List Paragraph] ─Éß║ºu ra: Dß╗» liß╗çu trß║ú vß╗ü (JSON/XML) ─æ╞░ß╗úc thiß║┐t lß║¡p ─æ├║ng Content-Type. C├íc th├┤ng tin nhß║íy cß║úm (nh╞░ chi tiß║┐t Voiceprint vector) tuyß╗çt ─æß╗æi kh├┤ng ─æ╞░ß╗úc trß║ú v
+145 [List Paragraph] M├ú h├│a ─æ╞░ß╗¥ng truyß╗ün: 100% kß║┐t nß╗æi giß╗»a Client-Server v├á Server-Server (Internal) ─æß╗üu ─æ╞░ß╗úc m├ú h├│a bß║▒ng HTTPS/TLS 1.2 hoß║╖c TLS 1.3 vß╗¢i c├íc bß╗Ö cipher sui
+146 [Heading 1] Quy tr├¼nh ─æß║úm bß║úo An to├án th├┤ng tin
+147 [List Paragraph] Nß║┐u triß╗ân khai tr├¬n Cloud, hß║í tß║ºng phß║úi ─æ╞░ß╗úc bß║úo vß╗ç bß╗ƒi c├íc lß╗¢p Firewall, WAF (Web Application Firewall), v├á IPS/IDS. Dß╗» liß╗çu cß╗ºa Ng├ón h├áng ─æ╞░ß╗úc c├┤ lß║¡
+148 [List Paragraph] Hß╗ç thß╗æng ─æ╞░ß╗úc qu├⌐t lß╗ù hß╗òng bß║úo mß║¡t (Vulnerability Scanning) ─æß╗ïnh kß╗│ v├á thß╗▒c hiß╗çn Kiß╗âm thß╗¡ x├óm nhß║¡p (Penetration Testing - Pentest) bß╗ƒi ─æ╞ín vß╗ï ─æß╗Öc lß║¡p 
+149 [List Paragraph] Dß╗» liß╗çu Voiceprint ─æ╞░ß╗úc m├ú h├│a ß╗ƒ trß║íng th├íi nghß╗ë (Encryption at Rest) sß╗¡ dß╗Ñng thuß║¡t to├ín AES-256. Kh├│a m├ú h├│a (Encryption Keys) ─æ╞░ß╗úc quß║ún l├╜ tß║¡p trung
+151 [Heading 1] PHß║ªN 6: ─É├ính gi├í hiß╗çu n─âng v├á Kß╗ïch bß║ún kiß╗âm thß╗¡
+153 [Heading 1] C├íc chß╗ë sß╗æ ─æ├ính gi├í chß║Ñt l╞░ß╗úng (EER, FAR, FRR)
+154 [Body Text] Chß║Ñt l╞░ß╗úng cß╗ºa mß╗Öt hß╗ç thß╗æng sinh trß║»c hß╗ìc ─æ╞░ß╗úc ─æ├ính gi├í qua sß╗▒ c├ón bß║▒ng giß╗»a t├¡nh bß║úo mß║¡t v├á trß║úi nghiß╗çm ng╞░ß╗¥i d├╣ng. Hai chß╗ë sß╗æ c╞í bß║ún l├á:
+155 [List Paragraph] FAR (False Acceptance Rate - Tß╗╖ lß╗ç chß║Ñp nhß║¡n nhß║ºm): Tß╗╖ lß╗ç hß╗ç thß╗æng nhß║¡n diß╗çn sai mß╗Öt kß║╗ mß║ío danh th├ánh ng╞░ß╗¥i d├╣ng hß╗úp lß╗ç. FAR c├áng thß║Ñp, hß╗ç thß╗æng c├áng
+156 [List Paragraph] FRR (False Rejection Rate - Tß╗╖ lß╗ç tß╗½ chß╗æi nhß║ºm): Tß╗╖ lß╗ç hß╗ç thß╗æng tß╗½ chß╗æi sai mß╗Öt ng╞░ß╗¥i d├╣ng hß╗úp lß╗ç. FRR c├áng thß║Ñp, trß║úi nghiß╗çm ng╞░ß╗¥i d├╣ng c├áng tß╗æt.
+159 [Normal] H├¼nh 5: Biß╗âu ─æß╗ô minh hß╗ìa chß╗ë sß╗æ Equal Error Rate (EER)
+160 [Body Text] FAR v├á FRR c├│ mß╗æi quan hß╗ç tß╗╖ lß╗ç nghß╗ïch, phß╗Ñ thuß╗Öc v├áo viß╗çc thiß║┐t lß║¡p Ng╞░ß╗íng cß║»t (Threshold). Nß║┐u t─âng Threshold ─æß╗â bß║úo mß║¡t h╞ín (giß║úm FAR), th├¼ FRR sß║╜ 
+161 [Heading 1] Kß╗ïch bß║ún kiß╗âm tra tß║úi v├á hiß╗çu n─âng
+162 [Body Text] Hß╗ç thß╗æng ─æ╞░ß╗úc thiß║┐t kß║┐ ─æß╗â ─æ├íp ß╗⌐ng KPI xß╗¡ l├╜ 300 request x├íc thß╗▒c ─æß╗ông thß╗¥i (Concurrent Requests) vß╗¢i thß╗¥i gian phß║ún hß╗ôi (Latency) < 1 gi├óy/request. Kß╗ï
+163 [List Paragraph] Chuß║⌐n bß╗ï mß╗Öt tß║¡p dß╗» liß╗çu test gß╗ôm 2.000 file audio c├│ ─æß╗Ö d├ái trung b├¼nh (3-5 gi├óy), phß║ún ├ính ─æ├║ng thß╗▒c tß║┐ cuß╗Öc gß╗ìi kh├ích h├áng.
+164 [List Paragraph] Sß╗¡ dß╗Ñng c├┤ng cß╗Ñ test tß║úi (nh╞░ JMeter hoß║╖c Locust) ─æß╗â bß║»n ─æß╗ông thß╗¥i 2.000 request v├áo hß╗ç thß╗æng (API Endpoint).
+165 [List Paragraph] Ghi nhß║¡n thß╗¥i ─æiß╗âm bß║»t ─æß║ºu nhß║¡n request ─æß║ºu ti├¬n (Tstart) v├á thß╗¥i ─æiß╗âm trß║ú vß╗ü kß║┐t quß║ú cho request cuß╗æi c├╣ng (Tend).
+166 [List Paragraph] T├¡nh to├ín th├┤ng l╞░ß╗úng (Throughput): Sß╗æ request xß╗¡ l├╜ / gi├óy = 2000 / (Tend - Tstart). Nß║┐u Throughput > 300 TPS (Transactions Per Second) v├á 95th perce
+168 [Heading 1] PHß║ªN 7: H╞░ß╗¢ng ph├ít triß╗ân v├á Mß╗ƒ rß╗Öng
+170 [List Paragraph] Cß║úi tiß║┐n m├┤ h├¼nh ho╠úc s├óu
+171 [Body Text] Trong t╞░╞íng lai, ─æß╗Öi ng┼⌐ R&D sß║╜ tiß║┐p tß╗Ñc n├óng cß║Ñp kiß║┐n tr├║c mß║íng n╞í-ron tß╗½ TDNN/ResNet sang c├íc kiß║┐n tr├║c dß╗▒a tr├¬n Transformer (nh╞░ Conformer) kß║┐t hß╗úp
+172 [Heading 1] Mß╗ƒ rß╗Öng ß╗⌐ng dß╗Ñng ─æa k├¬nh (Omnichannel)
+173 [Body Text] Giß║úi ph├íp sß║╜ ─æ╞░ß╗úc mß╗ƒ rß╗Öng ─æß╗â trß╗ƒ th├ánh mß╗Öt nß╗ün tß║úng Sinh trß║»c hß╗ìc ─æa ph╞░╞íng thß╗⌐c (Multimodal Biometrics). Voice Biometrics sß║╜ ─æ╞░ß╗úc kß║┐t hß╗úp vß╗¢i Face Re
+175 [Heading 1] Kß║┐t luß║¡n
+176 [Body Text] Giß║úi ph├íp Voice Biometrics ─æß║íi diß╗çn cho b╞░ß╗¢c tiß║┐n tß║Ñt yß║┐u trong h├ánh tr├¼nh chuyß╗ân ─æß╗òi sß╗æ cß╗ºa ng├ánh t├ái ch├¡nh - ng├ón h├áng. Bß║▒ng viß╗çc ß╗⌐ng dß╗Ñng c├íc c├┤ng 
+177 [Body Text] Vß╗¢i kiß║┐n tr├║c hß╗ç thß╗æng linh hoß║ít, khß║ú n─âng mß╗ƒ rß╗Öng mß║ính mß║╜, m├┤ h├¼nh dß╗▒ ph├▓ng DC-DR chuß║⌐n doanh nghiß╗çp v├á c├íc lß╗¢p bß║úo mß║¡t ─æa tß║ºng (bao gß╗ôm cß║ú c├┤ng nghß╗ç
+179 [Heading 1] T├ái liß╗çu tham khß║úo
+180 [List Paragraph] Snyder, D., Garcia-Romero, D., Sell, G., Povey, D., & Khudanpur, S. (2018). "X-vectors: Robust DNN Embeddings for Speaker Recognition." In 2018 IEEE I
+182 [List Paragraph] Desplanques, B., Thienpondt, J., & Demuynck, K. (2020). "ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation in TDNN Based Speaker V
+183 [List Paragraph] He, K., Zhang, X., Ren, S., & Sun, J. (2016). "Deep Residual Learning for Image Recognition." In Proceedings of the IEEE conference on computer vision
+184 [List Paragraph] Todisco, T., Delgado, H., & Evans, N. (2017). "Constant Q cepstral coefficients: A spoofing countermeasure for automatic speaker verification." Comput
+185 [List Paragraph] Yamagishi, J., Todisco, T., Sahidullah, M., Delgado, H., Wang, X., Evans, N., ... & Kinnunen, T. (2019). "ASVspoof 2019: The 3rd Automatic Speaker Ver
+186 [List Paragraph] Reynolds, D. A., Quatieri, T. F., & Dunn, R. B. (2000). "Speaker Verification Using Adapted Gaussian Mixture Models." Digital signal processing, 14(1)
+187 [List Paragraph] Bawa, V. S., & Singh, P. (021). "A review of speaker recognition systems." Artificial Intelligence Review, 104(1), 1-35.
+188 [List Paragraph] OWASP Foundation. (2021). "OWASP Top 10:2021 - The Ten Most Critical Web Application Security Risks." Retrieved from https://owasp.org/Top10/
+189 [List Paragraph] PCI Security Standards Council. (2022). "Payment Card Industry Data Security Standard (PCI DSS) Requirements and Security Assessment Procedures." Vers
+190 [List Paragraph] B├ío c├ío kß║┐t quß║ú cuß╗Öc thi VLSP 2021 (Vietnamese and Language and Speech
+191 [Body Text] Processing). Retrieved from https://vlsp.org.vn/vlsp2021
+193 [Heading 1] PHß║ªN 8: M├┤ tß║ú giao diß╗çn phß║ºn mß╗üm v├á h╞░ß╗¢ng dß║½n sß╗¡ dß╗Ñng
+195 [Heading 1] Tß╗òng quan phß║ºn mß╗üm
+197 [Heading 1] Mß╗Ñc ─æ├¡ch phß║ºn mß╗üm
+198 [Body Text] Web Voice Biometrics l├á hß╗ç thß╗æng hß╗ù trß╗ú quß║ún l├╜ dß╗» liß╗çu giß╗ìng n├│i v├á khai th├íc c├íc chß╗⌐c n─âng sinh trß║»c hß╗ìc giß╗ìng n├│i tr├¬n mß╗Öt giao diß╗çn tß║¡p trung. Ng╞░
+199 [Heading 1] Phß║ím vi chß╗⌐c n─âng
+200 [Body Text] Hß╗ç thß╗æng hiß╗çn hß╗ù trß╗ú c├íc nh├│m chß╗⌐c n─âng ch├¡nh sau:
+201 [List Paragraph] ─É─âng nhß║¡p hß╗ç thß╗æng v├á ph├ón quyß╗ün truy cß║¡p.
+202 [List Paragraph] Theo d├╡i sß╗æ liß╗çu tß╗òng quan tr├¬n trang thß╗æng k├¬.
+204 [List Paragraph] Quß║ún l├╜ danh s├ích ng╞░ß╗¥i d├╣ng ─æ├ú ─æ─âng k├╜ giß╗ìng n├│i.
+205 [List Paragraph] Tß║ío mß╗¢i hß╗ô s╞í ng╞░ß╗¥i d├╣ng v├á ─æ─âng k├╜ giß╗ìng n├│i bß║▒ng 3 tß╗çp ghi ├óm.
+206 [List Paragraph] T├¼m kiß║┐m giß╗ìng n├│i t╞░╞íng ─æß╗ông tß╗½ mß╗Öt tß╗çp ├óm thanh.
+207 [List Paragraph] X├íc thß╗▒c mß╗Öt ng╞░ß╗¥i d├╣ng bß║▒ng giß╗ìng n├│i.
+208 [List Paragraph] Theo d├╡i log x├íc thß╗▒c v├á cß║¡p nhß║¡t phß║ún hß╗ôi ─æ├║ng hoß║╖c sai giß╗ìng.
+209 [List Paragraph] B├│c t├ích hß╗Öi thoß║íi theo ng╞░ß╗¥i n├│i v├á chß╗ìn c├íc ─æoß║ín ─æß╗â ─æ─âng k├╜ v├áo hß╗ô s╞í ng╞░ß╗¥i d├╣ng.
+210 [Heading 1] ─Éß╗æi t╞░ß╗úng v├á ─æiß╗üu kiß╗çn sß╗¡ dß╗Ñng
+211 [Normal] ─Éß╗æi t╞░ß╗úng sß╗¡ dß╗Ñng:
+212 [List Paragraph] Quß║ún trß╗ï vi├¬n vß║¡n h├ánh hß╗ç thß╗æng.
+213 [List Paragraph] Nh├ón vi├¬n nghiß╗çp vß╗Ñ thß╗▒c hiß╗çn t├ích ng╞░ß╗¥i n├│i, ─æ─âng k├╜ v├á x├íc thß╗▒c giß╗ìng n├│i.
+214 [List Paragraph] Ng╞░ß╗¥i d├╣ng cß║ºn tra cß╗⌐u kß║┐t quß║ú v├á lß╗ïch sß╗¡ thao t├íc tr├¬n web.
+215 [Heading 1] ─Éiß╗üu kiß╗çn sß╗¡ dß╗Ñng:
+216 [List Paragraph] C├│ t├ái khoß║ún ─æ─âng nhß║¡p ─æ╞░ß╗úc cß║Ñp bß╗ƒi quß║ún trß╗ï hß╗ç thß╗æng.
+217 [List Paragraph] Thiß║┐t bß╗ï c├│ kß║┐t nß╗æi mß║íng ß╗òn ─æß╗ïnh.
+218 [List Paragraph] Tr├¼nh duyß╗çt web hiß╗çn ─æß║íi nh╞░ Chrome hoß║╖c Edge.
+219 [List Paragraph] C├íc tß╗çp ├óm thanh ─æß╗º r├╡, ├¡t tß║íp ├óm, ─æ├║ng giß╗ìng n├│i cß║ºn xß╗¡ l├╜.
+221 [Heading 1] Chß╗⌐c n─âng ─æ─âng nhß║¡p v├á thß╗æng k├¬
+223 [Heading 1] ─É─âng nhß║¡p hß╗ç thß╗æng
+224 [Body Text] Mß╗Ñc ─æ├¡ch: Cho ph├⌐p ng╞░ß╗¥i d├╣ng truy cß║¡p v├áo hß╗ç thß╗æng bß║▒ng t├ái khoß║ún ─æ╞░ß╗úc cß║Ñp.
+225 [Heading 1] C├íc b╞░ß╗¢c th╞░╠úc hiß╗çn:
+226 [List Paragraph] Mß╗ƒ ─æ╞░ß╗¥ng dß║½n cß╗ºa web tr├¬n tr├¼nh duyß╗çt.
+227 [List Paragraph] Nhß║¡p User Name.
+228 [List Paragraph] Nhß║¡p Password.
+229 [List Paragraph] Nhß║Ñn n├║t ─É─âng nhß║¡p. Kß║┐t quß║ú mong ─æß╗úi:
+230 [List Paragraph] Nß║┐u th├┤ng tin ch├¡nh x├íc, hß╗ç thß╗æng chuyß╗ân v├áo trang Thß╗æng k├¬.
+231 [List Paragraph] Nß║┐u sai th├┤ng tin, hß╗ç thß╗æng hiß╗ân thß╗ï th├┤ng b├ío lß╗ùi ─æ─âng nhß║¡p.
+234 [Normal] ß║ónh 1: M├án h├¼nh ─æ─âng nhß║¡p
+236 [Heading 1] Trang thß╗æng k├¬ tß╗òng quan
+237 [Body Text] Mß╗Ñc ─æ├¡ch: Gi├║p ng╞░ß╗¥i d├╣ng theo d├╡i nhanh t├¼nh h├¼nh sß╗¡ dß╗Ñng hß╗ç thß╗æng.
+238 [Heading 1] Th├┤ng tin hiß╗ân thß╗ï:
+239 [List Paragraph] Tß╗òng sß╗æ l╞░ß╗úng ─æ─âng k├╜ giß╗ìng n├│i.
+240 [List Paragraph] Tß╗òng sß╗æ l╞░ß╗úng x├íc thß╗▒c.
+241 [List Paragraph] Biß╗âu ─æß╗ô thß╗æng k├¬ theo thß╗¥i gian.
+242 [List Paragraph] Bß╗Ö lß╗ìc thß╗¥i gian nh╞░ 7 ng├áy gß║ºn nhß║Ñt hoß║╖c 30 ng├áy gß║ºn nhß║Ñt. C├ích sß╗¡ dß╗Ñng:
+243 [List Paragraph] Truy cß║¡p menu Thß╗æng k├¬.
+244 [List Paragraph] Quan s├ít c├íc thß║╗ chß╗ë sß╗æ tß╗òng quan.
+245 [List Paragraph] Chß╗ìn mß╗æc thß╗¥i gian ─æß╗â xem biß╗âu ─æß╗ô t╞░╞íng ß╗⌐ng.
+247 [Normal] ß║ónh 2: Trang thß╗æng k├¬ tß╗òng quan
+250 [Normal] ß║ónh 3: Biß╗âu ─æß╗ô thß╗æng k├¬ theo thß╗¥i gian
+252 [Heading 1] Quß║ún l├╜ hß╗ô s╞í v├á ─æ─âng k├╜ gio╠úng n├│i
+254 [Heading 1] Danh s├ích ─æ─âng k├╜
+255 [Body Text] Mß╗Ñc ─æ├¡ch: Tra cß╗⌐u v├á quß║ún l├╜ danh s├ích ng╞░ß╗¥i d├╣ng ─æ├ú ─æ─âng k├╜ dß╗» liß╗çu giß╗ìng n├│i.
+256 [Heading 1] C├íc thao t├íc ch├¡nh:
+257 [List Paragraph] Mß╗ƒ menu Danh s├ích ─æ─âng k├╜.
+258 [List Paragraph] Sß╗¡ dß╗Ñng bß╗Ö lß╗ìc ─æß╗â t├¼m kiß║┐m theo User code, Ho╠ú t├¬n, thß╗¥i gian.
+259 [List Paragraph] Nhß║Ñn T├¼m kiß║┐m ─æß╗â lß╗ìc dß╗» liß╗çu hoß║╖c L├ám mß╗¢i ─æß╗â x├│a ─æiß╗üu kiß╗çn t├¼m.
+260 [List Paragraph] Nhß║Ñn n├║t Chi tiß║┐t ─æß╗â xem voiceprint cß╗ºa mß╗Öt ng╞░ß╗¥i d├╣ng.
+261 [List Paragraph] Nhß║Ñn Cß║¡p nhß║¡t ─æß╗â sß╗¡a th├┤ng tin hß╗ô s╞í hoß║╖c X├│a ─æß╗â loß║íi bß╗Å hß╗ô s╞í.
+264 [Normal] ß║ónh 4: Danh s├ích ─æ─âng k├╜
+266 [Normal] ß║ónh 5: Bß╗Ö lß╗ìc t├¼m kiß║┐m trong danh s├ích ─æ─âng k
+269 [Heading 1] Th├¬m mß╗¢i ng╞░ß╗¥i d├╣ng
+270 [Body Text] Mß╗Ñc ─æ├¡ch: Tß║ío hß╗ô s╞í ng╞░ß╗¥i d├╣ng tr╞░ß╗¢c khi thß╗▒c hiß╗çn ─æ─âng k├╜ giß╗ìng n├│i.
+271 [Heading 1] C├íc b╞░ß╗¢c th╞░╠úc hiß╗çn:
+272 [List Paragraph] V├áo menu Danh s├ích ─æ─âng k├╜.
+273 [List Paragraph] Nhß║Ñn n├║t Th├¬m mß╗¢i.
+274 [List Paragraph] Nhß║¡p c├íc tr╞░ß╗¥ng th├┤ng tin: User code, Ho╠ú t├¬n, Giß╗¢i t├¡nh, Ng├áy sinh.
+275 [List Paragraph] Nhß║Ñn n├║t l╞░u ─æß╗â tß║ío ng╞░ß╗¥i d├╣ng mß╗¢i.
+277 [Normal] ß║ónh 7: Hß╗Öp thoß║íi th├¬m mß╗¢i ng╞░ß╗¥i d├╣ng
+279 [Heading 1] ─É─âng k├╜ gio╠úng n├│i
+280 [Body Text] Mß╗Ñc ─æ├¡ch: Tß║ío dß╗» liß╗çu giß╗ìng n├│i nß╗ün cho mß╗Öt ng╞░ß╗¥i d├╣ng ─æß╗â phß╗Ñc vß╗Ñ t├¼m kiß║┐m v├á x├íc thß╗▒c.
+281 [Heading 1] Nguy├¬n tß║»c nghiß╗çp vß╗Ñ:
+282 [List Paragraph] Mß╗ùi lß║ºn ─æ─âng k├╜ y├¬u cß║ºu chß╗ìn mß╗Öt ng╞░ß╗¥i d├╣ng.
+283 [List Paragraph] Cß║ºn cung cß║Ñp ─æß╗º 3 tß╗çp ghi ├óm.
+284 [List Paragraph] Hß╗ç thß╗æng sß║╜ xß╗¡ l├╜ tuß║ºn tß╗▒ c├íc tß╗çp v├á thß╗▒c hiß╗çn ─æ─âng k├╜ mß║½u giß╗ìng n├│i.
+285 [Heading 1] C├íc b╞░ß╗¢c th╞░╠úc hiß╗çn:
+286 [List Paragraph] Mß╗ƒ menu ─É─âng k├╜ gio╠úng n├│i.
+287 [List Paragraph] Chß╗ìn ng╞░ß╗¥i d├╣ng tß║íi tr╞░ß╗¥ng Cho╠ún ng╞░ß╗¥i ─æ─âng k├╜.
+288 [List Paragraph] Tß║úi l├¬n lß║ºn l╞░ß╗út Tß╗çp ghi ├óm 1, Tß╗çp ghi ├óm 2, Tß╗çp ghi ├óm 3.
+289 [List Paragraph] Nghe lß║íi tß╗½ng tß╗çp ─æß╗â kiß╗âm tra nß╗Öi dung nß║┐u cß║ºn.
+290 [List Paragraph] Nhß║Ñn ─É─âng k├╜.
+292 [Normal] ß║ónh 8: Khu vß╗▒c tß║úi l├¬n 3 tß╗çp ghi ├óm
+294 [Heading 1] Xem chi tiß║┐t voiceprint
+295 [Body Text] Mß╗Ñc ─æ├¡ch: Tra cß╗⌐u c├íc voiceprint ─æ├ú ─æ╞░ß╗úc tß║ío cho mß╗Öt ng╞░ß╗¥i d├╣ng cß╗Ñ thß╗â.
+296 [Heading 1] C├íc b╞░ß╗¢c th╞░╠úc hiß╗çn:
+297 [List Paragraph] V├áo Danh s├ích ─æ─âng k├╜.
+298 [List Paragraph] Chß╗ìn ng╞░ß╗¥i d├╣ng cß║ºn xem.
+299 [List Paragraph] Nhß║Ñn Chi tiß║┐t.
+302 [Normal] ß║ónh 9: M├án h├¼nh danh s├ích voiceprint cß╗ºa mß╗Öt ng╞░ß╗¥i d├╣ng
+304 [Heading 1] Chß╗⌐c n─âng t├¼m kiß║┐m v├á x├íc th╞░╠úc
+306 [List Paragraph] T├¼m kiß║┐m gio╠úng n├│i
+307 [Body Text] Mß╗Ñc ─æ├¡ch: T├¼m c├íc hß╗ô s╞í c├│ giß╗ìng n├│i t╞░╞íng ─æß╗ông nhß║Ñt vß╗¢i tß╗çp ├óm thanh ─æß║ºu v├áo.
+308 [Heading 1] C├íc b╞░ß╗¢c th╞░╠úc hiß╗çn:
+309 [List Paragraph] Mß╗ƒ menu T├¼m kiß║┐m gio╠úng n├│i.
+310 [List Paragraph] Nhß║¡p sß╗æ l╞░ß╗úng kß║┐t quß║ú tß║íi tr╞░ß╗¥ng Cho╠ún top t├¼m kiß║┐m.
+311 [List Paragraph] Nhß║¡p ng╞░ß╗íng lß╗ìc tß║íi tr╞░ß╗¥ng Cho╠ún ng╞░ß╗íng.
+312 [List Paragraph] Tß║úi l├¬n tß╗çp ├óm thanh cß║ºn t├¼m kiß║┐m.
+313 [List Paragraph] Nhß║Ñn T├¼m kiß║┐m.
+315 [Normal] ß║ónh 10: M├án h├¼nh t├¼m kiß║┐m giß╗ìng n├│i
+318 [Normal] ß║ónh 11: Kß║┐t quß║ú t├¼m kiß║┐m giß╗ìng n├│i
+320 [Heading 1] X├íc th╞░╠úc gio╠úng n├│i
+321 [Body Text] Mß╗Ñc ─æ├¡ch: Kiß╗âm tra xem mß╗Öt tß╗çp ├óm thanh c├│ khß╗¢p vß╗¢i ng╞░ß╗¥i d├╣ng ─æ├ú chß╗ìn hay kh├┤ng.
+322 [Heading 1] C├íc b╞░ß╗¢c th╞░╠úc hiß╗çn:
+323 [List Paragraph] Mß╗ƒ menu X├íc th╞░╠úc.
+324 [List Paragraph] Chß╗ìn ng╞░ß╗¥i d├╣ng tß║íi mß╗Ñc Cho╠ún ng╞░ß╗¥i x├íc th╞░╠úc.
+325 [List Paragraph] Nhß║¡p hoß║╖c giß╗» nguy├¬n gi├í trß╗ï Ng╞░ß╗íng.
+326 [List Paragraph] Tß║úi l├¬n tß╗çp ├óm thanh cß║ºn x├íc thß╗▒c.
+327 [List Paragraph] Nhß║Ñn X├íc th╞░╠úc.
+328 [Normal] Kß║┐t quß║ú mong ─æß╗úi: Hß╗ç thß╗æng trß║ú vß╗ü phß║ºn tr─âm ─æiß╗âm t╞░╞íng ─æß╗ông. Sau khi xem kß║┐t quß║ú, ng╞░ß╗¥i d├╣ng c├│ thß╗â phß║ún hß╗ôi ─É├║ng gio╠úng hoß║╖c Sai gio╠úng.
+330 [Normal] ß║ónh 12: M├án h├¼nh x├íc thß╗▒c giß╗ìng n├│i
+333 [Normal] ß║ónh 13: Kß║┐t quß║ú x├íc thß╗▒c vß╗¢i phß║ºn tr─âm t╞░╞íng ─æß╗ông
+335 [Normal] ß║ónh 14: C├íc n├║t phß║ún hß╗ôi ─æ├║ng hoß║╖c sai giß╗ìng
+337 [Heading 1] Log x├íc th╞░╠úc
+338 [Body Text] Mß╗Ñc ─æ├¡ch: Tra cß╗⌐u lß╗ïch sß╗¡ x├íc thß╗▒c v├á t├¼m kiß║┐m ─æ├ú thß╗▒c hiß╗çn tr├¬n hß╗ç thß╗æng.
+339 [Heading 1] C├íc b╞░ß╗¢c sß╗¡ dß╗Ñng:
+340 [List Paragraph] Mß╗ƒ menu Log x├íc th╞░╠úc.
+341 [List Paragraph] Lß╗ìc dß╗» liß╗çu theo User code, Loß║íi x├íc th╞░╠úc, Ng├áy bß║»t ─æß║ºu, Ng├áy kß║┐t th├║c.
+342 [List Paragraph] Nhß║Ñn T├¼m kiß║┐m.
+343 [List Paragraph] Nghe lß║íi file ├óm thanh nß║┐u cß║ºn ─æß╗æi chiß║┐u.
+344 [List Paragraph] Cß║¡p nhß║¡t phß║ún hß╗ôi ─É├║ng gio╠úng hoß║╖c Sai gio╠úng.
+346 [Normal] ß║ónh 15: M├án h├¼nh log x├íc thß╗▒c
+349 [Normal] ß║ónh 16: Bß╗Ö lß╗ìc log x├íc thß╗▒c
+351 [Heading 1] PHß║ªN 9: M├ö Tß║ó M├â NGUß╗ÆN (Source Code)
+352 [Heading 1] Tß╗òng quan kiß║┐n tr├║c hß╗ç thß╗æng
+353 [Body Text] Hß╗ç thß╗æng Voice Biometrics ─æ╞░ß╗úc thiß║┐t kß║┐ theo m├┤ h├¼nh Client-Server, bao gß╗ôm c├íc th├ánh phß║ºn ch├¡nh:
+354 [List Paragraph] Frontend (ß╗¿ng dß╗Ñng Web): X├óy dß╗▒ng tr├¬n nß╗ün tß║úng ReactJS 18, sß╗¡ dß╗Ñng th╞░ viß╗çn Material-UI (MUI) 5 v├á Ant Design 5 ─æß╗â x├óy dß╗▒ng giao diß╗çn ng╞░ß╗¥i d├╣ng. ß╗¿ng
+355 [List Paragraph] Backend (API Server): Cung cß║Ñp c├íc RESTful API xß╗¡ l├╜ nghiß╗çp vß╗Ñ ─æ─âng k├╜ giß╗ìng n├│i (enrollment), x├íc thß╗▒c giß╗ìng n├│i (verification), t├¼m kiß║┐m giß╗ìng n├│i (
+356 [List Paragraph] C╞í sß╗ƒ dß╗» liß╗çu: PostgreSQL l╞░u trß╗» th├┤ng tin ng╞░ß╗¥i d├╣ng, mß║½u giß╗ìng n├│i (voiceprint), v├á lß╗ïch sß╗¡ x├íc thß╗▒c.
+357 [List Paragraph] Hß╗ç thß╗æng triß╗ân khai: Docker container h├│a to├án bß╗Ö ß╗⌐ng dß╗Ñng, hß╗ù trß╗ú cß║Ñu h├¼nh linh hoß║ít qua biß║┐n m├┤i tr╞░ß╗¥ng.
+358 [Heading 1] Cß║Ñu tr├║c th╞░ mß╗Ñc m├ú nguß╗ôn
+361 [Heading 1] C╞í sß╗ƒ dß╗» liß╗çu
+362 [Body Text] Hß╗ç thß╗æng sß╗¡ dß╗Ñng c╞í sß╗ƒ dß╗» liß╗çu quan hß╗ç PostgreSQL ─æß╗â l╞░u trß╗» th├┤ng tin ng╞░ß╗¥i d├╣ng, ─æß║╖c tr╞░ng giß╗ìng n├│i v├á lß╗ïch sß╗¡ giao dß╗ïch x├íc thß╗▒c. D╞░ß╗¢i ─æ├óy l├á cß║Ñu 
+363 [Heading 1] Bß║úng users ΓÇö Ng╞░ß╗¥i d├╣ng hß╗ç thß╗æng
+364 [Body Text] L╞░u trß╗» th├┤ng tin quß║ún trß╗ï vi├¬n v├á nh├ón vi├¬n vß║¡n h├ánh hß╗ç thß╗æng.
+367 [Heading 1] Bß║úng enrolled_users ΓÇö Kh├ích h├áng ─æ├ú ─æ─âng k├╜ gio╠úng n├│i
+368 [Body Text] L╞░u trß╗» th├┤ng tin ─æß╗ïnh danh cß╗ºa kh├ích h├áng ─æ├ú ho├án th├ánh quy tr├¼nh ─æ─âng k├╜ giß╗ìng n├│i.
+371 [Heading 1] Bß║úng voice_prints ΓÇö ─Éß║╖c tr╞░ng gio╠úng n├│i
+372 [Body Text] L╞░u trß╗» vector ─æß║╖c tr╞░ng (embedding) ─æ╞░ß╗úc tr├¡ch xuß║Ñt tß╗½ mß║½u giß╗ìng n├│i kh├ích h├áng.
+375 [Heading 1] Bß║úng verification_logs ΓÇö Lß╗ïch sß╗¡ x├íc th╞░╠úc gio╠úng n├│i
+376 [Body Text] Ghi nhß║¡n to├án bß╗Ö giao dß╗ïch x├íc thß╗▒c phß╗Ñc vß╗Ñ tra cß╗⌐u, thß╗æng k├¬ v├á ─æ├ính gi├í hß╗ç thß╗æng.
+379 [Body Text] S╞í ─æß╗ô quan hß╗ç giß╗»a c├íc bß║úng:
+381 [Heading 1] C├íc t├¡nh n─âng ch├¡nh cß╗ºa hß╗ç thß╗æng
+384 [Heading 1] Luß╗ông hoß║ít ─æß╗Öng ch├¡nh
+385 [Heading 1] Luß╗ông ─æ─âng nhß║¡p hß╗ç thß╗æng
+386 [Body Text] Ng╞░ß╗¥i d├╣ng nhß║¡p Username/Password
+387 [Normal] Γöé
+388 [Normal] Γû╝
+389 [Body Text] Frontend gß╗¡i POST /api/voicebio/auth (FormData: username, password)
+390 [Normal] Γöé
+391 [Normal] Γû╝
+392 [Body Text] Backend x├íc thß╗▒c th├┤ng tin ─æ─âng nhß║¡p
+393 [Normal] Γöé
+394 [Normal] ΓöîΓöÇΓöÇΓöÇΓö┤ΓöÇΓöÇΓöÇΓöÉ
+395 [Normal] Γöé	Γöé
+396 [Body Text] ─É├║ng	Sai ΓåÆ Hiß╗ân thß╗ï th├┤ng b├ío lß╗ùi
+397 [Normal] Γöé
+398 [Normal] Γû╝
+399 [Body Text] Backend trß║ú vß╗ü JWT Token
+400 [Normal] Γöé
+401 [Normal] Γû╝
+402 [Body Text] Frontend l╞░u token v├áo localStorage
+403 [Normal] Γöé
+404 [Normal] Γû╝
+405 [Body Text] Chuyß╗ân h╞░ß╗¢ng ─æß║┐n trang Dashboard (/dashboard)
+406 [Heading 1] Luß╗ông ─æ─âng k├╜ gio╠úng n├│i (Enrollment)
+407 [Body Text] Chß╗ìn kh├ích h├áng tß╗½ danh s├ích
+408 [Normal] Γöé
+410 [Normal] Γû╝
+411 [Body Text] Kiß╗âm tra ─æ├ú ─æ─âng k├╜ tr╞░ß╗¢c? (GET /api/voicebio/user/check/{user_code})
+412 [Normal] Γöé
+413 [Normal] ΓöîΓöÇΓöÇΓöÇΓö┤ΓöÇΓöÇΓöÇΓöÉ
+414 [Normal] Γöé	Γöé
+415 [Body Text] Ch╞░a	─É├ú c├│ ΓåÆ Hiß╗ân thß╗ï cß║únh b├ío, x├íc nhß║¡n ─æ─âng k├╜ lß║íi
+416 [Normal] Γöé	Γöé
+417 [Normal] Γû╝	Γû╝
+418 [Body Text] Thu nhß║¡n 3 mß║½u giß╗ìng n├│i (ghi ├óm trß╗▒c tiß║┐p hoß║╖c tß║úi file .wav/.mp3)
+419 [Normal] Γöé
+420 [Normal] Γû╝
+421 [Body Text] Gß╗ìi POST /api/voicebio/enroll/reset (khß╗ƒi tß║ío phi├¬n ─æ─âng k├╜)
+422 [Normal] Γöé
+423 [Normal] Γû╝
+424 [Body Text] Gß╗ìi POST /api/voicebio/enroll/add_file ├ù 3 lß║ºn (tß║úi l├¬n tß╗½ng file)
+425 [Normal] Γöé
+426 [Body Text] Γû╝ (Nß║┐u file n├áo lß╗ùi ΓåÆ th├┤ng b├ío, dß╗½ng lß║íi)
+427 [Normal] Γöé
+428 [Body Text] Gß╗ìi POST /api/voicebio/enroll/do_enroll (ho├án tß║Ñt ─æ─âng k├╜)
+429 [Normal] Γöé
+430 [Normal] Γû╝
+431 [Body Text] Backend tr├¡ch xuß║Ñt ─æß║╖c tr╞░ng giß╗ìng n├│i, l╞░u voiceprint v├áo CSDL
+432 [Normal] Γöé
+433 [Normal] Γû╝
+434 [Body Text] Hiß╗ân thß╗ï "─É─âng k├╜ th├ánh c├┤ng"
+435 [Heading 1] Luß╗ông x├íc th╞░╠úc gio╠úng n├│i (Verification)
+436 [Body Text] Chß╗ìn kh├ích h├áng cß║ºn x├íc thß╗▒c + Thiß║┐t lß║¡p ng╞░ß╗íng (mß║╖c ─æß╗ïnh 70%)
+437 [Normal] Γöé
+438 [Normal] Γû╝
+439 [Body Text] Thu nhß║¡n mß║½u giß╗ìng n├│i cß║ºn x├íc thß╗▒c (ghi ├óm hoß║╖c tß║úi file)
+440 [Normal] Γöé
+441 [Normal] Γû╝
+442 [Body Text] Gß╗¡i POST /api/voicebio/verify/do_verify
+443 [Body Text] (FormData: user_code, file, threshold)
+444 [Normal] Γöé
+445 [Normal] Γû╝
+446 [Body Text] Backend so s├ính giß╗ìng n├│i vß╗¢i voiceprint ─æ├ú l╞░u
+447 [Normal] Γöé
+449 [Normal] Γû╝
+450 [Body Text] Trß║ú vß╗ü ─æiß╗âm t╞░╞íng ─æß╗ông (similarity_score: 0-100%)
+451 [Normal] Γöé
+452 [Normal] Γû╝
+453 [Body Text] Frontend hiß╗ân thß╗ï thanh tiß║┐n tr├¼nh vß╗¢i m├ú m├áu:
+454 [List Paragraph] ─Éß╗Å: < 50%	(Kh├┤ng khß╗¢p)
+455 [List Paragraph] V├áng: 50-85% (Cß║ºn xem x├⌐t)
+456 [List Paragraph] Xanh: > 85%  (Khß╗¢p)
+457 [Normal] Γöé
+458 [Normal] Γû╝
+459 [Body Text] Ng╞░ß╗¥i vß║¡n h├ánh phß║ún hß╗ôi: "─É├║ng giß╗ìng" / "Sai giß╗ìng" / "Bß╗Å qua"
+460 [Normal] Γöé
+461 [Normal] Γû╝
+462 [Body Text] Gß╗¡i POST /api/voicebio/verify/feedback (l╞░u phß║ún hß╗ôi v├áo CSDL)
+463 [Heading 1] M├ú nguß╗ôn quan tro╠úng
+464 [Body Text] D╞░ß╗¢i ─æ├óy l├á c├íc ─æoß║ín m├ú nguß╗ôn ti├¬u biß╗âu thß╗â hiß╗çn logic nghiß╗çp vß╗Ñ cß╗æt l├╡i cß╗ºa hß╗ç thß╗æng Voice Biometrics, ─æ╞░ß╗úc tr├¡ch tß╗½ c├íc module ch├¡nh.
+465 [Heading 1] PH├éN ─ÉOß║áN 1 ΓÇö Khß╗ƒi tß║ío ß╗⌐ng dß╗Ñng, cß║Ñu h├¼nh v├á x├íc th╞░╠úc ─æ─âng nhß║¡p
+466 [Normal] File src/settings/utilities.js ΓÇö Cß║Ñu h├¼nh kß║┐t nß╗æi API linh hoß║ít theo m├┤i tr╞░ß╗¥ng triß╗ân khai:
+467 [Body Text] // ─Éß╗ìc cß║Ñu h├¼nh tß╗½ biß║┐n m├┤i tr╞░ß╗¥ng runtime (Docker) hoß║╖c build-time (React) const getEnv = (key) => {
+468 [Body Text] const runtime = typeof window !== "undefined"
+469 [Body Text] && window.  ENV	&& window.  ENV  [key];
+470 [Body Text] if (runtime !== undefined && runtime !== "") return runtime; return process.env[key];
+471 [Normal] };
+473 [Body Text] export const LinkAPI = getEnv("REACT_APP_URL_API_WEB")
+474 [Body Text] || "https://demovoicebio.tuanmv.pro";
+475 [Body Text] // H├ám chuyß╗ân ─æß╗òi timestamp sang ─æß╗ïnh dß║íng ng├áy giß╗¥ hiß╗ân thß╗ï
+476 [Body Text] export const ConvertTime = (timestamp) => { if (timestamp) {
+477 [Body Text] const dt = new Date(timestamp);
+478 [Body Text] const padL = (nr, len = 2, chr = '0') => `${nr}`.padStart(2, chr);
+479 [Body Text] const dformat = `${padL(dt.getDate())}-${padL(dt.getMonth() + 1)}-`
+480 [Body Text] + `${dt.getFullYear()} ${padL(dt.getHours())}:${padL(dt.getMinutes())}`
+481 [Body Text] + `:${padL(dt.getSeconds())}`; return dformat;
+482 [Normal] }
+485 [Normal] File src/settings/auth.js ΓÇö Kiß╗âm tra phi├¬n ─æ─âng nhß║¡p v├á xß╗¡ l├╜ hß║┐t hß║ín token:
+486 [Normal] File src/layouts/authentication/sign-in/index.js ΓÇö Xß╗¡ l├╜ ─æ─âng nhß║¡p hß╗ç thß╗æng:
+489 [Body Text] .then((res) => {
+490 [Body Text] let j_response = res.data;
+491 [Body Text] if (j_response.status === 0) {
+492 [Body Text] // ─É─âng nhß║¡p th├ánh c├┤ng: l╞░u token v├á chuyß╗ân trang localStorage.setItem("token", j_response.token); navigate("/dashboard");
+493 [Body Text] } else {
+494 [Body Text] setMessageError("T├ái khoß║ún hoß║╖c mß║¡t khß║⌐u kh├┤ng ch├¡nh x├íc");
+495 [Normal] }
+496 [Normal] })
+497 [Body Text] .catch((error) => {
+498 [Body Text] let status = error.response?.status;
+499 [Body Text] if (status === 401) noTokenLogout(navigate); else if (status === 422)
+500 [Body Text] setMessageError("Vui l├▓ng ─æiß╗ün ─æß║ºy ─æß╗º th├┤ng tin.");
+501 [Normal] });
+502 [Normal] };
+503 [Body Text] return (
+504 [Body Text] <BasicLayout image={bgImage}>
+505 [Body Text] <Card>
+506 [Body Text] <MDBox variant="gradient" bgColor="info" borderRadius="lg" mx={2} mt={-3} p={2} mb={1} textAlign="center">
+507 [Body Text] <MDTypography variant="h4" fontWeight="medium" color="white"> Voice Biometrics
+508 [Body Text] </MDTypography>
+509 [Body Text] </MDBox>
+510 [Body Text] <MDBox pt={4} pb={3} px={3}>
+511 [Body Text] <MDInput type="user" label="User Name" fullWidth value={user} onChange={(e) => setUser(e.target.value)} />
+512 [Body Text] <MDInput type="password" label="Password" fullWidth value={pass} onChange={(e) => setPass(e.target.value)} />
+513 [Body Text] <MDTypography variant="overline" color="error">
+514 [Body Text] {messageError}
+515 [Body Text] </MDTypography>
+516 [Body Text] <MDButton variant="gradient" color="info" fullWidth onClick={() => handleLogin()}>
+517 [Body Text] ─É─âng nhß║¡p
+518 [Body Text] </MDButton>
+519 [Body Text] </MDBox>
+520 [Body Text] </Card>
+521 [Body Text] </BasicLayout>
+522 [Normal] );
+523 [Normal] }
+525 [Normal] File src/App.js ΓÇö Bß║úo vß╗ç route, y├¬u cß║ºu ─æ─âng nhß║¡p tr╞░ß╗¢c khi truy cß║¡p:
+526 [Body Text] export default function App() {
+527 [Body Text] const [controller, dispatch] = useMaterialUIController();
+528 [Body Text] const { miniSidenav, direction, layout, sidenavColor, darkMode } = controller;
+530 [Body Text] // Tß║ío route c├│ kiß╗âm tra x├íc thß╗▒c const getRoutes = (allRoutes) => allRoutes.map((route) => {
+531 [Body Text] if (route.collapse) return getRoutes(route.collapse); if (route.route) {
+532 [Body Text] if (route.route !== "/login") { return (
+533 [Body Text] <Route exact path={route.route}
+534 [Body Text] element={isAuth() ? route.component : <Navigate to="/login" />} key={route.key} />
+535 [Normal] );
+536 [Body Text] } else {
+537 [Body Text] return <Route exact path={route.route} element={route.component} key={route.key} />;
+538 [Normal] }
+539 [Normal] }
+540 [Body Text] return null;
+541 [Normal] });
+542 [Body Text] return (
+543 [Body Text] <ThemeProvider theme={darkMode ? themeDark : theme}>
+544 [Body Text] <CssBaseline />
+545 [Body Text] {layout === "dashboard" && (
+546 [Body Text] <Sidenav color={sidenavColor} brandName="Voice Biometrics" routes={routesUseNav} />
+547 [Normal] )}
+548 [Body Text] <Routes>
+549 [Body Text] {getRoutes(routes)}
+550 [Body Text] <Route path="*" element={isAuth()
+551 [Body Text] ? <Navigate to="/dashboard" />
+552 [Body Text] : <Navigate to="/login" />} />
+553 [Body Text] </Routes>
+554 [Body Text] </ThemeProvider>
+555 [Normal] );
+556 [Normal] }
+557 [Heading 1] PH├éN ─ÉOß║áN 2 ΓÇö Nghiß╗çp vß╗Ñ l├╡i: ─É─âng k├╜ v├á X├íc th╞░╠úc gio╠úng n├│i
+558 [Normal] File src/components/RegisterVoice/index.js ΓÇö ─É─âng k├╜ giß╗ìng n├│i (Enrollment):
+560 [Body Text] Quy tr├¼nh ─æ─âng k├╜ y├¬u cß║ºu 3 mß║½u giß╗ìng n├│i. Hß╗ç thß╗æng kiß╗âm tra ng╞░ß╗¥i d├╣ng ─æ├ú ─æ─âng k├╜ tr╞░ß╗¢c hay ch╞░a, sau ─æ├│ lß║ºn l╞░ß╗út tß║úi l├¬n 3 file ├óm thanh v├á gß╗ìi API 
+561 [Body Text] function RegisterVoice() {
+562 [Body Text] const navigate = useNavigate();
+563 [Body Text] const token = localStorage.getItem("token");
+564 [Body Text] const [selectedUser, setSelectedUser] = useState();
+565 [Body Text] const [files, setFiles] = useState({ file1: null, file2: null, file3: null }); const [checked, setChecked] = useState(true);
+566 [Body Text] const [listRegisters, setListRegister] = useState([]);
+568 [Body Text] // Lß║Ñy danh s├ích kh├ích h├áng khi component ─æ╞░ß╗úc khß╗ƒi tß║ío
+569 [Body Text] useEffect(() => {
+570 [Body Text] let url = LinkAPI + "/api/voicebio/user/list_user"; let headers = { Authorization: "Bearer " + token };
+571 [Body Text] axios({ method: "POST", url: url, headers: headers })
+572 [Body Text] .then((res) => {
+573 [Body Text] if (res.data.status === 0) {
+574 [Body Text] let rgs = res.data.data.map((item) => ({ label: item.user_code + " - " + item.name, value: item.user_code,
+575 [Normal] }));
+576 [Body Text] setListRegister(rgs);
+577 [Normal] }
+578 [Normal] })
+579 [Body Text] .catch((error) => {
+580 [Body Text] if (error.response?.status == 401) noTokenLogout(navigate);
+581 [Normal] });
+582 [Normal] }, []);
+583 [Body Text] // Kiß╗âm tra kh├ích h├áng ─æ├ú ─æ─âng k├╜: cß║únh b├ío nß║┐u ─æ├ú c├│
+584 [Body Text] const handleChangeRegister = (op) => { if (op) {
+585 [Body Text] axios({ method: "GET",
+586 [Body Text] url: LinkAPI + "/api/voicebio/user/check/" + op, headers: { Authorization: "Bearer " + token }
+587 [Body Text] }).then((res) => {
+588 [Body Text] if (res.data.status === 0 && res.data.result) { Swal.fire({
+589 [Body Text] title: '<h5>Ng╞░ß╗¥i d├╣ng n├áy ─æ├ú ─æ─âng k├╜ tß╗½ tr╞░ß╗¢c.</h5>', text: "Bß║ín c├│ chß║»c chß║»n muß╗æn ─æ─âng k├╜ lß║íi?",
+590 [Body Text] icon: "warning",
+591 [Body Text] confirmButtonText: "C├│", cancelButtonText: "Kh├┤ng", showCancelButton: true, reverseButtons: true,
+593 [Body Text] }).then((result) => {
+594 [Body Text] if (!result.isConfirmed) handleCancel();
+595 [Normal] });
+596 [Normal] }
+597 [Normal] });
+598 [Normal] }
+599 [Body Text] setSelectedUser(op);
+600 [Normal] };
+601 [Body Text] // Quy tr├¼nh: reset ΓåÆ upload 3 file ΓåÆ ho├án tß║Ñt enrollment
+602 [Body Text] const handleSubmit = async () => { setChecked(false);
+603 [Body Text] if (!selectedUser) {
+604 [Body Text] message.error("Vui l├▓ng chß╗ìn ng╞░ß╗¥i ─æ─âng k├╜.", 4);
+605 [Body Text] setChecked(true); return false;
+606 [Normal] }
+607 [Body Text] if (!files.file1 || !files.file2 || !files.file3) { message.error("Vui l├▓ng chß╗ìn 3 tß╗çp ghi ├óm.", 4); setChecked(true); return false;
+608 [Normal] }
+609 [Body Text] let headers = { Authorization: "Bearer " + token }; let check_file = false;
+611 [Body Text] // B╞░ß╗¢c 1: Reset phi├¬n ─æ─âng k├╜ c┼⌐
+612 [Body Text] let bodyFormData = new FormData(); bodyFormData.append("user_code", selectedUser); await axios({ method: "POST",
+613 [Body Text] url: LinkAPI + "/api/voicebio/enroll/reset", headers, data: bodyFormData
+614 [Body Text] }).catch(() => { check_file = true; });
+615 [Body Text] if (check_file) { setChecked(true); return false; }
+616 [Body Text] // B╞░ß╗¢c 2: Upload lß║ºn l╞░ß╗út 3 file ├óm thanh
+617 [Body Text] const fileList = [files.file1, files.file2, files.file3]; for (let i = 0; i < fileList.length; i++) { bodyFormData = new FormData();
+618 [Body Text] bodyFormData.append("user_code", selectedUser); bodyFormData.append("file", fileList[i]);
+619 [Body Text] await axios({ method: "POST",
+620 [Body Text] url: LinkAPI + "/api/voicebio/enroll/add_file", headers, data: bodyFormData
+621 [Body Text] }).then((res) => {
+622 [Body Text] if (res.data.status !== 0) check_file = true;
+626 [Normal] File src/components/VoiceAuthen/index.js ΓÇö X├íc thß╗▒c giß╗ìng n├│i (Verification):
+627 [Body Text] Ng╞░ß╗¥i vß║¡n h├ánh chß╗ìn kh├ích h├áng, thiß║┐t lß║¡p ng╞░ß╗íng x├íc thß╗▒c, tß║úi l├¬n hoß║╖c ghi ├óm mß║½u giß╗ìng n├│i. Hß╗ç thß╗æng trß║ú vß╗ü ─æiß╗âm t╞░╞íng ─æß╗ông v├á hiß╗ân thß╗ï trß╗▒c quan bß║▒
+630 [Body Text] const getColorProgress = (percent) => { if (percent < 50) return "red";
+631 [Body Text] if (percent >= 50 && percent < 85) return "yellow"; return "green";
+632 [Normal] };
+634 [Body Text] // Gß╗¡i y├¬u cß║ºu x├íc thß╗▒c giß╗ìng n├│i ─æß║┐n Backend const handleSubmitVerify = async () => { setChecked(false);
+635 [Body Text] if (!selectUser) {
+636 [Body Text] message.error("Vui l├▓ng chß╗ìn ng╞░ß╗¥i x├íc thß╗▒c.");
+637 [Body Text] setChecked(true); return false;
+638 [Normal] }
+639 [Body Text] if (!file) {
+640 [Body Text] message.error("Vui l├▓ng chß╗ìn tß╗çp hoß║╖c ghi ├óm mß╗¢i.");
+641 [Body Text] setChecked(true); return false;
+642 [Normal] }
+643 [Body Text] let _threshold = threshold || "70";
+644 [Body Text] let bodyFormData = new FormData(); bodyFormData.append("threshold", Number.parseInt(_threshold)); bodyFormData.append("file", file); bodyFormData.appe
+646 [Body Text] await axios({ method: "POST",
+647 [Body Text] url: LinkAPI + "/api/voicebio/verify/do_verify", headers: { Authorization: "Bearer " + token }, data: bodyFormData,
+648 [Body Text] }).then((res) => {
+649 [Body Text] if (res.data.status === 0) { setPercent(Math.round(res.data.result.score)); setShowFeedback(false); setId(res.data.verify_id);
+650 [Normal] }
+651 [Body Text] }).catch((error) => {
+652 [Body Text] if (error.response?.status === 401) noTokenLogout(navigate);
+653 [Normal] });
+654 [Body Text] setChecked(true);
+655 [Normal] };
+656 [Body Text] // Xß╗¡ l├╜ phß║ún hß╗ôi tß╗½ ng╞░ß╗¥i vß║¡n h├ánh
+657 [Body Text] const handleFeeback = (type) => {
+658 [Body Text] let label = (type === 0); // 0=─É├║ng, 1=Sai, 2=Bß╗Å qua
+659 [Body Text] if (type !== 2) {
+662 [Heading 1] PH├éN ─ÉOß║áN 3 ΓÇö Thß╗æng k├¬, tra cß╗⌐u lß╗ïch sß╗¡ v├á triß╗ân khai
+663 [Normal] File src/components/Dashboard/index.js ΓÇö Bß║úng thß╗æng k├¬ tß╗òng quan (Dashboard):
+664 [Body Text] Hiß╗ân thß╗ï sß╗æ liß╗çu tß╗òng hß╗úp v├á biß╗âu ─æß╗ô ─æ╞░ß╗¥ng thß╗â hiß╗çn xu h╞░ß╗¢ng ─æ─âng k├╜/x├íc thß╗▒c theo thß╗¥i
+665 [Body Text] gian.
+666 [Body Text] function Dashboard() {
+667 [Body Text] const navigate = useNavigate();
+668 [Body Text] const token = localStorage.getItem("token"); const [totalEnroll, setTotalEnroll] = useState(0); const [totalVerify, setTotalVerify] = useState(0);
+669 [Body Text] const [selectedTime, setSelectedTime] = useState("7"); const [reportEnroll, setReportEnroll] = useState({ labels: [], datasets: [{ label: "Tß╗òng sß╗æ", d
+670 [Normal] });
+672 [Body Text] // Tß║úi sß╗æ liß╗çu tß╗òng hß╗úp khi khß╗ƒi tß║ío trang
+673 [Body Text] useEffect(() => {
+674 [Body Text] let headers = { Authorization: "Bearer " + token };
+675 [Body Text] // Lß║Ñy tß╗òng sß╗æ ng╞░ß╗¥i ─æ├ú ─æ─âng k├╜ giß╗ìng n├│i
+676 [Body Text] axios({ method: "GET",
+677 [Body Text] url: LinkAPI + "/api/voicebio/statistic/get_number_enrolled_user", headers
+678 [Body Text] }).then((res) => {
+679 [Body Text] if (res.data.status === 0) setTotalEnroll(res.data.total);
+680 [Normal] });
+681 [Body Text] // Lß║Ñy tß╗òng sß╗æ l╞░ß╗út x├íc thß╗▒c
+682 [Body Text] axios({ method: "GET",
+683 [Body Text] url: LinkAPI + "/api/voicebio/statistic/get_number_verified_request", headers
+685 [Body Text] }).then((res) => {
+686 [Body Text] if (res.data.status === 0) setTotalVerify(res.data.total);
+687 [Normal] });
+688 [Normal] }, []);
+689 [Body Text] // Tß║úi dß╗» liß╗çu biß╗âu ─æß╗ô theo bß╗Ö lß╗ìc thß╗¥i gian
+690 [Body Text] useEffect(() => {
+691 [Body Text] let headers = { Authorization: "Bearer " + token }; axios({ method: "POST",
+692 [Body Text] url: LinkAPI + "/api/voicebio/statistic/get_enrolled_users_date", headers
+693 [Body Text] }).then((res) => {
+694 [Body Text] if (res.data.status === 0) { let info = res.data.info; setReportEnroll({
+695 [Body Text] labels: Object.keys(info),
+696 [Body Text] datasets: [{ label: "Tß╗òng sß╗æ", data: Object.values(info) }],
+697 [Normal] });
+698 [Normal] }
+699 [Normal] });
+700 [Body Text] }, [selectedTime]);
+701 [Body Text] return (
+702 [Body Text] <DashboardLayout>
+703 [Body Text] <DashboardNavbar />
+704 [Body Text] <Grid container spacing={3}>
+705 [Body Text] <Grid item xs={12} md={6}>
+706 [Body Text] <ComplexStatisticsCard color="primary" icon="person_add"
+707 [Body Text] title="Sß╗æ l╞░ß╗úng ─æ─âng k├╜" count={totalEnroll} />
+708 [Body Text] </Grid>
+709 [Body Text] <Grid item xs={12} md={6}>
+710 [Body Text] <ComplexStatisticsCard icon="leaderboard"
+711 [Body Text] title="Sß╗æ l╞░ß╗úng x├íc thß╗▒c" count={totalVerify} />
+712 [Body Text] </Grid>
+713 [Body Text] </Grid>
+714 [Body Text] <Select value={selectedTime} options={filterTimes} onChange={handleChangeTime} />
+715 [Body Text] <DefaultLineChart title="Sß╗æ l╞░ß╗úng ─æ─âng k├╜ theo ng├áy"
+716 [Body Text] chart={reportEnroll} />
+717 [Body Text] <DefaultLineChart title="Sß╗æ l╞░ß╗úng x├íc thß╗▒c theo ng├áy"
+718 [Body Text] chart={reportVerify} />
+719 [Body Text] </DashboardLayout>
+720 [Normal] );
+721 [Normal] }
+723 [Normal] File src/components/AuthenticationLogs/index.js ΓÇö Tra cß╗⌐u lß╗ïch sß╗¡ x├íc thß╗▒c:
+724 [Body Text] Cho ph├⌐p lß╗ìc log theo user code, loß║íi x├íc thß╗▒c, khoß║úng thß╗¥i gian. Hß╗ù trß╗ú ph├ón trang ph├¡a
+725 [Body Text] server.
+726 [Body Text] function AuthenticationLogs() { const navigate = useNavigate();
+727 [Body Text] const token = localStorage.getItem("token"); const [rows, setRows] = useState([]);
+728 [Body Text] const [formSearch] = Form.useForm();
+729 [Body Text] const [pageIndex, setPageIndex] = useState(0); const [pageSize, setPageSize] = useState(20); const [totalItem, setTotalItem] = useState(0);
+731 [Body Text] // Gß╗ìi API lß║Ñy danh s├ích log vß╗¢i bß╗Ö lß╗ìc v├á ph├ón trang
+732 [Body Text] const getLogsAuthen = async () => {
+733 [Body Text] let headers = { Authorization: "Bearer " + token }; let dataFrom = formSearch.getFieldValue();
+734 [Body Text] let bodyFormData = new FormData(); bodyFormData.append("page", pageIndex + 1); bodyFormData.append("page_size", pageSize); if (dataFrom.user_code)
+735 [Body Text] bodyFormData.append("keyword_user_code", dataFrom.user_code); if (dataFrom.authen_type)
+736 [Body Text] bodyFormData.append("authen_type", dataFrom.authen_type); if (dataFrom.start_date) {
+737 [Body Text] let _time = FormatTimestamp(new Date(dataFrom.start_date)); bodyFormData.append("verified_starttime", _time);
+738 [Normal] }
+739 [Body Text] if (dataFrom.end_date) {
+740 [Body Text] let _time = FormatTimestamp(new Date(dataFrom.end_date))
+741 [Body Text] + 24 * 60 * 60 * 1000;
+742 [Body Text] bodyFormData.append("verified_endtime", _time);
+743 [Normal] }
+744 [Body Text] await axios({ method: "POST",
+745 [Body Text] url: LinkAPI + "/api/voicebio/statistic/get_verified_requests", headers, data: bodyFormData
+746 [Body Text] }).then((res) => {
+747 [Body Text] if (res.data.status === 0) { setLogsAuthen(res.data.data); setTotalItem(res.data.total);
+748 [Normal] }
+749 [Body Text] }).catch((error) => {
+752 [Normal] File Dockerfile ΓÇö Triß╗ân khai ß╗⌐ng dß╗Ñng bß║▒ng Docker (─æa giai ─æoß║ín):
+753 [Normal] File docker/entrypoint.sh ΓÇö Cß║Ñu h├¼nh runtime cho Docker:
+756 [Heading 1] Danh s├ích th╞░ viß╗çn m├ú nguß╗ôn mß╗ƒ sß╗¡ dß╗Ñng

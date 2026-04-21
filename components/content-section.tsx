@@ -1,12 +1,20 @@
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 type ContentSectionProps = {
   title: string;
   desc: string;
   children: React.ReactNode;
+  /** Override default width constraint for wider layouts (e.g. data lists). */
+  innerClassName?: string;
 };
 
-export function ContentSection({ title, desc, children }: ContentSectionProps) {
+export function ContentSection({
+  title,
+  desc,
+  children,
+  innerClassName,
+}: ContentSectionProps) {
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0">
@@ -15,7 +23,11 @@ export function ContentSection({ title, desc, children }: ContentSectionProps) {
         <Separator className="my-4" />
       </div>
       <div className="faded-bottom flex min-h-0 flex-1 flex-col overflow-y-auto scroll-smooth">
-        <div className="-mx-1 px-1.5 pb-12 pe-4 lg:max-w-xl">{children}</div>
+        <div
+          className={cn("-mx-1 px-1.5 pb-12 pe-4 lg:max-w-xl", innerClassName)}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

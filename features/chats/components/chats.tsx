@@ -60,15 +60,6 @@ const toIsoString = (value: unknown): string => {
   return new Date().toISOString();
 };
 
-const toNumericId = (value: unknown): number | undefined => {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string") {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed)) return parsed;
-  }
-  return undefined;
-};
-
 const normalizeConversation = (
   conversation: Record<string, unknown>,
 ): ChatConversation => {
@@ -379,11 +370,6 @@ export function Chat({ conversations, messages, users }: ChatProps) {
     [messages, selectedConversation, storeMessages],
   );
 
-  const initialBeforeMessageId = useMemo(() => {
-    if (!selectedConversation) return undefined;
-    return toNumericId(currentConversation?.lastMessage.id);
-  }, [currentConversation?.lastMessage.id, selectedConversation]);
-
   const handleSendMessage = (content: string) => {
     if (!selectedConversation) return;
 
@@ -613,10 +599,11 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                   users={users}
                   tenantId={tenantId}
                   conversationId={selectedConversation}
-                  initialBeforeMessageId={initialBeforeMessageId}
                 />
 
                 <MessageInput
+                  tenantId={tenantId}
+                  conversationId={selectedConversation}
                   onSendMessage={handleSendMessage}
                   placeholder={`Message ${currentConversation?.name || ""}...`}
                 />
