@@ -6,12 +6,10 @@ import {
   getFacetedRowModel,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
-  type Row,
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
@@ -20,11 +18,10 @@ import {
   ArrowUp,
   ArrowDown,
   EllipsisVertical,
-  Eye,
   Pencil,
   Trash2,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 // import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,10 +30,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
 import {
   Table,
   TableBody,
@@ -58,6 +53,7 @@ import {
 import { getRoleColor } from "@/utils/role-color";
 import { EmptyData } from "@/components/empty-data";
 import { IconMoodEmpty } from "@tabler/icons-react";
+import { useGetTenants } from "@/hooks/tenant/use-get-tenant";
 
 interface DataTableProps {
   users: User[];
@@ -92,6 +88,10 @@ export function DataTable({
   const [search, setSearch] = useQueryParam("search", StringParam);
   const [sortBy, setSortBy] = useQueryParam("sort_by", StringParam);
   const [sortOrder, setSortOrder] = useQueryParam("sort_order", StringParam);
+  const { data: tenantsData } = useGetTenants({
+    page: 1,
+    page_size: 100,
+  });
 
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -147,6 +147,14 @@ export function DataTable({
       ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
       : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
   };
+
+  const tenantNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    tenantsData?.items?.forEach((tenant) => {
+      map.set(tenant.id, tenant.name);
+    });
+    return map;
+  }, [tenantsData?.items]);
 
   const columns: ColumnDef<User>[] = [
     {
@@ -287,15 +295,35 @@ export function DataTable({
       },
       cell: ({ row }) => <span className="text-sm">{row.original.level}</span>,
     },
-    // {
-    //   accessorKey: "tenant_id",
-    //   header: "Tenant ID",
-    //   cell: ({ row }) => (
-    //     <span className="text-sm text-muted-foreground">
-    //       {row.original.tenant_id}
-    //     </span>
-    //   ),
-    // },
+    {
+      accessorKey: "tenant_id",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="-ml-4 h-8 data-[state=open]:bg-accent"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Doanh nghiệp
+            {column.getIsSorted() === "asc" ? (
+              <ArrowUp className="ml-2 h-4 w-4" />
+            ) : column.getIsSorted() === "desc" ? (
+              <ArrowDown className="ml-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            )}
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const tenantId = row.original.tenant_id;
+        return (
+          <span className="text-sm">
+            {tenantNameById.get(tenantId) || tenantId || "-"}
+          </span>
+        );
+      },
+    },
     {
       accessorKey: "is_active",
       header: ({ column }) => {
@@ -357,7 +385,7 @@ export function DataTable({
                 <DropdownMenuItem
                   variant="destructive"
                   className="cursor-pointer"
-                  onClick={() => onDeleteUser(user.id as any)}
+                  onClick={() => onDeleteUser(user.id)}
                 >
                   <Trash2 className="size-4" />
                   Xóa

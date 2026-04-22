@@ -19,7 +19,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -31,7 +37,10 @@ import {
   type TenantFormValues,
   type Tenant,
 } from "../utils/schema";
-import { useCreateTenant, useUpdateTenant } from "@/hooks/tenant/use-get-tenant";
+import {
+  useCreateTenant,
+  useUpdateTenant,
+} from "@/hooks/tenant/use-get-tenant";
 
 interface TenantFormDialogProps {
   tenant?: Tenant | null;
@@ -148,7 +157,7 @@ export function TenantFormDialog({
               />
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            {/* <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
                 name="is_active"
@@ -173,7 +182,7 @@ export function TenantFormDialog({
                   </FormItem>
                 )}
               />
-            </div>
+            </div> */}
 
             <DialogFooter>
               <Button
@@ -200,4 +209,3 @@ export function TenantFormDialog({
     </Dialog>
   );
 }
-

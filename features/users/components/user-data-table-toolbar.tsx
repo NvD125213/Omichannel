@@ -168,7 +168,7 @@ const columnLabels: Record<string, string> = {
   fullname: "Họ tên người dùng",
   role: "Vai trò",
   level: "Cấp bậc",
-  tenant_id: "Tenant ID",
+  tenant_id: "Doanh nghiệp",
   is_active: "Trạng thái",
 };
 

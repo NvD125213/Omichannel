@@ -54,6 +54,7 @@ const columnOptions: ColumnOption[] = [
   { id: "fullname", label: "Họ tên người dùng" },
   { id: "role", label: "Vai trò" },
   { id: "level", label: "Cấp bậc" },
+  { id: "tenant_id", label: "Doanh nghiệp" },
   { id: "is_active", label: "Trạng thái" },
 ];
 

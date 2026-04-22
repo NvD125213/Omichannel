@@ -41,6 +41,8 @@ import { useGetLevels } from "@/hooks/level/use-get-level";
 import { useMe } from "@/hooks/user/use-me";
 import type { User } from "../utils/schema";
 import { removeEmptyFields } from "@/utils/remove-field-empty";
+import { useGetTenants } from "@/hooks/tenant/use-get-tenant";
+import { PERMISSIONS } from "@/constants/permission";
 
 interface UserFormDialogProps {
   user?: User | null;
@@ -72,6 +74,17 @@ export function UserFormDialog({
 
   // Lấy thông tin user hiện tại để get tenant_id
   const { data: currentUser } = useMe();
+  const canGetTenants =
+    currentUser?.permissions?.includes(PERMISSIONS.VIEW_TENANTS) ||
+    currentUser?.permissions?.includes("get_tenants");
+
+  const { data: tenantsData, isLoading: isLoadingTenants } = useGetTenants(
+    {
+      page: 1,
+      page_size: 100,
+    },
+    { enabled: open && canGetTenants },
+  );
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
@@ -80,7 +93,7 @@ export function UserFormDialog({
 
   // Auto-populate tenant_id từ current user
   useEffect(() => {
-    if (currentUser?.tenant_id && !isEditMode) {
+    if (currentUser?.tenant_id && !isEditMode && !form.getValues("tenant_id")) {
       form.setValue("tenant_id", currentUser.tenant_id);
     }
   }, [currentUser, form, isEditMode]);
@@ -224,7 +237,7 @@ export function UserFormDialog({
                     </FormLabel>
                     <FormControl>
                       <Input
-                        type="password"
+                        type={isEditMode ? "password" : "text"}
                         placeholder={
                           isEditMode
                             ? "Nhập mật khẩu mới (nếu muốn đổi)"
@@ -313,7 +326,42 @@ export function UserFormDialog({
               />
             </div>
 
-            {/* Tenant ID được tự động lấy từ user hiện tại, không cho phép chỉnh sửa */}
+            {canGetTenants && (
+              <FormField
+                control={form.control}
+                name="tenant_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Doanh nghiệp</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={isLoadingTenants}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="cursor-pointer w-full">
+                          <SelectValue
+                            placeholder={
+                              isLoadingTenants
+                                ? "Đang tải danh sách doanh nghiệp..."
+                                : "Chọn doanh nghiệp"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {tenantsData?.items?.map((tenant) => (
+                          <SelectItem key={tenant.id} value={tenant.id}>
+                            {tenant.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter>
               <Button
