@@ -1,18 +1,19 @@
+import { InboxesAnalytics } from "@/features/payment-dashboard/components/inboxes-analytics";
 import { PaymentAnalytics } from "@/features/payment-dashboard/components/payment-analytics";
-import { PaymentGatewayStatus } from "@/features/payment-dashboard/components/payment-gateway-status";
+// import { PaymentGatewayStatus } from "@/features/payment-dashboard/components/payment-gateway-status";
 import { PaymentMethodsBreakdown } from "@/features/payment-dashboard/components/payment-methods-breakdown";
 import { PaymentMetrics } from "@/features/payment-dashboard/components/payment-metrics";
 import { PaymentVolumeChart } from "@/features/payment-dashboard/components/payment-volume-chart";
 import { QuickActions } from "@/features/payment-dashboard/components/quick-actions";
-import { RecentPayments } from "@/features/payment-dashboard/components/recent-payments";
+// import { RecentPayments } from "@/features/payment-dashboard/components/recent-payments";
 
 export default function PaymentDashboardPage() {
   return (
     <>
       <div className="px-4 lg:px-6 py-4 flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Payment Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Báo cáo vận hành</h1>
         <p className="text-muted-foreground">
-          Monitor transactions, track revenue, and manage payment operations.
+          Kiểm soát giao dịch, theo dõi doanh thu và quản lý hoạt động hệ thống.
         </p>
       </div>
 
@@ -23,12 +24,13 @@ export default function PaymentDashboardPage() {
           <PaymentVolumeChart />
           <PaymentMethodsBreakdown />
         </div>
-        <div className="grid gap-6 @5xl:grid-cols-3 min-w-0">
+        {/* <div className="grid gap-6 @5xl:grid-cols-3 min-w-0">
           <div className="@5xl:col-span-2 min-w-0">
             <RecentPayments />
           </div>
           <PaymentGatewayStatus />
-        </div>
+        </div> */}
+        <InboxesAnalytics />
         <PaymentAnalytics />
       </div>
     </>

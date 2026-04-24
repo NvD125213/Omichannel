@@ -212,15 +212,21 @@ export function Chat({ conversations, messages, users }: ChatProps) {
   // Biến state để lọc danh sách hội thoại theo assignee
   const [sidebarConversationAssignee, setSidebarConversationAssignee] =
     useState<ConversationSidebarAssigneeFilter>("me");
+  const [sidebarInboxId, setSidebarInboxId] = useState<number | null>(null);
 
   // Tham số query params cho API lấy danh sách hội thoại
   const conversationListQueryParams = useMemo(
     () =>
       ({
         ...TENANT_CONVERSATION_LIST_BASE,
-        conversation_type: sidebarConversationAssignee,
+        ...(typeof sidebarInboxId === "number"
+          ? {}
+          : { conversation_type: sidebarConversationAssignee }),
+        ...(typeof sidebarInboxId === "number"
+          ? { inbox_id: sidebarInboxId }
+          : {}),
       }) satisfies ListTenantConversationsParams,
-    [sidebarConversationAssignee],
+    [sidebarConversationAssignee, sidebarInboxId],
   );
 
   // Lấy thông tin user đang đăng nhập
@@ -534,12 +540,15 @@ export function Chat({ conversations, messages, users }: ChatProps) {
               )}
             >
               <ChatNotificationSidebar
+                tenantId={tenantId}
                 isCollapsed={isNotificationSidebarCollapsed}
                 sidebarConversationAssignee={sidebarConversationAssignee}
+                sidebarInboxId={sidebarInboxId}
                 isSwitchingMenu={isChatwootFetching && !isChatwootLoading}
                 onSidebarConversationAssigneeChange={
                   setSidebarConversationAssignee
                 }
+                onSidebarInboxChange={setSidebarInboxId}
               />
             </div>
             <div

@@ -12,10 +12,11 @@ export default function Dashboard2() {
       <div className="px-4 lg:px-6 py-4 flex md:flex-row flex-col md:items-center justify-between gap-2">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold tracking-tight">
-            Business Dashboard
+            Báo cáo kinh doanh
           </h1>
           <p className="text-muted-foreground">
-            Monitor your business performance and key metrics in real-time
+            Kiểm soát hiệu suất kinh doanh và các chỉ số quan trọng trong thời
+            gian thực
           </p>
         </div>
         <QuickActions />

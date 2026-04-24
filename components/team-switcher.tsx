@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronsUpDown, Plus } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,19 +17,71 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "./ui/sidebar";
+import { useListTenantTeams } from "@/hooks/chatwoot/use-chatwoot";
+import { useAuth } from "@/contexts/auth-context";
 
-export function TeamSwitcher({
-  teams,
-}: {
-  teams: {
-    name: string;
-    logo: React.ElementType;
-    plan: string;
-  }[];
-}) {
+type SwitcherTeam = {
+  name: string;
+  logo: React.ElementType;
+  plan: string;
+};
+
+const DEFAULT_TEAM: SwitcherTeam = {
+  name: "Onmichannel",
+  logo: Plus,
+  plan: "Mặc định",
+};
+
+export function TeamSwitcher() {
+  const { user } = useAuth();
+  const tenantId = user?.tenant_id ?? "";
+  const { data: tenantTeamsResponse } = useListTenantTeams(tenantId);
   const { isMobile, state } = useSidebar();
-  const [activeTeam, setActiveTeam] = useState(teams[0]);
   const isCollapsed = state === "collapsed";
+  const apiTeams = useMemo<SwitcherTeam[]>(() => {
+    const payload = (
+      tenantTeamsResponse?.data as
+        | { chatwoot?: { payload?: unknown } }
+        | undefined
+    )?.chatwoot?.payload;
+    if (!Array.isArray(payload)) return [];
+
+    return payload.reduce<SwitcherTeam[]>((acc, team) => {
+      const teamRecord =
+        team && typeof team === "object" && !Array.isArray(team)
+          ? (team as Record<string, unknown>)
+          : null;
+      if (!teamRecord) return acc;
+      const teamName =
+        typeof teamRecord.name === "string" && teamRecord.name.trim().length > 0
+          ? teamRecord.name
+          : null;
+      if (!teamName) return acc;
+      acc.push({
+        name: teamName,
+        logo: Plus,
+        plan: "Mặc định",
+      });
+      return acc;
+    }, []);
+  }, [tenantTeamsResponse]);
+  const availableTeams = useMemo(
+    () => (apiTeams.length > 0 ? apiTeams : [DEFAULT_TEAM]),
+    [apiTeams],
+  );
+  const [activeTeam, setActiveTeam] = useState(availableTeams[0]);
+
+  useEffect(() => {
+    if (!availableTeams.length) return;
+    setActiveTeam((prev) => {
+      if (prev && availableTeams.some((team) => team.name === prev.name)) {
+        return prev;
+      }
+      return availableTeams[0];
+    });
+  }, [availableTeams]);
+
+  if (!activeTeam) return null;
 
   return (
     <SidebarMenu>
@@ -71,7 +123,7 @@ export function TeamSwitcher({
             <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-wider">
               Teams
             </DropdownMenuLabel>
-            {teams.map((team, index) => (
+            {availableTeams.map((team, index) => (
               <DropdownMenuItem
                 key={team.name}
                 onClick={() => setActiveTeam(team)}
@@ -97,7 +149,7 @@ export function TeamSwitcher({
                 <Plus className="size-4 text-muted-foreground" />
               </div>
               <div className="text-muted-foreground font-medium">
-                Add new team
+                Thêm nhóm mới
               </div>
             </DropdownMenuItem>
           </DropdownMenuContent>

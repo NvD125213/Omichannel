@@ -56,26 +56,26 @@ export const sidebarData: SidebarData = {
       title: "Quản trị hệ thống",
       items: [
         {
-          title: "Dashboard",
+          title: "Tổng quan",
           url: "/dashboard",
           icon: IconLayoutDashboard,
         },
         {
-          title: "Business Dashboard",
+          title: "Báo cáo kinh doanh",
           url: "/dashboard2",
           icon: IconChartBar,
         },
         {
-          title: "Payment Dashboard",
+          title: "Báo cáo vận hành",
           icon: IconReportMoney,
           items: [
             {
-              title: "Payment Dashboard",
+              title: "Báo cáo vận hành",
               url: "/payment-dashboard",
               icon: IconCreditCard,
             },
             {
-              title: "Payment Transactions",
+              title: "Báo cáo giao dịch",
               url: "/payment-transactions",
               icon: IconArrowsExchange,
             },

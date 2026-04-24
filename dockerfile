@@ -1,46 +1,24 @@
-# =========================
-# 1. Build Frontend (Next.js)
-# =========================
-FROM node:18-alpine AS frontend-builder
-
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm install
-
-COPY frontend/ ./
-RUN npm run build
-
-# =========================
-# 2. Build Backend (FastAPI)
-# =========================
-FROM python:3.11-slim AS backend-builder
-
-WORKDIR /app/backend
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY backend/ ./
-
-# =========================
-# 3. Final Image
-# =========================
-FROM python:3.11-slim
-
-# Cài Node để chạy Next.js
-RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
+FROM node:20-bullseye-slim
 
 WORKDIR /app
 
-# Copy backend
-COPY --from=backend-builder /app/backend /app/backend
+# pkill (procps) needed for killing old Next processes
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends procps \
+  && rm -rf /var/lib/apt/lists/*
 
-# Copy frontend đã build
-COPY --from=frontend-builder /app/frontend /app/frontend
+# Install dependencies first for better layer cache
+COPY package*.json ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-# Copy script start
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+# Copy source code
+COPY . .
 
-EXPOSE 3000 8000
+EXPOSE 3000
 
-CMD ["/start.sh"]
+# Startup flow:
+# 1) build project
+# 2) kill old next processes (if any)
+# 3) start with nohup + disown
+# 4) tail log to keep container alive
+CMD ["bash", "-lc", "set -e; set -m; echo '[1/4] Build project'; npm run build; echo '[2/4] Kill old Next.js process'; pkill -f 'next' || true; echo '[3/4] Start Next.js with nohup'; nohup npm run start > /app/nohup.out 2>&1 & disown || true; echo '[4/4] Follow logs'; tail -f /app/nohup.out"]

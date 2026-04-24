@@ -35,7 +35,7 @@ export default function AppSidebar({
       {...props}
     >
       <SidebarHeader>
-        <TeamSwitcher teams={sidebarData.teams} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
         {filteredNavGroups.map((nav) => (

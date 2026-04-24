@@ -12,7 +12,7 @@ import {
   Send,
   Smile,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useCreateTenantConversationMessage } from "@/hooks/chatwoot/use-chatwoot";
+import { useToggleTenantConversationTyping } from "@/hooks/chatwoot/use-chatwoot";
 
 interface MessageInputProps {
   tenantId: string;
@@ -49,9 +50,41 @@ export function MessageInput({
     "reply",
   );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingActiveRef = useRef(false);
   const { mutate: createTenantConversationMessage, isPending: isSending } =
     useCreateTenantConversationMessage();
+  const { mutate: toggleTenantConversationTyping } =
+    useToggleTenantConversationTyping();
   const isComposerDisabled = disabled || isSending;
+
+  const clearTypingTimeout = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  }, []);
+
+  const emitTypingStatus = useCallback((status: "on" | "off") => {
+    if (!tenantId.trim() || !conversationId.trim()) return;
+    toggleTenantConversationTyping({
+      tenantId,
+      conversationId,
+      data: {
+        typing_status: status,
+      },
+    });
+  }, [conversationId, tenantId, toggleTenantConversationTyping]);
+
+  const scheduleTypingOff = useCallback(() => {
+    clearTypingTimeout();
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTypingActiveRef.current) {
+        emitTypingStatus("off");
+        isTypingActiveRef.current = false;
+      }
+    }, 10000);
+  }, [clearTypingTimeout, emitTypingStatus]);
 
   const handleSendMessage = () => {
     const trimmedMessage = message.trim();
@@ -82,6 +115,11 @@ export function MessageInput({
         onSuccess: () => {
           onSendMessage(trimmedMessage);
           setMessage("");
+          clearTypingTimeout();
+          if (isTypingActiveRef.current) {
+            emitTypingStatus("off");
+            isTypingActiveRef.current = false;
+          }
           if (textareaRef.current) {
             textareaRef.current.style.height = "auto";
           }
@@ -101,11 +139,36 @@ export function MessageInput({
     const value = e.target.value;
     setMessage(value);
 
+    if (!isComposerDisabled) {
+      const hasContent = value.trim().length > 0;
+      if (hasContent) {
+        if (!isTypingActiveRef.current) {
+          emitTypingStatus("on");
+          isTypingActiveRef.current = true;
+        }
+        scheduleTypingOff();
+      } else if (isTypingActiveRef.current) {
+        clearTypingTimeout();
+        emitTypingStatus("off");
+        isTypingActiveRef.current = false;
+      }
+    }
+
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
     }
   };
+
+  useEffect(() => {
+    return () => {
+      clearTypingTimeout();
+      if (isTypingActiveRef.current) {
+        emitTypingStatus("off");
+        isTypingActiveRef.current = false;
+      }
+    };
+  }, [clearTypingTimeout, emitTypingStatus]);
 
   const handleFileUpload = (type: "image" | "file") => {
     console.log(`Upload ${type}`);

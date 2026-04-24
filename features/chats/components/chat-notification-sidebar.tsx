@@ -8,7 +8,6 @@ import {
   MessageCircle,
   ShieldAlert,
   AtSignIcon,
-  Store,
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -23,6 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { useListTenantInboxes } from "@/hooks/chatwoot/use-chatwoot";
 
 /** Giá trị filter sẽ map vào query `conversation_type` */
 export type ConversationSidebarAssigneeFilter = "me" | "mention" | "unattended";
@@ -58,26 +58,40 @@ const conversationSubItems: {
   { name: "Không giám sát", icon: ShieldAlert, assignee: "unattended" },
 ];
 
-const channelSubItems = [
-  { name: "Chatbot", icon: Store, url: "#" },
-  { name: "Zalo OA", icon: MessageCircle, url: "#" },
-];
-
 interface ChatNotificationSidebarProps {
+  tenantId: string;
   isCollapsed: boolean;
   sidebarConversationAssignee: ConversationSidebarAssigneeFilter;
+  sidebarInboxId: number | null;
   isSwitchingMenu?: boolean;
   onSidebarConversationAssigneeChange: (
     value: ConversationSidebarAssigneeFilter,
   ) => void;
+  onSidebarInboxChange: (inboxId: number | null) => void;
+}
+
+interface TenantInboxItem {
+  id?: number | string;
+  name?: string;
 }
 
 export function ChatNotificationSidebar({
+  tenantId,
   isCollapsed,
   sidebarConversationAssignee,
+  sidebarInboxId,
   isSwitchingMenu = false,
   onSidebarConversationAssigneeChange,
+  onSidebarInboxChange,
 }: ChatNotificationSidebarProps) {
+  const { data: inboxData } = useListTenantInboxes(tenantId);
+  const inboxPayload = (
+    inboxData?.data as { chatwoot?: { payload?: unknown } } | undefined
+  )?.chatwoot?.payload;
+  const inboxes: TenantInboxItem[] = Array.isArray(inboxPayload)
+    ? (inboxPayload as TenantInboxItem[])
+    : [];
+
   return (
     <aside
       className={cn(
@@ -248,30 +262,81 @@ export function ChatNotificationSidebar({
                 isCollapsed && "hidden",
               )}
             >
-              {channelSubItems.map((channel) => (
-                <Tooltip key={channel.name}>
-                  <TooltipTrigger asChild>
-                    <a
-                      href={channel.url}
+              {inboxes.map((inbox) => {
+                const inboxId =
+                  typeof inbox.id === "number"
+                    ? inbox.id
+                    : typeof inbox.id === "string"
+                      ? Number(inbox.id)
+                      : Number.NaN;
+                const inboxName =
+                  typeof inbox?.name === "string" && inbox.name.length > 0
+                    ? inbox.name
+                    : "Kênh chưa đặt tên";
+                const isActive =
+                  Number.isFinite(inboxId) && sidebarInboxId === inboxId;
+
+                return (
+                  <Tooltip key={String(inbox?.id ?? inboxName)}>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (Number.isFinite(inboxId)) {
+                            onSidebarInboxChange(inboxId);
+                          }
+                        }}
+                        disabled={isSwitchingMenu || !Number.isFinite(inboxId)}
+                        aria-pressed={isActive}
+                        aria-label={inboxName}
                       className={cn(
-                        "flex h-8 items-center rounded-md text-sm text-foreground hover:bg-accent hover:text-accent-foreground",
-                        isCollapsed ? "justify-center px-0" : "gap-2 px-2",
-                      )}
-                    >
-                      <channel.icon
-                        className="h-3.5 w-3.5 shrink-0"
-                        aria-hidden="true"
-                      />
-                      {!isCollapsed && (
-                        <span className="truncate">{channel.name}</span>
-                      )}
-                    </a>
-                  </TooltipTrigger>
-                  {isCollapsed && (
-                    <TooltipContent side="right">{channel.name}</TooltipContent>
+                          "relative flex h-8 w-full items-center rounded-md text-sm transition-colors text-left disabled:pointer-events-none",
+                          isActive
+                            ? "text-accent-foreground"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                          isSwitchingMenu && "opacity-80",
+                          isCollapsed ? "justify-center px-0" : "gap-2 px-2",
+                        )}
+                      >
+                        {isActive && (
+                          <motion.span
+                            layoutId="channel-sidebar-active-item"
+                            transition={{
+                              type: "spring",
+                              stiffness: 360,
+                              damping: 32,
+                            }}
+                            className="absolute inset-0 rounded-md bg-accent"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <MessageCircle
+                          className="relative z-10 h-3.5 w-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        {!isCollapsed && (
+                          <span className="relative z-10 truncate">
+                            {inboxName}
+                          </span>
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    {isCollapsed && (
+                      <TooltipContent side="right">{inboxName}</TooltipContent>
+                    )}
+                  </Tooltip>
+                );
+              })}
+              {inboxes.length === 0 && !isCollapsed && (
+                <span
+                  className={cn(
+                    "block px-2 text-xs text-muted-foreground",
+                    isSwitchingMenu && "opacity-80",
                   )}
-                </Tooltip>
-              ))}
+                >
+                  Chưa có kênh
+                </span>
+              )}
             </CollapsibleContent>
           </Collapsible>
         </section>

@@ -197,8 +197,8 @@ export function RecentPayments() {
     <Card className="h-full border-border/50 bg-linear-to-br from-violet-500/5 via-background to-background shadow-sm transition-shadow hover:shadow-md overflow-hidden min-w-0">
       <CardHeader className="flex flex-col gap-4 pb-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <CardTitle>Recent Payments</CardTitle>
-          <CardDescription>Latest payment transactions</CardDescription>
+          <CardTitle>Giao dịch thanh toán gần nhất</CardTitle>
+          <CardDescription>Giao dịch thanh toán gần nhất</CardDescription>
         </div>
         <Button
           variant="outline"

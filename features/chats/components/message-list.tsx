@@ -12,6 +12,7 @@ import {
   User2,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { cn } from "@/lib/utils";
-import { useListTenantConversationMessages } from "@/hooks/chatwoot/use-chatwoot";
+import {
+  useListTenantConversationMessages,
+  useDeleteTenantConversationMessage,
+  chatwootOmniKeys,
+} from "@/hooks/chatwoot/use-chatwoot";
 import type { ListTenantConversationMessagesResponse } from "@/services/chatwoot/interface";
 import type { ChatMessage, ChatUser } from "../utils/types";
 import { MessageAttachment } from "./message-attachment";
@@ -65,6 +71,28 @@ const extractTenantMessagePayload = (
   return null;
 };
 
+const removeMessageFromPayload = (
+  payload: unknown,
+  messageId: string,
+): unknown => {
+  if (!Array.isArray(payload)) return payload;
+  return payload.filter((item) => {
+    if (!item || typeof item !== "object") return true;
+    const rawId = (item as Record<string, unknown>).id;
+    return String(rawId ?? "") !== messageId;
+  });
+};
+
+const isDeletedMessage = (message: ChatMessage) => {
+  if (!message || typeof message !== "object") return false;
+  const contentAttributes = message.content_attributes;
+  const deletedFlag =
+    contentAttributes &&
+    typeof contentAttributes === "object" &&
+    (contentAttributes as Record<string, unknown>).deleted === true;
+  return deletedFlag;
+};
+
 const normalizeMessage = (
   message: Record<string, unknown>,
   currentConversationId: string,
@@ -96,6 +124,14 @@ const normalizeMessage = (
       typeof message.conversation_id === "string"
         ? String(message.conversation_id)
         : currentConversationId,
+    message_type:
+      typeof message.message_type === "number" ? message.message_type : undefined,
+    content_attributes:
+      message.content_attributes &&
+      typeof message.content_attributes === "object" &&
+      !Array.isArray(message.content_attributes)
+        ? (message.content_attributes as Record<string, unknown>)
+        : undefined,
     sender_id:
       typeof message.sender_id === "number" ||
       typeof message.sender_id === "string"
@@ -154,6 +190,17 @@ const normalizeMessage = (
   };
 };
 
+const getAvatarInitials = (name?: string) => {
+  if (!name) return "NA";
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+};
+
 interface MessageListProps {
   messages: ChatMessage[];
   users: ChatUser[];
@@ -169,6 +216,7 @@ export function MessageList({
   tenantId = "",
   conversationId = null,
 }: MessageListProps) {
+  const queryClient = useQueryClient();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -180,6 +228,13 @@ export function MessageList({
     previousScrollTop: number;
   } | null>(null);
   const [showBackToLatestButton, setShowBackToLatestButton] = useState(false);
+  const [deletedMessageIds, setDeletedMessageIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [pendingDeleteMessage, setPendingDeleteMessage] = useState<{
+    id: string;
+    isCustomer: boolean;
+  } | null>(null);
   const isInitialLoadRef = useRef(true);
   const previousConversationRef = useRef<string | null>(conversationId);
   const SCROLL_TOP_THRESHOLD = 80;
@@ -195,6 +250,11 @@ export function MessageList({
     conversationId ?? "",
     undefined,
   );
+
+  const {
+    mutate: deleteTenantConversationMessage,
+    isPending: isDeletingMessage,
+  } = useDeleteTenantConversationMessage();
 
   const apiMessages = useMemo(() => {
     if (!conversationId) return [];
@@ -246,6 +306,8 @@ export function MessageList({
       previousLastMessageIdRef.current = null;
       pendingPrependScrollAdjustmentRef.current = null;
       setShowBackToLatestButton(false);
+      setDeletedMessageIds(new Set());
+      setPendingDeleteMessage(null);
     }
   }, [conversationId]);
 
@@ -434,6 +496,149 @@ export function MessageList({
 
   const messageGroups = groupMessagesByDay(resolvedMessages);
 
+  const requestDeleteMessage = (
+    messageId: string,
+    isCustomerMessageToDelete: boolean,
+  ) => {
+    if (!tenantId.trim() || !conversationId?.trim() || !messageId.trim())
+      return;
+    setPendingDeleteMessage({
+      id: messageId,
+      isCustomer: isCustomerMessageToDelete,
+    });
+  };
+
+  const handleConfirmDeleteMessage = () => {
+    if (
+      !pendingDeleteMessage ||
+      !tenantId.trim() ||
+      !conversationId?.trim() ||
+      !pendingDeleteMessage.id.trim()
+    ) {
+      return;
+    }
+
+    const messageId = pendingDeleteMessage.id;
+    setDeletedMessageIds((prev) => {
+      const next = new Set(prev);
+      next.add(messageId);
+      return next;
+    });
+
+    deleteTenantConversationMessage(
+      {
+        tenantId,
+        conversationId,
+        messageId: pendingDeleteMessage.id,
+      },
+      {
+        onSuccess: () => {
+          setPendingDeleteMessage(null);
+          queryClient.setQueriesData(
+            {
+              queryKey: chatwootOmniKeys.tenantConversationMessages(
+                tenantId,
+                conversationId,
+              ),
+            },
+            (oldData: unknown) => {
+              if (!oldData || typeof oldData !== "object") return oldData;
+              const data = oldData as {
+                pages?: Array<{
+                  data?: Record<string, unknown>;
+                }>;
+              };
+              if (!Array.isArray(data.pages)) return oldData;
+
+              return {
+                ...data,
+                pages: data.pages.map((page) => {
+                  const pageData = page?.data;
+                  if (!pageData || typeof pageData !== "object") return page;
+
+                  const nextPageData = { ...pageData };
+                  nextPageData.payload = removeMessageFromPayload(
+                    nextPageData.payload,
+                    messageId,
+                  );
+
+                  const nestedData =
+                    nextPageData.data &&
+                    typeof nextPageData.data === "object" &&
+                    !Array.isArray(nextPageData.data)
+                      ? { ...(nextPageData.data as Record<string, unknown>) }
+                      : null;
+                  if (nestedData) {
+                    nestedData.payload = removeMessageFromPayload(
+                      nestedData.payload,
+                      messageId,
+                    );
+                    nextPageData.data = nestedData;
+                  }
+
+                  const chatwootData =
+                    nextPageData.chatwoot &&
+                    typeof nextPageData.chatwoot === "object" &&
+                    !Array.isArray(nextPageData.chatwoot)
+                      ? {
+                          ...(nextPageData.chatwoot as Record<string, unknown>),
+                        }
+                      : null;
+                  if (chatwootData) {
+                    chatwootData.payload = removeMessageFromPayload(
+                      chatwootData.payload,
+                      messageId,
+                    );
+
+                    const chatwootNestedData =
+                      chatwootData.data &&
+                      typeof chatwootData.data === "object" &&
+                      !Array.isArray(chatwootData.data)
+                        ? { ...(chatwootData.data as Record<string, unknown>) }
+                        : null;
+                    if (chatwootNestedData) {
+                      chatwootNestedData.payload = removeMessageFromPayload(
+                        chatwootNestedData.payload,
+                        messageId,
+                      );
+                      chatwootData.data = chatwootNestedData;
+                    }
+
+                    nextPageData.chatwoot = chatwootData;
+                  }
+
+                  nextPageData.messages = removeMessageFromPayload(
+                    nextPageData.messages,
+                    messageId,
+                  );
+
+                  return {
+                    ...page,
+                    data: nextPageData,
+                  };
+                }),
+              };
+            },
+          );
+
+          queryClient.invalidateQueries({
+            queryKey: chatwootOmniKeys.tenantConversation(
+              tenantId,
+              conversationId,
+            ),
+          });
+        },
+        onError: () => {
+          setDeletedMessageIds((prev) => {
+            const next = new Set(prev);
+            next.delete(messageId);
+            return next;
+          });
+        },
+      },
+    );
+  };
+
   return (
     <div className="relative flex-1 min-h-0">
       <ScrollArea
@@ -452,12 +657,36 @@ export function MessageList({
 
               <div className="space-y-3">
                 {group.messages.map((message, messageIndex) => {
+                  const messageId = getMessageId(message, messageIndex);
+                  const isDeletedByPayload = isDeletedMessage(message);
+                  const isDeleted = isDeletedByPayload || deletedMessageIds.has(messageId);
+                  const isSystemMessage = message.message_type === 2;
+
+                  if (isSystemMessage) {
+                    return (
+                      <div key={messageId} className="flex justify-center py-1">
+                        <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                          {getMessageContent(message) || "Thông báo hệ thống"}
+                        </div>
+                      </div>
+                    );
+                  }
+
                   const senderId = getMessageSenderId(message);
                   const isCustomerMessage = message.sender?.type !== "user";
                   const isOwnMessage =
                     message.sender?.type === "user" ||
                     senderId === currentUserId;
                   const user = getUserById(senderId, isOwnMessage);
+                  const avatarName =
+                    user?.name ??
+                    message.sender?.available_name ??
+                    message.sender?.name ??
+                    "Guest";
+                  const avatarSrc =
+                    message.sender?.avatar_url ??
+                    message.sender?.thumbnail ??
+                    user?.avatar;
 
                   const showName =
                     isCustomerMessage && shouldShowName(message, messageIndex);
@@ -465,7 +694,6 @@ export function MessageList({
                     message,
                     messageIndex,
                   );
-                  const messageId = getMessageId(message, messageIndex);
                   const messageTimestamp = getMessageTimestamp(message);
                   const messageContent = getMessageContent(message);
                   const attachments = Array.isArray(message.attachments)
@@ -481,14 +709,16 @@ export function MessageList({
                         // isConsecutive && !isOwnMessage && "ml-12",
                       )}
                     >
-                      <div className="w-8">
-                        <Avatar className="size-8 cursor-pointer">
-                          <AvatarImage />
-                          <AvatarFallback className="text-xs bg-linear-to-br from-primary/20 to-primary/10">
-                            G
-                          </AvatarFallback>
-                        </Avatar>
-                      </div>
+                      {!isOwnMessage && (
+                        <div className="w-8">
+                          <Avatar className="size-8 cursor-pointer">
+                            <AvatarImage src={avatarSrc} alt={avatarName} />
+                            <AvatarFallback className="text-xs bg-linear-to-br from-primary/20 to-primary/10">
+                              {getAvatarInitials(avatarName)}
+                            </AvatarFallback>
+                          </Avatar>
+                        </div>
+                      )}
 
                       <div
                         className={cn(
@@ -513,90 +743,104 @@ export function MessageList({
                               : "justify-start w-full",
                           )}
                         >
-                          <div
-                            className={cn(
-                              "flex items-center gap-1 opacity-0 transition-all duration-200 pointer-events-none group-hover/message:opacity-100 group-hover/message:pointer-events-auto",
-                              isOwnMessage ? "order-1 mr-2" : "order-2 ml-2",
-                            )}
-                          >
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                          {!isDeleted && (
+                            <div
+                              className={cn(
+                                "flex items-center gap-1 opacity-0 transition-all duration-200 pointer-events-none group-hover/message:opacity-100 group-hover/message:pointer-events-auto",
+                                isOwnMessage ? "order-1 mr-2" : "order-2 ml-2",
+                              )}
                             >
-                              <SmilePlus className="size-4" />
-                            </Button>
-
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
-                            >
-                              <Reply className="size-4" />
-                            </Button>
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
-                                >
-                                  <MoreVertical className="size-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align={isOwnMessage ? "start" : "end"}
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
                               >
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Reply className="size-4" />
-                                  Reply
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer">
-                                  <Copy className="size-4" />
-                                  Copy
-                                </DropdownMenuItem>
-                                {isOwnMessage && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="cursor-pointer text-destructive focus:text-destructive">
-                                      <Trash2 className="size-4" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+                                <SmilePlus className="size-4" />
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                              >
+                                <Reply className="size-4" />
+                              </Button>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+                                  >
+                                    <MoreVertical className="size-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align={isOwnMessage ? "start" : "end"}
+                                >
+                                  <DropdownMenuItem className="cursor-pointer">
+                                    <Reply className="size-4" />
+                                    Phản hồi
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="cursor-pointer">
+                                    <Copy className="size-4" />
+                                    Sao chép tin nhắn
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-destructive focus:text-destructive"
+                                    disabled={isDeletingMessage}
+                                    onClick={() =>
+                                      requestDeleteMessage(
+                                        messageId,
+                                        isCustomerMessage,
+                                      )
+                                    }
+                                  >
+                                    <Trash2 className="size-4 text-destructive" />
+                                    Xóa tin nhắn
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          )}
 
                           <div
                             className={cn(
                               "rounded-2xl px-4 py-2.5 text-sm shadow-sm w-fit max-w-full wrap-break-word whitespace-pre-wrap",
                               isOwnMessage ? "order-2" : "order-1",
-                              isOwnMessage
+                              isDeleted
+                                ? "bg-muted/60 text-muted-foreground italic"
+                                : isOwnMessage
                                 ? "bg-primary text-primary-foreground rounded-br-md ml-auto"
                                 : "bg-muted rounded-bl-md",
                               isConsecutive && "mt-1",
                             )}
                           >
-                            <p>{messageContent}</p>
+                            <p>
+                              {isDeleted
+                                ? "Tin nhắn đã bị xóa"
+                                : messageContent}
+                            </p>
 
-                            {attachments.length > 0 && (
-                              <div className="flex flex-wrap gap-2 mt-2">
-                                {attachments.map(
-                                  (attachment, attachmentIndex) => (
-                                    <MessageAttachment
-                                      key={`${messageId}-attachment-${attachment.id ?? attachmentIndex}`}
-                                      attachment={attachment}
-                                      isOwnMessage={isOwnMessage}
-                                    />
-                                  ),
-                                )}
-                              </div>
-                            )}
+                            {attachments.length > 0 &&
+                              !isDeleted && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {attachments.map(
+                                    (attachment, attachmentIndex) => (
+                                      <MessageAttachment
+                                        key={`${messageId}-attachment-${attachment.id ?? attachmentIndex}`}
+                                        attachment={attachment}
+                                        isOwnMessage={isOwnMessage}
+                                      />
+                                    ),
+                                  )}
+                                </div>
+                              )}
 
                             <div
                               className={cn(
@@ -639,6 +883,23 @@ export function MessageList({
           Trở lại
         </Button>
       )}
+      <ConfirmDialog
+        open={Boolean(pendingDeleteMessage)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteMessage(null);
+        }}
+        title="Xác nhận xóa tin nhắn"
+        description={
+          pendingDeleteMessage?.isCustomer
+            ? "Tin nhắn khách sẽ bị xóa ở phía bạn và không thể khôi phục. Bạn vẫn muốn tiếp tục xóa tin nhắn này?"
+            : "Tin nhắn sẽ bị xóa và không thể khôi phục. Bạn vẫn muốn tiếp tục xóa tin nhắn này?"
+        }
+        confirmText="Xóa tin nhắn"
+        cancelText="Hủy"
+        confirmVariant="destructive"
+        loading={isDeletingMessage}
+        onConfirm={handleConfirmDeleteMessage}
+      />
     </div>
   );
 }

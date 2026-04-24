@@ -64,7 +64,7 @@ export function PaymentVolumeChart() {
     <Card className="h-full border-border/50 bg-linear-to-br from-blue-500/5 via-background to-background shadow-sm transition-shadow hover:shadow-md overflow-hidden min-w-0">
       <CardHeader className="flex flex-col space-y-4 pb-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
         <div>
-          <CardTitle>Payment Volume</CardTitle>
+          <CardTitle>Doanh thu</CardTitle>
           <CardDescription>
             {metric === "volume"
               ? "Total payment volume over time"

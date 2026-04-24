@@ -55,25 +55,25 @@ interface CommandSearchProps {
 
 const searchItems: SearchItem[] = [
   {
-    title: "Dashboard",
+    title: "Tổng quan",
     url: "/dashboard",
     group: "Dashboards",
     icon: IconLayoutDashboard,
   },
   {
-    title: "Business Dashboard",
+    title: "Báo cáo kinh doanh",
     url: "/dashboard2",
     group: "Dashboards",
     icon: IconChartBar,
   },
   {
-    title: "Payment Dashboard",
+    title: "Báo cáo vận hành",
     url: "/payment-dashboard",
     group: "Dashboards",
     icon: IconCreditCard,
   },
   {
-    title: "Payment Transactions",
+    title: "Báo cáo giao dịch",
     url: "/payment-transactions",
     group: "Dashboards",
     icon: IconArrowsExchange,
