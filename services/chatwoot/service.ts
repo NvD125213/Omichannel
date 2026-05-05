@@ -408,6 +408,9 @@ export const chatwootService = {
       await apiClient.post<CreateTenantConversationMessageResponse>(
         `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/messages`,
         data,
+        data instanceof FormData
+          ? { headers: { "Content-Type": "multipart/form-data" } }
+          : undefined,
       );
     return response.data;
   },

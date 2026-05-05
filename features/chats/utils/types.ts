@@ -1,3 +1,19 @@
+/** Trạng thái của một tin nhắn đang gửi (optimistic UI) */
+export type PendingMessageStatus = "sending" | "failed";
+
+export interface PendingMessage {
+  /** ID tạm (opt-xxx), chỉ tồn tại ở phía client */
+  id: string;
+  content: string;
+  /** Số file đính kèm */
+  filesCount: number;
+  created_at: string;
+  status: PendingMessageStatus;
+  conversationId: string;
+  /** Hàm thử gửi lại khi thất bại */
+  retry?: () => Promise<void>;
+}
+
 export interface ChatUser {
   id: string;
   name: string;
@@ -7,6 +23,13 @@ export interface ChatUser {
   lastSeen: string;
   role: string;
   department: string;
+}
+
+/** Trích dẫn tin đang phản hồi trong composer */
+export interface ReplyDraft {
+  messageId: string;
+  preview: string;
+  senderLabel: string;
 }
 
 export interface MessageAttachment {
@@ -54,19 +77,7 @@ export interface ChatMessage {
       source_id?: string;
     };
   };
-  attachments?: [
-    {
-      id?: string;
-      message_id?: string;
-      file_type?: string;
-      extension?: string;
-      data_url?: string;
-      thumb_url?: string;
-      file_size?: number;
-      width?: number;
-      height?: number;
-    },
-  ];
+  attachments?: MessageAttachment[];
   sender?: {
     id: 1;
     name?: string;

@@ -30,7 +30,10 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useCreateChatwootAgent } from "@/hooks/chatwoot/use-chatwoot";
+import {
+  useCreateChatwootAgent,
+  useUpdateChatwootAgent,
+} from "@/hooks/chatwoot/use-chatwoot";
 import { useMe } from "@/hooks/user/use-me";
 import {
   addAgentDefaultValues,
@@ -44,6 +47,7 @@ const SUPPLIER_TYPE_LABEL = {
 } as const;
 
 export type AddedAgentPayload = {
+  id?: string;
   name: string;
   email: string;
   role: keyof typeof SUPPLIER_TYPE_LABEL;
@@ -54,12 +58,14 @@ interface AddAgentDialogProps {
   onAgentAdded?: (agent: AddedAgentPayload) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  editAgent?: AddedAgentPayload | null;
 }
 
 export function AddAgentDialog({
   onAgentAdded,
   open: controlledOpen,
   onOpenChange,
+  editAgent = null,
 }: AddAgentDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled =
@@ -73,40 +79,67 @@ export function AddAgentDialog({
     mode: "onChange",
   });
   const createChatwootAgentMutation = useCreateChatwootAgent();
+  const updateChatwootAgentMutation = useUpdateChatwootAgent();
   const { data: currentUser } = useMe();
   const tenantId = currentUser?.tenant_id ?? "";
+  const isEditMode = Boolean(editAgent?.id);
 
   useEffect(() => {
     if (open) {
-      form.reset(addAgentDefaultValues);
+      if (isEditMode && editAgent) {
+        form.reset({
+          supplier_name: editAgent.name,
+          email: editAgent.email,
+          supplier_type: editAgent.role,
+        });
+      } else {
+        form.reset(addAgentDefaultValues);
+      }
     }
-  }, [open, form]);
+  }, [open, form, editAgent, isEditMode]);
 
   function handleSubmit(values: AddAgentFormValues) {
     if (!tenantId) return;
 
+    const mappedRole: "administrator" | "agent" =
+      values.supplier_type === "admin" ? "administrator" : "agent";
+    const payload = {
+      name: values.supplier_name,
+      email: values.email,
+      role: mappedRole,
+      availability_status: "available" as const,
+      auto_offline: false,
+    };
+
+    const onSuccess = () => {
+      onAgentAdded?.({
+        id: editAgent?.id,
+        name: values.supplier_name,
+        email: values.email,
+        role: values.supplier_type,
+      });
+      form.reset(addAgentDefaultValues);
+      setOpen(false);
+    };
+
+    if (isEditMode && editAgent?.id) {
+      updateChatwootAgentMutation.mutate(
+        {
+          tenantId,
+          agentId: editAgent.id,
+          data: payload,
+        },
+        { onSuccess },
+      );
+      return;
+    }
+
     createChatwootAgentMutation.mutate(
       {
         tenantId,
-        data: {
-          name: values.supplier_name,
-          email: values.email,
-          role: values.supplier_type === "admin" ? "administrator" : "agent",
-          availability_status: "available",
-          auto_offline: false,
-        },
+        data: payload,
       },
-      {
-        onSuccess: () => {
-          onAgentAdded?.({
-            name: values.supplier_name,
-            email: values.email,
-            role: values.supplier_type,
-          });
-          form.reset(addAgentDefaultValues);
-          setOpen(false);
-        },
-      },
+      { onSuccess },
     );
   }
 
@@ -123,10 +156,13 @@ export function AddAgentDialog({
 
       <DialogContent className="gap-6 rounded-xl sm:max-w-md" showCloseButton>
         <DialogHeader className="gap-2 space-y-0">
-          <DialogTitle>Thêm đại lý vào nhóm của bạn</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? "Cập nhật đại lý" : "Thêm đại lý vào nhóm của bạn"}
+          </DialogTitle>
           <DialogDescription>
-            Bạn có thể thêm những người có thể xử lý hỗ trợ cho hộp thư đến của
-            bạn.
+            {isEditMode
+              ? "Chỉnh sửa thông tin đại lý trong hệ thống."
+              : "Bạn có thể thêm những người có thể xử lý hỗ trợ cho hộp thư đến của bạn."}
           </DialogDescription>
         </DialogHeader>
 
@@ -216,12 +252,17 @@ export function AddAgentDialog({
                 disabled={
                   !tenantId ||
                   createChatwootAgentMutation.isPending ||
+                  updateChatwootAgentMutation.isPending ||
                   !form.formState.isValid
                 }
               >
-                {createChatwootAgentMutation.isPending
-                  ? "Đang thêm..."
-                  : "Thêm nhà cung cấp"}
+                {isEditMode
+                  ? updateChatwootAgentMutation.isPending
+                    ? "Đang cập nhật..."
+                    : "Cập nhật"
+                  : createChatwootAgentMutation.isPending
+                    ? "Đang thêm..."
+                    : "Thêm nhà cung cấp"}
               </Button>
             </DialogFooter>
           </form>

@@ -22,7 +22,6 @@ import { useMemo, useState } from "react";
 import {
   useDeleteChatwootAgent,
   useListChatwootAgents,
-  useUpdateChatwootAgent,
 } from "@/hooks/chatwoot/use-chatwoot";
 import { useMe } from "@/hooks/user/use-me";
 import { AddAgentDialog } from "./add-agent-form";
@@ -33,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { EmptyData } from "@/components/empty-data";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export type AgentRole = "admin" | "supplier";
 export type AgentVerification = "verified" | "pending";
@@ -81,7 +81,8 @@ const AVAILABILITY_BADGE_CLASS: Record<AgentAvailability, string> = {
   available:
     "border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
   busy: "border-orange-200 bg-orange-100 text-orange-700 dark:border-orange-900/50 dark:bg-orange-950/40 dark:text-orange-300",
-  offline: "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300",
+  offline:
+    "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300",
 };
 
 const AVATAR_BG = [
@@ -192,6 +193,11 @@ function normalizeAgent(
 
 export default function AgentList() {
   const [query, setQuery] = useState("");
+  const [editingAgent, setEditingAgent] = useState<AgentItem | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [pendingDeleteAgent, setPendingDeleteAgent] = useState<AgentItem | null>(
+    null,
+  );
   const { data: currentUser } = useMe();
   const tenantId = currentUser?.tenant_id ?? "";
   const {
@@ -200,7 +206,6 @@ export default function AgentList() {
     isFetching: isFetchingAgents,
   } = useListChatwootAgents(tenantId);
   const deleteChatwootAgentMutation = useDeleteChatwootAgent();
-  const updateChatwootAgentMutation = useUpdateChatwootAgent();
 
   const agents = useMemo(() => {
     const records = extractAgentRecords(listAgentsResponse);
@@ -236,6 +241,23 @@ export default function AgentList() {
 
         <div className="flex shrink-0 items-center gap-3">
           <AddAgentDialog />
+          <AddAgentDialog
+            open={isEditDialogOpen}
+            onOpenChange={(open) => {
+              setIsEditDialogOpen(open);
+              if (!open) setEditingAgent(null);
+            }}
+            editAgent={
+              editingAgent
+                ? {
+                    id: editingAgent.id,
+                    name: editingAgent.name,
+                    email: editingAgent.email,
+                    role: editingAgent.role,
+                  }
+                : null
+            }
+          />
         </div>
       </div>
 
@@ -340,7 +362,10 @@ export default function AgentList() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 cursor-pointer"
-                      disabled
+                      onClick={() => {
+                        setEditingAgent(agent);
+                        setIsEditDialogOpen(true);
+                      }}
                     >
                       <Pencil className="size-4" />
                       <span className="sr-only">Sửa</span>
@@ -358,84 +383,12 @@ export default function AgentList() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          className="cursor-pointer"
-                          disabled={
-                            updateChatwootAgentMutation.isPending || !tenantId
-                          }
-                          onClick={() => {
-                            updateChatwootAgentMutation.mutate({
-                              tenantId,
-                              agentId: agent.id,
-                              data: {
-                                role:
-                                  agent.role === "admin"
-                                    ? "administrator"
-                                    : "agent",
-                                availability_status: "available",
-                              },
-                            });
-                          }}
-                        >
-                          Đặt thành available
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          disabled={
-                            updateChatwootAgentMutation.isPending || !tenantId
-                          }
-                          onClick={() => {
-                            updateChatwootAgentMutation.mutate({
-                              tenantId,
-                              agentId: agent.id,
-                              data: {
-                                role:
-                                  agent.role === "admin"
-                                    ? "administrator"
-                                    : "agent",
-                                availability_status: "busy",
-                              },
-                            });
-                          }}
-                        >
-                          Đặt thành busy
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          disabled={
-                            updateChatwootAgentMutation.isPending || !tenantId
-                          }
-                          onClick={() => {
-                            updateChatwootAgentMutation.mutate({
-                              tenantId,
-                              agentId: agent.id,
-                              data: {
-                                role:
-                                  agent.role === "admin"
-                                    ? "administrator"
-                                    : "agent",
-                                availability_status: "offline",
-                              },
-                            });
-                          }}
-                        >
-                          Đặt thành offline
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
                           variant="destructive"
                           className="cursor-pointer"
                           disabled={
                             deleteChatwootAgentMutation.isPending || !tenantId
                           }
-                          onClick={() => {
-                            const confirmed = window.confirm(
-                              `Xóa đại lý “${agent.name}”? Hành động này không thể hoàn tác.`,
-                            );
-                            if (!confirmed) return;
-                            deleteChatwootAgentMutation.mutate({
-                              tenantId,
-                              agentId: agent.id,
-                            });
-                          }}
+                          onClick={() => setPendingDeleteAgent(agent)}
                         >
                           <Trash2 className="size-4" />
                           Xóa
@@ -452,6 +405,30 @@ export default function AgentList() {
       {isFetchingAgents && !isLoadingAgents ? (
         <p className="text-muted-foreground text-xs">Đang đồng bộ dữ liệu...</p>
       ) : null}
+      <ConfirmDialog
+        open={Boolean(pendingDeleteAgent)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteAgent(null);
+        }}
+        title="Xác nhận xóa đại lý"
+        description={`Xóa đại lý “${pendingDeleteAgent?.name ?? ""}”? Hành động này không thể hoàn tác.`}
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmVariant="destructive"
+        loading={deleteChatwootAgentMutation.isPending}
+        onConfirm={() => {
+          if (!pendingDeleteAgent || !tenantId) return;
+          deleteChatwootAgentMutation.mutate(
+            {
+              tenantId,
+              agentId: pendingDeleteAgent.id,
+            },
+            {
+              onSuccess: () => setPendingDeleteAgent(null),
+            },
+          );
+        }}
+      />
     </div>
   );
 }

@@ -206,7 +206,11 @@ export const useListTenantConversationMessages = (
   const enabled = isValidId(safeTenantId) && isValidId(safeConversationId);
 
   return useInfiniteQuery({
-    queryKey: ["tenantMessages", safeTenantId, safeConversationId, params],
+    queryKey: chatwootOmniKeys.tenantConversationMessages(
+      safeTenantId,
+      safeConversationId,
+      params,
+    ),
     initialPageParam: params?.before ?? null,
     queryFn: ({ pageParam }) =>
       chatwootService.listTenantConversationMessages(
@@ -235,13 +239,19 @@ export const useListTenantConversationMessages = (
       if (!Array.isArray(payloadCandidate) || payloadCandidate.length < 20) {
         return undefined;
       }
+      const toNumericMessageId = (message: unknown): number | null => {
+        if (!message || typeof message !== "object") return null;
+        const raw = (message as Record<string, unknown>).id;
+        if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+        if (typeof raw === "string" && raw.trim() !== "") {
+          const n = Number(raw);
+          return Number.isFinite(n) ? n : null;
+        }
+        return null;
+      };
       const messageIds = payloadCandidate
-        .map((message) =>
-          message && typeof message === "object"
-            ? Number((message as Record<string, unknown>).id)
-            : NaN,
-        )
-        .filter((id) => Number.isFinite(id));
+        .map((message) => toNumericMessageId(message))
+        .filter((id): id is number => id !== null);
 
       if (messageIds.length === 0) {
         return undefined;

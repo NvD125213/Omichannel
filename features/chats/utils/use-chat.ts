@@ -1,6 +1,7 @@
 "use client";
 
 import { create } from "zustand";
+import { coerceToDate } from "@/helpers/format-message-time";
 import type { ChatConversation, ChatMessage, ChatUser } from "./types";
 
 export type {
@@ -8,6 +9,7 @@ export type {
   ChatMessage,
   ChatUser,
   MessageAttachment,
+  ReplyDraft,
 } from "./types";
 
 interface ChatState {
@@ -77,10 +79,9 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
                 id: String(message.id ?? `msg-${Date.now()}`),
                 content:
                   message.content ?? message.processed_message_content ?? "",
-                timestamp:
-                  message.created_at ??
-                  message.updated_at ??
-                  new Date().toISOString(),
+                timestamp: String(
+                  coerceToDate(message.created_at ?? message.updated_at),
+                ),
                 senderId:
                   message.sender_id ??
                   (typeof message.sender?.id === "number"

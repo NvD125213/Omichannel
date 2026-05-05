@@ -24,7 +24,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ChatConversation, ChatMessage, ChatUser } from "../utils/types";
+import type {
+  ChatConversation,
+  ChatUser,
+  PendingMessage,
+  ReplyDraft,
+} from "../utils/types";
 import { useChat } from "../utils/use-chat";
 import { ChatConversationList } from "./chat-conversation-list";
 import {
@@ -36,12 +41,7 @@ import { MessageInput } from "./message-input";
 import { MessageList } from "./message-list";
 import { EmptyData } from "@/components/empty-data";
 import { StringParam, useQueryParams } from "use-query-params";
-
-interface ChatProps {
-  conversations: ChatConversation[];
-  messages: Record<string, ChatMessage[]>;
-  users: ChatUser[];
-}
+import { coerceToDate } from "@/helpers/format-message-time";
 
 /** Params list conversations — GET `/api/v1/chatwoot/tenants/:tenant_id/conversations` */
 const TENANT_CONVERSATION_LIST_BASE = {
@@ -50,15 +50,6 @@ const TENANT_CONVERSATION_LIST_BASE = {
   page: 1,
   sort_by: "last_activity_at_desc",
 } as const satisfies Partial<ListTenantConversationsParams>;
-
-const toIsoString = (value: unknown): string => {
-  if (typeof value === "string" && value.length > 0) return value;
-  if (typeof value === "number") {
-    // Chatwoot có thể trả unix timestamp (giây) cho một số field thời gian
-    return new Date(value * 1000).toISOString();
-  }
-  return new Date().toISOString();
-};
 
 const normalizeConversation = (
   conversation: Record<string, unknown>,
@@ -103,7 +94,7 @@ const normalizeConversation = (
       conversation["last_activity_message"]) ||
     "Chưa có tin nhắn";
 
-  const lastMessageTimestamp = toIsoString(
+  const lastMessageTimestamp = coerceToDate(
     lastMessage.created_at ??
       conversation.updated_at ??
       conversation.created_at,
@@ -121,7 +112,7 @@ const normalizeConversation = (
           ? String(lastMessage.id)
           : `last-${conversationId}`,
       content: lastMessageContent,
-      timestamp: lastMessageTimestamp,
+      timestamp: String(lastMessageTimestamp),
       senderId,
     },
     unreadCount,
@@ -203,7 +194,8 @@ const extractTenantListMetaFromPages = (
   return null;
 };
 
-export function Chat({ conversations, messages, users }: ChatProps) {
+export function Chat() {
+  const users: ChatUser[] = [];
   const [query, setQuery] = useQueryParams({
     conversation_id: StringParam,
   });
@@ -257,12 +249,9 @@ export function Chat({ conversations, messages, users }: ChatProps) {
     [chatwootPayload],
   );
 
-  // Chỉ fallback về mock khi response chưa có payload (chưa load / shape khác),
-  // nếu payload rỗng thì vẫn tôn trọng API để UI hiển thị rỗng.
   const displayConversations = useMemo(
-    () =>
-      chatwootPayload !== null ? mappedChatwootConversations : conversations,
-    [chatwootPayload, mappedChatwootConversations, conversations],
+    () => mappedChatwootConversations,
+    [mappedChatwootConversations],
   );
 
   // Lấy meta từ data trả về (thành phần trong response là meta)
@@ -305,9 +294,6 @@ export function Chat({ conversations, messages, users }: ChatProps) {
     selectedConversation: selectedConversationInStore,
     setSelectedConversation,
     setConversations,
-    setMessages,
-    setUsers,
-    addMessage,
     toggleMute,
   } = chatStore;
   const selectedConversation = selectedConversationFromQuery;
@@ -317,6 +303,13 @@ export function Chat({ conversations, messages, users }: ChatProps) {
     useState(false);
   const [isConversationListCollapsed, setIsConversationListCollapsed] =
     useState(false);
+  const [replyDraft, setReplyDraft] = useState<ReplyDraft | null>(null);
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
+
+  useEffect(() => {
+    setReplyDraft(null);
+    setPendingMessages([]);
+  }, [selectedConversation]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -338,27 +331,17 @@ export function Chat({ conversations, messages, users }: ChatProps) {
 
   useEffect(() => {
     setConversations(displayConversations);
-    setUsers(users);
-
-    Object.entries(messages).forEach(
-      ([conversationId, conversationMessages]) => {
-        setMessages(conversationId, conversationMessages);
-      },
-    );
-  }, [
-    displayConversations,
-    messages,
-    users,
-    setConversations,
-    setMessages,
-    setUsers,
-  ]);
+  }, [displayConversations, setConversations]);
 
   useEffect(() => {
     if (selectedConversationInStore !== selectedConversation) {
       setSelectedConversation(selectedConversation);
     }
-  }, [selectedConversation, selectedConversationInStore, setSelectedConversation]);
+  }, [
+    selectedConversation,
+    selectedConversationInStore,
+    setSelectedConversation,
+  ]);
 
   // Lấy conversation sau khi đã chọn
   const currentConversation = displayConversations.find(
@@ -367,27 +350,48 @@ export function Chat({ conversations, messages, users }: ChatProps) {
 
   const storeMessages = chatStore.messages;
   const currentMessages = useMemo(
-    () =>
-      selectedConversation
-        ? storeMessages[selectedConversation] ||
-          messages[selectedConversation] ||
-          []
-        : [],
-    [messages, selectedConversation, storeMessages],
+    () => (selectedConversation ? storeMessages[selectedConversation] ?? [] : []),
+    [selectedConversation, storeMessages],
   );
 
-  const handleSendMessage = (content: string) => {
-    if (!selectedConversation) return;
-
-    const newMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      content,
-      created_at: new Date().toISOString(),
-      sender_id: "current-user",
-    };
-
-    addMessage(selectedConversation, newMessage);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSendMessage = (_content: string) => {
+    // Tin nhắn thực sẽ xuất hiện sau khi React Query invalidate và refetch
   };
+
+  const handleBeforeSend = useCallback(
+    (id: string, content: string, filesCount: number) => {
+      if (!selectedConversation) return;
+      setPendingMessages((prev) => [
+        ...prev,
+        {
+          id,
+          content,
+          filesCount,
+          created_at: new Date().toISOString(),
+          status: "sending",
+          conversationId: selectedConversation,
+        },
+      ]);
+    },
+    [selectedConversation],
+  );
+
+  const handleSendResult = useCallback(
+    (id: string, succeeded: boolean, retry?: () => Promise<void>) => {
+      if (succeeded) {
+        // Xóa tin nhắn tạm sau khi query refetch xong (~1s)
+        setTimeout(() => {
+          setPendingMessages((prev) => prev.filter((m) => m.id !== id));
+        }, 1200);
+      } else {
+        setPendingMessages((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, status: "failed", retry } : m)),
+        );
+      }
+    },
+    [],
+  );
 
   const handleToggleMute = () => {
     if (selectedConversation) {
@@ -409,7 +413,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
 
   return (
     <TooltipProvider delayDuration={450} skipDelayDuration={200}>
-      <div className="h-[calc(95vh-180px)] min-h-[500px] flex rounded-xl border shadow-sm overflow-hidden bg-background">
+      <div className="flex min-h-0 flex-1 w-full rounded-xl border shadow-sm overflow-hidden">
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -419,14 +423,14 @@ export function Chat({ conversations, messages, users }: ChatProps) {
 
         <div
           className={cn(
-            "w-100 border-r bg-background shrink-0 fixed inset-y-0 left-0 z-50 transition-[width,transform] duration-500 ease-in-out lg:relative lg:block",
+            "w-100 border-r shrink-0 fixed inset-y-0 left-0 z-50 transition-[width,transform] duration-500 ease-in-out lg:relative lg:block",
             isSidebarOpen
               ? "translate-x-0"
               : "-translate-x-full lg:translate-x-0",
             sidebarDesktopWidthClass,
           )}
         >
-          <div className="h-16 px-4 border-b flex items-center justify-between gap-2 overflow-hidden bg-background">
+          <div className="h-16 px-4 border-b flex items-center justify-between gap-2 overflow-hidden">
             <h2 className="flex min-w-0 flex-1 items-center gap-2 text-lg font-semibold leading-none">
               <MessagesSquare
                 className={cn(
@@ -478,7 +482,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <div className="flex items-center rounded-md border bg-muted/30 p-1">
+                <div className="flex items-center rounded-md border p-1">
                   <Button
                     variant={
                       !isNotificationSidebarCollapsed ? "secondary" : "ghost"
@@ -553,7 +557,7 @@ export function Chat({ conversations, messages, users }: ChatProps) {
             </div>
             <div
               className={cn(
-                "min-w-0 border-l bg-background transition-[width] duration-500 ease-in-out",
+                "min-w-0 border-l transition-[width] duration-500 ease-in-out",
                 isConversationListCollapsed
                   ? "w-20"
                   : isNotificationSidebarCollapsed
@@ -580,8 +584,8 @@ export function Chat({ conversations, messages, users }: ChatProps) {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col min-w-0 bg-background">
-          <div className="flex items-center h-16 px-4 border-b bg-background">
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex items-center h-16 px-4 border-b">
             <Button
               variant="ghost"
               size="sm"
@@ -608,6 +612,8 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                   users={users}
                   tenantId={tenantId}
                   conversationId={selectedConversation}
+                  onReplyToMessage={setReplyDraft}
+                  pendingMessages={pendingMessages}
                 />
 
                 <MessageInput
@@ -615,6 +621,10 @@ export function Chat({ conversations, messages, users }: ChatProps) {
                   conversationId={selectedConversation}
                   onSendMessage={handleSendMessage}
                   placeholder={`Message ${currentConversation?.name || ""}...`}
+                  replyDraft={replyDraft}
+                  onClearReply={() => setReplyDraft(null)}
+                  onBeforeSend={handleBeforeSend}
+                  onSendResult={handleSendResult}
                 />
               </>
             ) : (

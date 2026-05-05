@@ -1,26 +1,41 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Hash, Pin, Search, Users, VolumeX, Inbox } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Hash,
+  Pin,
+  Search,
+  Users,
+  VolumeX,
+  Inbox,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyData } from "@/components/empty-data";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
+
+const TAB_CYCLE: Array<"mine" | "unread" | "all"> = ["mine", "unread", "all"];
+const TAB_COLORS: Record<string, string> = {
+  mine: "bg-red-500",
+  unread: "bg-amber-500",
+  all: "bg-green-500",
+};
+const TAB_LABELS: Record<string, string> = {
+  mine: "Cho bạn",
+  unread: "Chưa đọc",
+  all: "Tất cả",
+};
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { formatMessageTime } from "@/helpers/format-message-time";
+import { formatMessageTime, getTime } from "@/helpers/format-message-time";
 import { cn } from "@/lib/utils";
 import type { TenantConversationsListMeta } from "@/services/chatwoot/interface";
 import type { ChatConversation, ChatUser } from "../utils/types";
@@ -128,8 +143,7 @@ export function ChatConversationList({
       if (!a.isPinned && b.isPinned) return 1;
 
       return (
-        new Date(b.lastMessage.timestamp).getTime() -
-        new Date(a.lastMessage.timestamp).getTime()
+        getTime(b.lastMessage.timestamp) - getTime(a.lastMessage.timestamp)
       );
     });
   }, [activeTab, conversations, searchQuery]);
@@ -162,68 +176,60 @@ export function ChatConversationList({
 
     return (
       <div className="flex h-full flex-col overflow-hidden">
-        <div className="p-2 border-b">
-          <Select
-            value={activeTab}
-            onValueChange={(value) =>
-              setActiveTab(value as "mine" | "unread" | "all")
-            }
+        {/* Compact tab slider for collapsed sidebar */}
+        <div className="flex items-center justify-between gap-0.5 border-b px-1 py-1.5">
+          <button
+            type="button"
+            aria-label="Tab trước"
+            onClick={() => {
+              const idx = TAB_CYCLE.indexOf(activeTab);
+              setActiveTab(
+                TAB_CYCLE[(idx - 1 + TAB_CYCLE.length) % TAB_CYCLE.length],
+              );
+            }}
+            className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <SelectTrigger
-              size="sm"
-              className="w-full h-8 px-2 text-xs rounded-lg"
-              aria-label="Lọc cuộc trò chuyện"
+            <ChevronLeft className="size-3.5" />
+          </button>
+
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -5 }}
+              transition={{ duration: 0.15 }}
+              className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
             >
-              {activeTab === "all" ? (
-                <span className="flex items-center gap-2">
-                  {/* <span>Tất cả</span> */}
-                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-green-500 text-[11px] font-semibold tabular-nums text-white">
-                    {tabAllCount}
-                  </span>
-                </span>
-              ) : activeTab === "mine" ? (
-                <span className="flex items-center gap-2">
-                  {/* <span>Dành cho bạn</span> */}
-                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-semibold tabular-nums text-white">
-                    {tabMineCount}
-                  </span>
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  {/* <span>Chưa đọc</span> */}
-                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-amber-500 text-[11px] font-semibold tabular-nums text-white">
-                    {tabUnreadCount}
-                  </span>
-                </span>
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">
-                <span className="flex items-center gap-2">
-                  <span>Tất cả</span>
-                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-green-500 text-[11px] font-semibold tabular-nums text-white">
-                    {tabAllCount}
-                  </span>
-                </span>
-              </SelectItem>
-              <SelectItem value="mine">
-                <span className="flex items-center gap-2">
-                  <span>Dành cho bạn</span>
-                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-semibold tabular-nums text-white">
-                    {tabMineCount}
-                  </span>
-                </span>
-              </SelectItem>
-              <SelectItem value="unread">
-                <span className="flex items-center gap-2">
-                  <span>Chưa đọc</span>
-                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-amber-500 text-[11px] font-semibold tabular-nums text-white">
-                    {tabUnreadCount}
-                  </span>
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+              <span
+                className={cn(
+                  "inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums text-white",
+                  TAB_COLORS[activeTab],
+                )}
+              >
+                {activeTab === "mine"
+                  ? tabMineCount
+                  : activeTab === "unread"
+                    ? tabUnreadCount
+                    : tabAllCount}
+              </span>
+              <span className="truncate text-center text-[9px] leading-none text-muted-foreground">
+                {TAB_LABELS[activeTab]}
+              </span>
+            </motion.div>
+          </AnimatePresence>
+
+          <button
+            type="button"
+            aria-label="Tab tiếp theo"
+            onClick={() => {
+              const idx = TAB_CYCLE.indexOf(activeTab);
+              setActiveTab(TAB_CYCLE[(idx + 1) % TAB_CYCLE.length]);
+            }}
+            className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <ChevronRight className="size-3.5" />
+          </button>
         </div>
 
         <ScrollArea
@@ -283,22 +289,22 @@ export function ChatConversationList({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="px-4 py-3 border-b shrink-0">
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
           <Skeleton className="h-9 w-full rounded-md" />
         </div>
 
-        <div className="px-3 pt-3 pb-2 border-b shrink-0">
-          <Skeleton className="h-11 w-full rounded-2xl" />
+        <div className="px-2 sm:px-3 pt-2 sm:pt-3 pb-2 border-b shrink-0">
+          <Skeleton className="h-11 w-full min-w-0 rounded-2xl" />
         </div>
 
-        <div className="flex-1 p-2 space-y-2">
+        <div className="flex-1 min-h-0 p-2 space-y-2 overflow-hidden">
           {Array.from({ length: 7 }).map((_, idx) => (
             <div
               key={idx}
-              className="flex items-center gap-3 p-3 rounded-xl border border-border/50"
+              className="flex min-w-0 items-center gap-2 p-2 sm:gap-3 sm:p-3 rounded-xl border border-border/50"
             >
-              <Skeleton className="h-12 w-12 rounded-full shrink-0" />
+              <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-full shrink-0" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-4 w-2/3 rounded" />
                 <Skeleton className="h-3 w-5/6 rounded" />
@@ -313,22 +319,22 @@ export function ChatConversationList({
 
   if (isEmptyByMeta) {
     return (
-      <div className="flex flex-col h-full overflow-hidden">
-        <div className="px-4 py-3 border-b shrink-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+      <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
+          <div className="relative min-w-0">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
             <Input
               type="text"
               placeholder="Tìm kiếm cuộc trò chuyện..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 cursor-text"
+              className="min-w-0 pl-8 sm:pl-9 cursor-text text-sm"
               aria-label="Search Conversations"
             />
           </div>
         </div>
 
-        <div className="px-3 pt-3 pb-2 border-b shrink-0">
+        <div className="px-2 sm:px-3 pt-2 sm:pt-3 pb-2 border-b shrink-0 min-w-0">
           <Tabs
             value={activeTab}
             onValueChange={(value) =>
@@ -336,31 +342,31 @@ export function ChatConversationList({
             }
             className="w-full"
           >
-            <TabsList className="w-full h-11 rounded-2xl bg-primary/10 border border-primary/15 p-1 shadow-inner">
+            <TabsList className="grid w-full min-h-11 grid-cols-3 gap-1 rounded-2xl bg-primary/10 border border-primary/15 p-1 shadow-inner">
               <TabsTrigger
                 value="mine"
-                className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground whitespace-nowrap"
+                className="flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[10px] leading-tight data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs min-w-0"
               >
-                Dành cho bạn
-                <span className="inline-flex size-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-semibold tabular-nums text-white">
+                <span className="truncate text-center">Cho bạn</span>
+                <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-semibold tabular-nums text-white sm:size-5 sm:text-[11px]">
                   {tabMineCount}
                 </span>
               </TabsTrigger>
               <TabsTrigger
                 value="unread"
-                className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground whitespace-nowrap"
+                className="flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[10px] leading-tight data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs min-w-0"
               >
-                Chưa đọc
-                <span className="inline-flex size-5 items-center justify-center rounded-full bg-amber-500 text-xs font-semibold tabular-nums text-white">
+                <span className="truncate text-center">Chưa đọc</span>
+                <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[9px] font-semibold tabular-nums text-white sm:size-5 sm:text-[11px]">
                   {tabUnreadCount}
                 </span>
               </TabsTrigger>
               <TabsTrigger
                 value="all"
-                className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground whitespace-nowrap"
+                className="flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[10px] leading-tight data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs min-w-0"
               >
-                Tất cả
-                <span className="inline-flex size-5 items-center justify-center rounded-full bg-green-500 text-xs font-semibold tabular-nums text-white">
+                <span className="truncate text-center">Tất cả</span>
+                <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-green-500 text-[9px] font-semibold tabular-nums text-white sm:size-5 sm:text-[11px]">
                   {tabAllCount}
                 </span>
               </TabsTrigger>
@@ -382,23 +388,23 @@ export function ChatConversationList({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Search */}
-      <div className="px-4 py-3 border-b shrink-0">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 size-4 text-muted-foreground" />
+      <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
+        <div className="relative min-w-0">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
           <Input
             type="text"
             placeholder="Tìm kiếm cuộc trò chuyện..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="pl-9 cursor-text"
+            className="min-w-0 pl-8 sm:pl-9 cursor-text text-sm"
             aria-label="Search Conversations"
           />
         </div>
       </div>
 
-      <div className="px-3 pt-3 pb-2 border-b shrink-0">
+      <div className="px-2 sm:px-3 pt-2 sm:pt-3 pb-2 border-b shrink-0 min-w-0">
         <Tabs
           value={activeTab}
           onValueChange={(value) =>
@@ -406,31 +412,31 @@ export function ChatConversationList({
           }
           className="w-full"
         >
-          <TabsList className="w-full h-11 rounded-2xl bg-primary/10 border border-primary/15 p-1 shadow-inner">
+          <TabsList className="grid w-full min-h-11 grid-cols-3 gap-1 rounded-2xl bg-primary/10 border border-primary/15 p-1 shadow-inner">
             <TabsTrigger
               value="mine"
-              className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground"
+              className="flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[10px] leading-tight data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs min-w-0"
             >
-              Dành cho bạn
-              <span className="inline-flex size-5 items-center justify-center rounded-full bg-red-500 text-[11px] font-semibold tabular-nums text-white">
+              <span className="truncate text-center">Cho bạn</span>
+              <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-red-500 text-[9px] font-semibold tabular-nums text-white sm:size-5 sm:text-[11px]">
                 {tabMineCount}
               </span>
             </TabsTrigger>
             <TabsTrigger
               value="unread"
-              className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground"
+              className="flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[10px] leading-tight data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs min-w-0"
             >
-              Chưa đọc
-              <span className="inline-flex size-5 items-center justify-center rounded-full bg-amber-500 text-xs font-semibold tabular-nums text-white">
+              <span className="truncate text-center">Chưa đọc</span>
+              <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-amber-500 text-[9px] font-semibold tabular-nums text-white sm:size-5 sm:text-[11px]">
                 {tabUnreadCount}
               </span>
             </TabsTrigger>
             <TabsTrigger
               value="all"
-              className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground"
+              className="flex min-h-9 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[10px] leading-tight data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs min-w-0"
             >
-              Tất cả
-              <span className="inline-flex size-5 items-center justify-center rounded-full bg-green-500 text-xs font-semibold tabular-nums text-white">
+              <span className="truncate text-center">Tất cả</span>
+              <span className="inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-green-500 text-[9px] font-semibold tabular-nums text-white sm:size-5 sm:text-[11px]">
                 {tabAllCount}
               </span>
             </TabsTrigger>
@@ -482,7 +488,7 @@ export function ChatConversationList({
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.18, ease: "easeOut" }}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-xl cursor-pointer relative overflow-hidden transition-all duration-200",
+                      "flex min-w-0 items-center gap-2 p-2 sm:gap-3 sm:p-3 rounded-xl cursor-pointer relative overflow-hidden transition-all duration-200",
                       selectedConversation === conversation.id
                         ? "bg-primary/10 text-accent-foreground shadow-sm"
                         : "hover:bg-accent/50",
@@ -493,7 +499,7 @@ export function ChatConversationList({
                     <div className="relative shrink-0">
                       <Avatar
                         className={cn(
-                          "h-12 w-12 transition-all",
+                          "h-10 w-10 sm:h-12 sm:w-12 transition-all",
                           selectedConversation === conversation.id &&
                             "ring-2 ring-primary ring-offset-2 ring-offset-background",
                         )}
@@ -530,28 +536,28 @@ export function ChatConversationList({
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <div className="flex items-center justify-between mb-1 min-w-0">
-                        <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden pr-2">
-                          <h3 className="font-medium whitespace-nowrap min-w-0 max-w-[160px] lg:max-w-[180px]">
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <div className="mb-1 flex min-w-0 items-start justify-between gap-2">
+                        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+                          <h3 className="min-w-0 flex-1 truncate text-sm font-medium sm:text-base">
                             {conversation.name}
                           </h3>
                           {conversation.isPinned && (
-                            <Pin className="size-3 text-muted-foreground shrink-0" />
+                            <Pin className="size-3 shrink-0 text-muted-foreground" />
                           )}
                           {conversation.isMuted && (
-                            <VolumeX className="size-3 text-muted-foreground shrink-0" />
+                            <VolumeX className="size-3 shrink-0 text-muted-foreground" />
                           )}
                         </div>
-                        <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
+                        <span className="shrink-0 whitespace-nowrap text-[10px] text-muted-foreground tabular-nums sm:text-xs">
                           {formatMessageTime(
                             conversation.lastMessage.timestamp,
                           )}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between gap-2 min-w-0">
-                        <p className="text-sm text-muted-foreground truncate flex-1 min-w-0 max-w-[300px] pr-2">
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <p className="min-w-0 flex-1 truncate pr-1 text-xs text-muted-foreground sm:text-sm">
                           {conversation.lastMessage.content}
                         </p>
 

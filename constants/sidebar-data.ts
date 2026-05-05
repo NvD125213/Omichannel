@@ -24,6 +24,7 @@ import {
   IconFingerprint,
   IconTag,
   IconSubtitles,
+  IconRobot,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -183,7 +184,6 @@ export const sidebarData: SidebarData = {
         {
           title: "Trò chuyện",
           url: "/chats",
-          badge: "3 tin nhắn mới",
           badgeColor: "green",
           icon: IconMessages,
         },
@@ -320,14 +320,19 @@ export const sidebarData: SidebarData = {
               icon: IconUserCog,
             },
             {
-              title: "Đại lý",
+              title: "Agent",
               url: "/settings/agent",
               icon: IconSubtitles,
             },
             {
-              title: "Thiết lập account",
-              url: "/settings/account",
-              icon: IconTool,
+              title: "Agent Bots",
+              url: "/settings/agent-bot",
+              icon: IconRobot,
+            },
+            {
+              title: "Quản lý nhãn hội thoại",
+              url: "/settings/label",
+              icon: IconTag,
             },
             {
               title: "Giao diện",

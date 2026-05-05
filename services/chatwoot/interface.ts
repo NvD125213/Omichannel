@@ -78,7 +78,7 @@ export interface CreateChatwootAgentBotRequest {
   name: string;
   description?: string | null;
   outgoing_url?: string | null;
-  account_id: number;
+  account_id?: number;
   avatar_url?: string | null;
 }
 
@@ -209,9 +209,9 @@ export interface UpdateTenantConversationRequest {
   [key: string]: unknown;
 }
 
-export interface CreateTenantConversationMessageRequest {
-  [key: string]: unknown;
-}
+export type CreateTenantConversationMessageRequest =
+  | Record<string, unknown>
+  | FormData;
 
 export interface ToggleTenantConversationStatusRequest {
   [key: string]: unknown;
