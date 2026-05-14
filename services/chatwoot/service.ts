@@ -29,6 +29,8 @@ import type {
   GetChatwootAgentBotResponse,
   GetTenantAccountAgentBotResponse,
   GetTenantConversationLabelsResponse,
+  BulkActionRequest,
+  BulkActionResponse,
   GetTenantInboxResponse,
   GetChatwootUserResponse,
   GetChatwootUserSsoLinkResponse,
@@ -523,9 +525,27 @@ export const chatwootService = {
     tenantId: string,
     params?: ListTenantConversationsParams,
   ): Promise<ListTenantConversationsResponse> => {
+    const requestParams = params
+      ? (() => {
+          const { labels, ...rest } = params;
+
+          return {
+            ...rest,
+            ...(Array.isArray(labels) && labels.length > 0
+              ? { "labels[]": labels }
+              : {}),
+          };
+        })()
+      : undefined;
+
     const response = await apiClient.get<ListTenantConversationsResponse>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/conversations`,
-      { params },
+      {
+        params: requestParams,
+        paramsSerializer: {
+          indexes: false,
+        },
+      },
     );
     return response.data;
   },
@@ -615,4 +635,16 @@ export const chatwootService = {
       );
       return response.data;
     },
+
+  /** POST /api/v1/chatwoot/bulk-actions */
+  bulkAction: async (
+    tenantId: string,
+    data: BulkActionRequest,
+  ): Promise<BulkActionResponse> => {
+    const response = await apiClient.post<BulkActionResponse>(
+      `${CHATWOOT_BASE}/accounts/${tenantId}/bulk_actions`,
+      data,
+    );
+    return response.data;
+  },
 };

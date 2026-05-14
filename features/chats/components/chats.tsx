@@ -35,6 +35,7 @@ import { ChatConversationList } from "./chat-conversation-list";
 import {
   ChatNotificationSidebar,
   type ConversationSidebarAssigneeFilter,
+  type ConversationSidebarLabelFilter,
 } from "./chat-notification-sidebar";
 import { ChatHeader } from "./chat-header";
 import { MessageInput } from "./message-input";
@@ -56,6 +57,7 @@ const normalizeConversation = (
 ): ChatConversation => {
   const meta = (conversation["meta"] ?? {}) as Record<string, unknown>;
   const sender = (meta.sender ?? {}) as Record<string, unknown>;
+  const assignee = (meta.assignee ?? {}) as Record<string, unknown>;
   const lastMessage = (conversation["last_non_activity_message"] ??
     {}) as Record<string, unknown>;
 
@@ -87,6 +89,12 @@ const normalizeConversation = (
     typeof conversation["unread_count"] === "number"
       ? conversation["unread_count"]
       : 0;
+  const labels = Array.isArray(conversation["labels"])
+    ? conversation["labels"].filter(
+        (label): label is string =>
+          typeof label === "string" && label.trim().length > 0,
+      )
+    : [];
 
   const lastMessageContent =
     (typeof lastMessage.content === "string" && lastMessage.content) ||
@@ -94,9 +102,14 @@ const normalizeConversation = (
       conversation["last_activity_message"]) ||
     "Chưa có tin nhắn";
 
+  // Sort list by the latest conversation activity, not only by the last
+  // non-activity message. Actions like adding labels update `last_activity_at`
+  // while `last_non_activity_message` may still point to an older message.
   const lastMessageTimestamp = coerceToDate(
-    lastMessage.created_at ??
+    conversation["last_activity_at"] ??
+      conversation["timestamp"] ??
       conversation.updated_at ??
+      lastMessage.created_at ??
       conversation.created_at,
   );
 
@@ -106,6 +119,7 @@ const normalizeConversation = (
     participants: [senderId],
     name,
     avatar,
+    labels,
     lastMessage: {
       id:
         typeof lastMessage.id === "number" || typeof lastMessage.id === "string"
@@ -118,6 +132,59 @@ const normalizeConversation = (
     unreadCount,
     isPinned: false,
     isMuted: Boolean(conversation["muted"]),
+    meta: {
+      sender: {
+        id:
+          typeof sender.id === "number" || typeof sender.id === "string"
+            ? String(sender.id)
+            : undefined,
+        name: typeof sender.name === "string" ? sender.name : undefined,
+        identifier:
+          typeof sender.identifier === "string" ? sender.identifier : undefined,
+        thumbnail:
+          typeof sender.thumbnail === "string" ? sender.thumbnail : undefined,
+        availabilityStatus:
+          typeof sender.availability_status === "string"
+            ? sender.availability_status
+            : undefined,
+        lastActivityAt:
+          typeof sender.last_activity_at === "number" ||
+          typeof sender.last_activity_at === "string"
+            ? String(sender.last_activity_at)
+            : undefined,
+        createdAt:
+          typeof sender.created_at === "number" ||
+          typeof sender.created_at === "string"
+            ? String(sender.created_at)
+            : undefined,
+      },
+      channel: typeof meta.channel === "string" ? meta.channel : undefined,
+      assignee: {
+        id:
+          typeof assignee.id === "number" || typeof assignee.id === "string"
+            ? String(assignee.id)
+            : undefined,
+        availableName:
+          typeof assignee.available_name === "string"
+            ? assignee.available_name
+            : undefined,
+        name: typeof assignee.name === "string" ? assignee.name : undefined,
+        email: typeof assignee.email === "string" ? assignee.email : undefined,
+        role: typeof assignee.role === "string" ? assignee.role : undefined,
+        thumbnail:
+          typeof assignee.thumbnail === "string"
+            ? assignee.thumbnail
+            : undefined,
+        availabilityStatus:
+          typeof assignee.availability_status === "string"
+            ? assignee.availability_status
+            : undefined,
+      },
+      assigneeType:
+        typeof meta.assignee_type === "string" ? meta.assignee_type : undefined,
+      hmacVerified:
+        typeof meta.hmac_verified === "boolean" ? meta.hmac_verified : undefined,
+    },
   };
 };
 
@@ -205,6 +272,30 @@ export function Chat() {
   const [sidebarConversationAssignee, setSidebarConversationAssignee] =
     useState<ConversationSidebarAssigneeFilter>("me");
   const [sidebarInboxId, setSidebarInboxId] = useState<number | null>(null);
+  const [sidebarLabel, setSidebarLabel] =
+    useState<ConversationSidebarLabelFilter>(null);
+
+  const handleSidebarConversationAssigneeChange = useCallback(
+    (value: ConversationSidebarAssigneeFilter) => {
+      setSidebarConversationAssignee(value);
+      setSidebarInboxId(null);
+      setSidebarLabel(null);
+    },
+    [],
+  );
+
+  const handleSidebarInboxChange = useCallback((inboxId: number | null) => {
+    setSidebarInboxId(inboxId);
+    setSidebarLabel(null);
+  }, []);
+
+  const handleSidebarLabelChange = useCallback(
+    (label: ConversationSidebarLabelFilter) => {
+      setSidebarLabel(label);
+      setSidebarInboxId(null);
+    },
+    [],
+  );
 
   // Tham số query params cho API lấy danh sách hội thoại
   const conversationListQueryParams = useMemo(
@@ -217,8 +308,9 @@ export function Chat() {
         ...(typeof sidebarInboxId === "number"
           ? { inbox_id: sidebarInboxId }
           : {}),
+        ...(sidebarLabel ? { labels: [sidebarLabel] } : {}),
       }) satisfies ListTenantConversationsParams,
-    [sidebarConversationAssignee, sidebarInboxId],
+    [sidebarConversationAssignee, sidebarInboxId, sidebarLabel],
   );
 
   // Lấy thông tin user đang đăng nhập
@@ -350,7 +442,8 @@ export function Chat() {
 
   const storeMessages = chatStore.messages;
   const currentMessages = useMemo(
-    () => (selectedConversation ? storeMessages[selectedConversation] ?? [] : []),
+    () =>
+      selectedConversation ? (storeMessages[selectedConversation] ?? []) : [],
     [selectedConversation, storeMessages],
   );
 
@@ -386,7 +479,9 @@ export function Chat() {
         }, 1200);
       } else {
         setPendingMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, status: "failed", retry } : m)),
+          prev.map((m) =>
+            m.id === id ? { ...m, status: "failed", retry } : m,
+          ),
         );
       }
     },
@@ -404,7 +499,7 @@ export function Chat() {
   const isSidebarFullyExpanded =
     !isNotificationSidebarCollapsed && !isConversationListCollapsed;
   const sidebarDesktopWidthClass = isSidebarFullyExpanded
-    ? "lg:w-[45%]"
+    ? "lg:w-[50%]"
     : !isNotificationSidebarCollapsed && isConversationListCollapsed
       ? "lg:w-[calc(18%+5rem)]"
       : isNotificationSidebarCollapsed && !isConversationListCollapsed
@@ -540,7 +635,7 @@ export function Chat() {
                   ? "w-16"
                   : isConversationListCollapsed
                     ? "w-[calc(100%-5rem)]"
-                    : "w-2/5",
+                    : "w-[35%]",
               )}
             >
               <ChatNotificationSidebar
@@ -548,11 +643,13 @@ export function Chat() {
                 isCollapsed={isNotificationSidebarCollapsed}
                 sidebarConversationAssignee={sidebarConversationAssignee}
                 sidebarInboxId={sidebarInboxId}
+                sidebarLabel={sidebarLabel}
                 isSwitchingMenu={isChatwootFetching && !isChatwootLoading}
                 onSidebarConversationAssigneeChange={
-                  setSidebarConversationAssignee
+                  handleSidebarConversationAssigneeChange
                 }
-                onSidebarInboxChange={setSidebarInboxId}
+                onSidebarInboxChange={handleSidebarInboxChange}
+                onSidebarLabelChange={handleSidebarLabelChange}
               />
             </div>
             <div
@@ -566,6 +663,7 @@ export function Chat() {
               )}
             >
               <ChatConversationList
+                tenantId={tenantId}
                 conversations={displayConversations}
                 users={users}
                 selectedConversation={selectedConversation}

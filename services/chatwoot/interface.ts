@@ -291,3 +291,14 @@ export type CreateChatwootUserResponse = ApiResponse<ChatwootJsonPayload>;
 export type GetChatwootUserResponse = ApiResponse<ChatwootJsonPayload>;
 export type UpdateChatwootUserResponse = ApiResponse<ChatwootJsonPayload>;
 export type DeleteChatwootUserResponse = ApiResponse<void>;
+
+// —— Bulk actions ——
+export interface BulkActionRequest {
+  type: string;
+  ids: string[];
+  labels: {
+    add?: string[];
+    remove?: string[];
+  };
+}
+export type BulkActionResponse = ApiResponse<ChatwootJsonPayload>;

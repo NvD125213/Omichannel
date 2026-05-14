@@ -145,7 +145,7 @@ export default function SettingsLayout({
             Settings
           </h1>
           <p className="text-muted-foreground">
-            Manage your account settings and set e-mail preferences.
+            Quản lý các thiết lập của tài khoản của bạn.
           </p>
         </div>
         <Separator className="my-4 lg:my-6" />

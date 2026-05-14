@@ -30,6 +30,7 @@ import type {
   UpdateTenantInboxRequest,
   UpdateChatwootUserRequest,
   UpdateTenantChatwootAccountRequest,
+  BulkActionRequest,
 } from "@/services/chatwoot/interface";
 import { chatwootService } from "@/services/chatwoot/service";
 
@@ -1362,6 +1363,53 @@ export const useDeleteChatwootUser = () => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Có lỗi khi xóa Chatwoot user";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useBulkAction = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: BulkActionRequest;
+    }) => chatwootService.bulkAction(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantLabels(variables.tenantId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationsBase(
+            variables.tenantId,
+          ),
+        });
+        variables.data.ids.forEach((conversationId) => {
+          queryClient.invalidateQueries({
+            queryKey: chatwootOmniKeys.tenantConversation(
+              variables.tenantId,
+              conversationId,
+            ),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatwootOmniKeys.tenantConversationLabels(
+              variables.tenantId,
+              conversationId,
+            ),
+          });
+        });
+      } else {
+        toast.error(res.message || "Thực hiện thao tác thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi thực hiện";
       toast.error(msg);
     },
   });

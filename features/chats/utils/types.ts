@@ -131,6 +131,34 @@ export interface LastMessage {
   senderId: string;
 }
 
+export interface ChatConversationMetaSender {
+  id?: string;
+  name?: string;
+  identifier?: string;
+  thumbnail?: string;
+  availabilityStatus?: string;
+  lastActivityAt?: string;
+  createdAt?: string;
+}
+
+export interface ChatConversationMetaAssignee {
+  id?: string;
+  availableName?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  thumbnail?: string;
+  availabilityStatus?: string;
+}
+
+export interface ChatConversationMeta {
+  sender?: ChatConversationMetaSender;
+  channel?: string;
+  assignee?: ChatConversationMetaAssignee;
+  assigneeType?: string;
+  hmacVerified?: boolean;
+}
+
 export interface ChatConversation {
   id: string;
   type: "direct" | "group";
@@ -141,6 +169,8 @@ export interface ChatConversation {
   unreadCount: number;
   isPinned: boolean;
   isMuted: boolean;
+  labels: string[];
+  meta?: ChatConversationMeta;
 }
 
 export interface ChatState {

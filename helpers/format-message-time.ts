@@ -1,11 +1,31 @@
 import {
-  format,
   isThisWeek,
   isThisYear,
   isToday,
   isYesterday,
   isValid,
 } from "date-fns";
+
+const vietnameseTimeFormatter = new Intl.DateTimeFormat("vi-VN", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const vietnameseWeekdayFormatter = new Intl.DateTimeFormat("vi-VN", {
+  weekday: "long",
+});
+
+const vietnameseMonthDayFormatter = new Intl.DateTimeFormat("vi-VN", {
+  day: "numeric",
+  month: "short",
+});
+
+const vietnameseDateFormatter = new Intl.DateTimeFormat("vi-VN", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+});
 
 /**
  * Convert mọi loại timestamp về Date an toàn
@@ -59,20 +79,46 @@ export function formatMessageTime(timestamp: unknown): string {
   if (!date) return "--";
 
   if (isToday(date)) {
-    return format(date, "HH:mm"); // 24h cho consistent UI
+    return vietnameseTimeFormatter.format(date);
   }
 
   if (isYesterday(date)) {
-    return "Yesterday";
+    return "Hôm qua";
   }
 
   if (isThisWeek(date)) {
-    return format(date, "EEEE");
+    const formattedWeekday = vietnameseWeekdayFormatter.format(date).trim();
+    return formattedWeekday.charAt(0).toUpperCase() + formattedWeekday.slice(1);
   }
 
   if (isThisYear(date)) {
-    return format(date, "MMM d");
+    return vietnameseMonthDayFormatter.format(date);
   }
 
-  return format(date, "dd/MM/yyyy");
+  return vietnameseDateFormatter.format(date);
+}
+
+export function formatConversationTimeParts(timestamp: unknown): string {
+  const date = coerceToDate(timestamp);
+
+  if (!date) {
+    return "--";
+  }
+
+  if (isToday(date)) {
+    return vietnameseTimeFormatter.format(date);
+  }
+
+  if (isYesterday(date)) {
+    return "Hôm qua";
+  }
+
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+
+  if (isThisYear(date)) {
+    return `${day} thg ${month}`;
+  }
+
+  return `${day} thg ${month}, ${date.getFullYear()}`;
 }
