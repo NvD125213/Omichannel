@@ -24,27 +24,27 @@ import { useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 const salesData = [
-  { month: "Jan", sales: 12500, target: 15000 },
-  { month: "Feb", sales: 18200, target: 15000 },
-  { month: "Mar", sales: 16800, target: 15000 },
-  { month: "Apr", sales: 22400, target: 20000 },
-  { month: "May", sales: 24600, target: 20000 },
-  { month: "Jun", sales: 28200, target: 25000 },
-  { month: "Jul", sales: 31500, target: 25000 },
-  { month: "Aug", sales: 29800, target: 25000 },
-  { month: "Sep", sales: 33200, target: 30000 },
-  { month: "Oct", sales: 35100, target: 30000 },
-  { month: "Nov", sales: 38900, target: 35000 },
-  { month: "Dec", sales: 42300, target: 35000 },
+  { month: "T1", sales: 12500, target: 15000 },
+  { month: "T2", sales: 18200, target: 15000 },
+  { month: "T3", sales: 16800, target: 15000 },
+  { month: "T4", sales: 22400, target: 20000 },
+  { month: "T5", sales: 24600, target: 20000 },
+  { month: "T6", sales: 28200, target: 25000 },
+  { month: "T7", sales: 31500, target: 25000 },
+  { month: "T8", sales: 29800, target: 25000 },
+  { month: "T9", sales: 33200, target: 30000 },
+  { month: "T10", sales: 35100, target: 30000 },
+  { month: "T11", sales: 38900, target: 35000 },
+  { month: "T12", sales: 42300, target: 35000 },
 ];
 
 const chartConfig = {
   sales: {
-    label: "Sales",
+    label: "Doanh số",
     color: "#3b82f6",
   },
   target: {
-    label: "Target",
+    label: "Mục tiêu",
     color: "#f59e0b",
   },
 };
@@ -56,8 +56,8 @@ export function SalesChart() {
     <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pb-2">
         <div>
-          <CardTitle>Sales Performance</CardTitle>
-          <CardDescription>Monthly sales vs targets</CardDescription>
+          <CardTitle>Hiệu suất bán hàng</CardTitle>
+          <CardDescription>So sánh doanh số theo tháng với mục tiêu</CardDescription>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2 sm:gap-0 w-full sm:w-auto">
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -66,18 +66,18 @@ export function SalesChart() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="3m" className="cursor-pointer">
-                Last 3 months
+                3 tháng gần nhất
               </SelectItem>
               <SelectItem value="6m" className="cursor-pointer">
-                Last 6 months
+                6 tháng gần nhất
               </SelectItem>
               <SelectItem value="12m" className="cursor-pointer">
-                Last 12 months
+                12 tháng gần nhất
               </SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" className="w-full sm:w-auto cursor-pointer">
-            Export
+            Xuất dữ liệu
           </Button>
         </div>
       </CardHeader>

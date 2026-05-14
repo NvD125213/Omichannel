@@ -369,7 +369,7 @@ export default function TicketForm({
                           w-2 h-2 rounded-full
                           ${p.color}
                           transition
-                          ${isActive ? "ring-2 ring-offset-2 ring-primary" : ""}
+                          ${isActive ? "ring-offset-2 ring-primary" : ""}
                         `}
                         />
                         {p.label}
@@ -424,7 +424,7 @@ export default function TicketForm({
                             Đang tải...
                           </span>
                         ) : field.value ? (
-                          users.find((user) => user.id === field.value)
+                          users.find((user: any) => user.id === field.value)
                             ?.username || "Chọn người..."
                         ) : (
                           "Chọn người..."
@@ -438,7 +438,7 @@ export default function TicketForm({
                       <CommandInput placeholder="Tìm người..." />
                       <CommandEmpty>Không tìm thấy.</CommandEmpty>
                       <CommandGroup>
-                        {users.map((user) => (
+                        {users.map((user: any) => (
                           <CommandItem
                             key={user.id}
                             value={user.username}

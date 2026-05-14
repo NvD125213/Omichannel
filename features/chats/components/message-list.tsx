@@ -802,7 +802,7 @@ export function MessageList({
         ref={scrollAreaRef}
         onScrollCapture={!showEmptyShell ? handleScrollCapture : undefined}
       >
-        <div className="flex flex-col gap-3 py-4 px-4">
+        <div className="flex min-w-0 flex-col gap-3 px-4 py-4">
           {isFetchingNextPage && conversationId ? (
             <div
               className="flex shrink-0 justify-center py-1"
@@ -926,12 +926,12 @@ export function MessageList({
                 )}
                 <div
                   className={cn(
-                    "flex gap-3 group",
+                    "group flex w-full min-w-0 gap-3",
                     isOwnMessage && "flex-row-reverse",
                   )}
                 >
                   {!isOwnMessage && (
-                    <div className="w-8">
+                    <div className="w-8 shrink-0">
                       <Avatar className="size-8 cursor-pointer">
                         <AvatarImage src={avatarSrc} alt={avatarName} />
                         <AvatarFallback className="text-xs bg-linear-to-br from-primary/20 to-primary/10">
@@ -943,8 +943,8 @@ export function MessageList({
 
                   <div
                     className={cn(
-                      "min-w-0 max-w-[70%]",
-                      isOwnMessage ? "w-fit flex flex-col items-end" : "w-full",
+                      "flex min-w-0 w-full flex-col max-w-[min(88%,42rem)] sm:max-w-[min(80%,42rem)]",
+                      isOwnMessage && "ml-auto items-end",
                     )}
                   >
                     {showName && user && isCustomerMessage && (
@@ -956,16 +956,16 @@ export function MessageList({
 
                     <div
                       className={cn(
-                        "group/message flex items-center gap-2",
+                        "group/message flex min-w-0 w-full flex-wrap items-start gap-2 sm:flex-nowrap sm:items-center",
                         isOwnMessage
-                          ? "justify-end w-auto"
-                          : "justify-start w-full",
+                          ? "justify-end"
+                          : "justify-start",
                       )}
                     >
                       {!isDeleted && (
                         <div
                           className={cn(
-                            "flex items-center gap-1 opacity-0 transition-all duration-200 pointer-events-none group-hover/message:opacity-100 group-hover/message:pointer-events-auto",
+                            "flex shrink-0 items-center gap-1 opacity-0 transition-all duration-200 pointer-events-none group-hover/message:opacity-100 group-hover/message:pointer-events-auto",
                             isOwnMessage ? "order-1 mr-2" : "order-2 ml-2",
                           )}
                         >
@@ -1035,7 +1035,7 @@ export function MessageList({
 
                       <div
                         className={cn(
-                          "rounded-2xl px-4 py-2.5 text-sm shadow-sm w-fit max-w-full wrap-break-word whitespace-pre-wrap",
+                          "min-w-0 w-fit max-w-full rounded-2xl px-4 py-2.5 text-sm shadow-sm whitespace-pre-wrap wrap-anywhere",
                           isOwnMessage ? "order-2" : "order-1",
                           isDeleted
                             ? "bg-muted/60 text-muted-foreground italic"
@@ -1089,7 +1089,7 @@ export function MessageList({
                         {attachments.length > 0 && !isDeleted && (
                           <div
                             className={cn(
-                              "flex flex-wrap gap-2",
+                              "flex max-w-full flex-wrap gap-2",
                               messageContent?.trim() ? "mt-2" : "",
                             )}
                           >
@@ -1133,18 +1133,16 @@ export function MessageList({
               const isFailed = pm.status === "failed";
               return (
                 <div key={pm.id} className="flex gap-3 flex-row-reverse">
-                  <div className="min-w-0 max-w-[70%] w-fit flex flex-col items-end">
+                  <div className="ml-auto flex min-w-0 w-full max-w-[min(88%,42rem)] flex-col items-end sm:max-w-[min(80%,42rem)]">
                     <div
                       className={cn(
-                        "rounded-2xl rounded-tr-sm px-3 py-2 text-sm wrap-break-word",
+                        "min-w-0 max-w-full rounded-2xl rounded-tr-sm px-3 py-2 text-sm whitespace-pre-wrap wrap-anywhere",
                         isFailed
                           ? "bg-destructive/10 text-destructive border border-destructive/20"
                           : "bg-primary text-primary-foreground",
                       )}
                     >
-                      {pm.content ? (
-                        <p className="whitespace-pre-wrap">{pm.content}</p>
-                      ) : null}
+                      {pm.content ? <p>{pm.content}</p> : null}
                       {pm.filesCount > 0 && (
                         <div className="flex items-center gap-1 text-xs mt-1 opacity-80">
                           <Paperclip className="size-3" />

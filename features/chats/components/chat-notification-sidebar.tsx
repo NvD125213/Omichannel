@@ -1,5 +1,8 @@
 "use client";
 
+import type { FocusEvent, ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ChevronDown,
   CircleDot,
@@ -16,11 +19,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useListTenantInboxes } from "@/hooks/chatwoot/use-chatwoot";
 
@@ -53,10 +51,154 @@ const conversationSubItems: {
   icon: LucideIcon;
   assignee: ConversationSidebarAssigneeFilter;
 }[] = [
-  { name: "Tất cả", icon: CircleDot, assignee: "me" },
-  { name: "Nhắn đến", icon: AtSignIcon, assignee: "mention" },
-  { name: "Không giám sát", icon: ShieldAlert, assignee: "unattended" },
+  {
+    name: "All",
+    icon: CircleDot,
+    assignee: "me",
+  },
+  {
+    name: "Mentioned",
+    icon: AtSignIcon,
+    assignee: "mention",
+  },
+  {
+    name: "Unattended",
+    icon: ShieldAlert,
+    assignee: "unattended",
+  },
 ];
+
+function SidebarTooltip({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const openTimeoutRef = useRef<number | null>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(
+    null,
+  );
+
+  const updatePosition = useCallback(() => {
+    const triggerElement = triggerRef.current;
+    if (!triggerElement) return;
+
+    const rect = triggerElement.getBoundingClientRect();
+    setPosition({
+      top: rect.top + rect.height / 2,
+      left: rect.right + 6,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
+
+    updatePosition();
+
+    const handleReposition = () => updatePosition();
+
+    window.addEventListener("resize", handleReposition);
+    window.addEventListener("scroll", handleReposition, true);
+
+    return () => {
+      window.removeEventListener("resize", handleReposition);
+      window.removeEventListener("scroll", handleReposition, true);
+    };
+  }, [isMounted, updatePosition]);
+
+  const clearOpenTimeout = () => {
+    if (openTimeoutRef.current !== null) {
+      window.clearTimeout(openTimeoutRef.current);
+      openTimeoutRef.current = null;
+    }
+  };
+
+  const clearCloseTimeout = () => {
+    if (closeTimeoutRef.current !== null) {
+      window.clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      clearOpenTimeout();
+      clearCloseTimeout();
+    };
+  }, []);
+
+  const handleOpen = () => {
+    clearCloseTimeout();
+    clearOpenTimeout();
+    updatePosition();
+
+    openTimeoutRef.current = window.setTimeout(() => {
+      setIsMounted(true);
+      requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+    }, 180);
+  };
+
+  const handleClose = () => {
+    clearOpenTimeout();
+    clearCloseTimeout();
+    setIsVisible(false);
+
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setIsMounted(false);
+    }, 140);
+  };
+
+  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    handleClose();
+  };
+
+  return (
+    <div
+      ref={triggerRef}
+      className="relative block"
+      onMouseEnter={handleOpen}
+      onMouseLeave={handleClose}
+      onFocusCapture={handleOpen}
+      onBlurCapture={handleBlur}
+    >
+      {children}
+      {isMounted &&
+        position &&
+        createPortal(
+          <div
+            role="tooltip"
+            className={cn(
+              "pointer-events-none fixed z-1000 transition-all duration-150 ease-out",
+              isVisible
+                ? "translate-x-0 opacity-100 scale-100"
+                : "translate-x-1 opacity-0 scale-95",
+            )}
+            style={{
+              top: `${position.top}px`,
+              left: `${position.left}px`,
+            }}
+          >
+            <div className="relative -translate-y-1/2 whitespace-nowrap rounded-md bg-foreground pl-1.5 pr-2.5 py-1.5 text-[10px] font-medium leading-none text-background shadow-md">
+              <span
+                aria-hidden="true"
+                className="absolute left-[2px] top-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[1px] bg-foreground"
+              />
+              <span className="relative z-10">{title}</span>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+}
 
 interface ChatNotificationSidebarProps {
   tenantId: string;
@@ -100,59 +242,47 @@ export function ChatNotificationSidebar({
     >
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
         <section className="space-y-1" aria-label="Main Chat Menu">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a
-                href={menuItems[0].url}
-                className={cn(
-                  "flex h-9 items-center rounded-md text-sm transition-colors bg-accent text-accent-foreground font-medium",
-                  isCollapsed ? "justify-center px-0" : "gap-3 px-2",
-                )}
-              >
-                <Inbox className="h-4 w-4 shrink-0" aria-hidden="true" />
-                {!isCollapsed && <span className="truncate">Hộp thư</span>}
-              </a>
-            </TooltipTrigger>
-            {isCollapsed && (
-              <TooltipContent side="right">Hộp thư</TooltipContent>
-            )}
-          </Tooltip>
+          <SidebarTooltip title={menuItems[0].title}>
+            <a
+              href={menuItems[0].url}
+              className={cn(
+                "flex h-9 items-center rounded-md text-sm transition-colors bg-accent text-accent-foreground font-medium",
+                isCollapsed ? "justify-center px-0" : "gap-3 px-2",
+              )}
+            >
+              <Inbox className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {!isCollapsed && <span className="truncate">Hộp thư</span>}
+            </a>
+          </SidebarTooltip>
 
           <Collapsible defaultOpen>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CollapsibleTrigger
+            <SidebarTooltip title="Cuộc trò chuyện">
+              <CollapsibleTrigger
+                className={cn(
+                  "group flex h-9 w-full items-center rounded-md text-sm text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isCollapsed ? "justify-center px-0" : "justify-between px-2",
+                )}
+              >
+                <span
                   className={cn(
-                    "group flex h-9 w-full items-center rounded-md text-sm text-foreground hover:bg-accent hover:text-accent-foreground",
-                    isCollapsed
-                      ? "justify-center px-0"
-                      : "justify-between px-2",
+                    "flex items-center truncate",
+                    isCollapsed ? "justify-center" : "gap-3",
                   )}
                 >
-                  <span
-                    className={cn(
-                      "flex items-center truncate",
-                      isCollapsed ? "justify-center" : "gap-3",
-                    )}
-                  >
-                    <MessageCircle
-                      className="h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    {!isCollapsed && "Cuộc trò chuyện"}
-                  </span>
-                  {!isCollapsed && (
-                    <ChevronDown
-                      className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180"
-                      aria-hidden="true"
-                    />
-                  )}
-                </CollapsibleTrigger>
-              </TooltipTrigger>
-              {isCollapsed && (
-                <TooltipContent side="right">Cuộc trò chuyện</TooltipContent>
-              )}
-            </Tooltip>
+                  <MessageCircle
+                    className="h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  {!isCollapsed && "Cuộc trò chuyện"}
+                </span>
+                {!isCollapsed && (
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180"
+                    aria-hidden="true"
+                  />
+                )}
+              </CollapsibleTrigger>
+            </SidebarTooltip>
             <CollapsibleContent
               className={cn(
                 "mt-1 space-y-1",
@@ -164,97 +294,83 @@ export function ChatNotificationSidebar({
                 const isActive =
                   sidebarConversationAssignee === subItem.assignee;
                 return (
-                  <Tooltip key={subItem.name}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onSidebarConversationAssigneeChange(subItem.assignee)
-                        }
-                        disabled={
-                          isSwitchingMenu ||
-                          sidebarConversationAssignee === subItem.assignee
-                        }
-                        className={cn(
-                          "relative flex h-8 w-full items-center rounded-md text-sm transition-colors text-left disabled:pointer-events-none",
-                          isActive
-                            ? "text-accent-foreground"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                          isSwitchingMenu && "opacity-80",
-                          isCollapsed ? "justify-center px-0" : "gap-2 px-2",
-                        )}
-                        aria-pressed={isActive}
-                        aria-label={subItem.name}
-                      >
-                        {isActive && (
-                          <motion.span
-                            layoutId="conversation-sidebar-active-item"
-                            transition={{
-                              type: "spring",
-                              stiffness: 360,
-                              damping: 32,
-                            }}
-                            className="absolute inset-0 rounded-md bg-accent"
-                            aria-hidden="true"
-                          />
-                        )}
-                        <subItem.icon
-                          className="relative z-10 h-3.5 w-3.5 shrink-0"
+                  <SidebarTooltip key={subItem.name} title={subItem.name}>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSidebarConversationAssigneeChange(subItem.assignee)
+                      }
+                      disabled={
+                        isSwitchingMenu ||
+                        sidebarConversationAssignee === subItem.assignee
+                      }
+                      className={cn(
+                        "relative flex h-8 w-full items-center rounded-md text-sm transition-colors text-left disabled:pointer-events-none",
+                        isActive
+                          ? "text-accent-foreground"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                        isSwitchingMenu && "opacity-80",
+                        isCollapsed ? "justify-center px-0" : "gap-2 px-2",
+                      )}
+                      aria-pressed={isActive}
+                      aria-label={subItem.name}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="conversation-sidebar-active-item"
+                          transition={{
+                            type: "spring",
+                            stiffness: 360,
+                            damping: 32,
+                          }}
+                          className="absolute inset-0 rounded-md bg-accent"
                           aria-hidden="true"
                         />
-                        {!isCollapsed && (
-                          <span className="relative z-10 truncate">
-                            {subItem.name}
-                          </span>
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    {isCollapsed && (
-                      <TooltipContent side="right">
-                        {subItem.name}
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
+                      )}
+                      <subItem.icon
+                        className="relative z-10 h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      {!isCollapsed && (
+                        <span className="relative z-10 truncate">
+                          {subItem.name}
+                        </span>
+                      )}
+                    </button>
+                  </SidebarTooltip>
                 );
               })}
             </CollapsibleContent>
           </Collapsible>
 
           <Collapsible defaultOpen>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <CollapsibleTrigger
+            <SidebarTooltip title="Kênh">
+              <CollapsibleTrigger
+                className={cn(
+                  "group flex h-9 w-full items-center rounded-md px-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isCollapsed ? "justify-center px-0" : "justify-between px-2",
+                )}
+              >
+                <span
                   className={cn(
-                    "group flex h-9 w-full items-center rounded-md px-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground",
-                    isCollapsed
-                      ? "justify-center px-0"
-                      : "justify-between px-2",
+                    "flex items-center truncate",
+                    isCollapsed ? "justify-center" : "gap-3",
                   )}
                 >
-                  <span
-                    className={cn(
-                      "flex items-center truncate",
-                      isCollapsed ? "justify-center" : "gap-3",
-                    )}
-                  >
-                    <FolderKanban
-                      className="h-4 w-4 shrink-0"
-                      aria-hidden="true"
-                    />
-                    {!isCollapsed && "Kênh"}
-                  </span>
-                  {!isCollapsed && (
-                    <ChevronDown
-                      className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180"
-                      aria-hidden="true"
-                    />
-                  )}
-                </CollapsibleTrigger>
-              </TooltipTrigger>
-              {isCollapsed && (
-                <TooltipContent side="right">Kênh</TooltipContent>
-              )}
-            </Tooltip>
+                  <FolderKanban
+                    className="h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  {!isCollapsed && "Kênh"}
+                </span>
+                {!isCollapsed && (
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180"
+                    aria-hidden="true"
+                  />
+                )}
+              </CollapsibleTrigger>
+            </SidebarTooltip>
             <CollapsibleContent
               className={cn(
                 "mt-1 space-y-1",
@@ -277,54 +393,52 @@ export function ChatNotificationSidebar({
                   Number.isFinite(inboxId) && sidebarInboxId === inboxId;
 
                 return (
-                  <Tooltip key={String(inbox?.id ?? inboxName)}>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (Number.isFinite(inboxId)) {
-                            onSidebarInboxChange(inboxId);
-                          }
-                        }}
-                        disabled={isSwitchingMenu || !Number.isFinite(inboxId)}
-                        aria-pressed={isActive}
-                        aria-label={inboxName}
+                  <SidebarTooltip
+                    key={String(inbox?.id ?? inboxName)}
+                    title={inboxName}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (Number.isFinite(inboxId)) {
+                          onSidebarInboxChange(inboxId);
+                        }
+                      }}
+                      disabled={isSwitchingMenu || !Number.isFinite(inboxId)}
+                      aria-pressed={isActive}
+                      aria-label={inboxName}
                       className={cn(
-                          "relative flex h-8 w-full items-center rounded-md text-sm transition-colors text-left disabled:pointer-events-none",
-                          isActive
-                            ? "text-accent-foreground"
-                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                          isSwitchingMenu && "opacity-80",
-                          isCollapsed ? "justify-center px-0" : "gap-2 px-2",
-                        )}
-                      >
-                        {isActive && (
-                          <motion.span
-                            layoutId="channel-sidebar-active-item"
-                            transition={{
-                              type: "spring",
-                              stiffness: 360,
-                              damping: 32,
-                            }}
-                            className="absolute inset-0 rounded-md bg-accent"
-                            aria-hidden="true"
-                          />
-                        )}
-                        <MessageCircle
-                          className="relative z-10 h-3.5 w-3.5 shrink-0"
+                        "relative flex h-8 w-full items-center rounded-md text-sm transition-colors text-left disabled:pointer-events-none",
+                        isActive
+                          ? "text-accent-foreground"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                        isSwitchingMenu && "opacity-80",
+                        isCollapsed ? "justify-center px-0" : "gap-2 px-2",
+                      )}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="channel-sidebar-active-item"
+                          transition={{
+                            type: "spring",
+                            stiffness: 360,
+                            damping: 32,
+                          }}
+                          className="absolute inset-0 rounded-md bg-accent"
                           aria-hidden="true"
                         />
-                        {!isCollapsed && (
-                          <span className="relative z-10 truncate">
-                            {inboxName}
-                          </span>
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    {isCollapsed && (
-                      <TooltipContent side="right">{inboxName}</TooltipContent>
-                    )}
-                  </Tooltip>
+                      )}
+                      <MessageCircle
+                        className="relative z-10 h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      {!isCollapsed && (
+                        <span className="relative z-10 truncate">
+                          {inboxName}
+                        </span>
+                      )}
+                    </button>
+                  </SidebarTooltip>
                 );
               })}
               {inboxes.length === 0 && !isCollapsed && (

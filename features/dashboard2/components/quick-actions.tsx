@@ -15,28 +15,28 @@ export function QuickActions() {
     <div className="flex items-center space-x-2">
       <Button className="cursor-pointer">
         <Plus className="size-4" />
-        New Sale
+        Tạo đơn mới
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="cursor-pointer">
             <Settings className="size-4" />
-            Actions
+            Thao tác
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem className="cursor-pointer">
             <FileText className="size-4" />
-            Generate Report
+            Tạo báo cáo
           </DropdownMenuItem>
           <DropdownMenuItem className="cursor-pointer">
             <Download className="size-4" />
-            Export Data
+            Xuất dữ liệu
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer">
             <Settings className="size-4" />
-            Dashboard Settings
+            Cài đặt bảng điều khiển
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

@@ -34,25 +34,25 @@ import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 const customerGrowthData = [
-  { month: "Jan", new: 245, returning: 890, churn: 45 },
-  { month: "Feb", new: 312, returning: 934, churn: 52 },
-  { month: "Mar", new: 289, returning: 1023, churn: 38 },
-  { month: "Apr", new: 456, returning: 1156, churn: 61 },
-  { month: "May", new: 523, returning: 1298, churn: 47 },
-  { month: "Jun", new: 634, returning: 1445, churn: 55 },
+  { month: "T1", new: 245, returning: 890, churn: 45 },
+  { month: "T2", new: 312, returning: 934, churn: 52 },
+  { month: "T3", new: 289, returning: 1023, churn: 38 },
+  { month: "T4", new: 456, returning: 1156, churn: 61 },
+  { month: "T5", new: 523, returning: 1298, churn: 47 },
+  { month: "T6", new: 634, returning: 1445, churn: 55 },
 ];
 
 const chartConfig = {
   new: {
-    label: "New Customers",
+    label: "Khách hàng mới",
     color: "var(--chart-1)",
   },
   returning: {
-    label: "Returning",
+    label: "Quay lại",
     color: "var(--chart-2)",
   },
   churn: {
-    label: "Churned",
+    label: "Rời bỏ",
     color: "var(--chart-3)",
   },
 };
@@ -97,35 +97,35 @@ const demographicsData = [
 
 const regionsData = [
   {
-    region: "North America",
+    region: "Bắc Mỹ",
     customers: 6847,
     revenue: "$847,523",
     growth: "+12.3%",
     growthColor: "text-green-600",
   },
   {
-    region: "Europe",
+    region: "Châu Âu",
     customers: 4521,
     revenue: "$563,891",
     growth: "+9.7%",
     growthColor: "text-green-600",
   },
   {
-    region: "Asia Pacific",
+    region: "Châu Á - Thái Bình Dương",
     customers: 2892,
     revenue: "$321,456",
     growth: "+18.4%",
     growthColor: "text-blue-600",
   },
   {
-    region: "Latin America",
+    region: "Mỹ Latin",
     customers: 1123,
     revenue: "$187,234",
     growth: "+15.8%",
     growthColor: "text-green-600",
   },
   {
-    region: "Others",
+    region: "Khác",
     customers: 464,
     revenue: "$67,891",
     growth: "+5.2%",
@@ -139,8 +139,8 @@ export function CustomerInsights() {
   return (
     <Card className="h-fit bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm">
       <CardHeader>
-        <CardTitle>Customer Insights</CardTitle>
-        <CardDescription>Growth trends and demographics</CardDescription>
+        <CardTitle>Phân tích khách hàng</CardTitle>
+        <CardDescription>Xu hướng tăng trưởng và nhân khẩu học</CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -150,21 +150,21 @@ export function CustomerInsights() {
               className="cursor-pointer flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
             >
               <TrendingUp className="size-4" />
-              <span className="hidden sm:inline">Growth</span>
+              <span className="hidden sm:inline">Tăng trưởng</span>
             </TabsTrigger>
             <TabsTrigger
               value="demographics"
               className="cursor-pointer flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
             >
               <UserIcon className="size-4" />
-              <span className="hidden sm:inline">Demographics</span>
+              <span className="hidden sm:inline">Nhân khẩu học</span>
             </TabsTrigger>
             <TabsTrigger
               value="regions"
               className="cursor-pointer flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground"
             >
               <MapPin className="size-4" />
-              <span className="hidden sm:inline">Regions</span>
+              <span className="hidden sm:inline">Khu vực</span>
             </TabsTrigger>
           </TabsList>
 
@@ -175,7 +175,7 @@ export function CustomerInsights() {
                 {/* Chart Area - 70% */}
                 <div className="col-span-10 xl:col-span-7">
                   <h3 className="text-sm font-medium text-muted-foreground mb-6">
-                    Customer Growth Trends
+                    Xu hướng tăng trưởng khách hàng
                   </h3>
                   <ChartContainer
                     config={chartConfig}
@@ -226,20 +226,20 @@ export function CustomerInsights() {
                 {/* Key Metrics - 30% */}
                 <div className="col-span-10 xl:col-span-3 space-y-5">
                   <h3 className="text-sm font-medium text-muted-foreground mb-6">
-                    Key Metrics
+                    Chỉ số chính
                   </h3>
                   <div className="grid grid-cols-3 gap-5">
                     <div className="p-4 rounded-lg max-lg:col-span-3 xl:col-span-3 border">
                       <div className="flex items-center gap-2 mb-2">
                         <TrendingUp className="size-4 text-primary" />
                         <span className="text-sm font-medium">
-                          Total Customers
+                          Tổng khách hàng
                         </span>
                       </div>
                       <div className="text-2xl font-bold">15,847</div>
                       <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
                         <ArrowUpIcon className="size-3" />
-                        +12.5% from last month
+                        +12.5% so với tháng trước
                       </div>
                     </div>
 
@@ -247,25 +247,25 @@ export function CustomerInsights() {
                       <div className="flex items-center gap-2 mb-2">
                         <Users className="size-4 text-muted-foreground" />
                         <span className="text-sm font-medium">
-                          Retention Rate
+                          Tỷ lệ giữ chân
                         </span>
                       </div>
                       <div className="text-2xl font-bold">92.4%</div>
                       <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
                         <ArrowUpIcon className="size-3" />
-                        +2.1% improvement
+                        +2.1% cải thiện
                       </div>
                     </div>
 
                     <div className="p-4 rounded-lg max-lg:col-span-3 xl:col-span-3 border">
                       <div className="flex items-center gap-2 mb-2">
                         <Target className="size-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Avg. LTV</span>
+                        <span className="text-sm font-medium">LTV trung bình</span>
                       </div>
                       <div className="text-2xl font-bold">$2,847</div>
                       <div className="text-xs text-green-600 flex items-center gap-1 mt-1">
                         <ArrowUpIcon className="size-3" />
-                        +8.3% growth
+                        +8.3% tăng trưởng
                       </div>
                     </div>
                   </div>
@@ -280,16 +280,16 @@ export function CustomerInsights() {
                 <TableHeader>
                   <TableRow className="border-b">
                     <TableHead className="py-5 px-6 font-semibold">
-                      Age Group
+                      Nhóm tuổi
                     </TableHead>
                     <TableHead className="text-right py-5 px-6 font-semibold">
-                      Customers
+                      Khách hàng
                     </TableHead>
                     <TableHead className="text-right py-5 px-6 font-semibold">
-                      Percentage
+                      Tỷ lệ
                     </TableHead>
                     <TableHead className="text-right py-5 px-6 font-semibold">
-                      Growth
+                      Tăng trưởng
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -320,14 +320,14 @@ export function CustomerInsights() {
             </div>
             <div className="flex items-center justify-end space-x-2 py-6">
               <div className="text-muted-foreground text-sm hidden sm:block">
-                0 of {demographicsData.length} row(s) selected.
+                Đã chọn 0 / {demographicsData.length} dòng.
               </div>
               <div className="space-x-2 space-y-2">
                 <Button variant="outline" size="sm" disabled>
-                  Previous
+                  Trước
                 </Button>
                 <Button variant="outline" size="sm" disabled>
-                  Next
+                  Sau
                 </Button>
               </div>
             </div>
@@ -339,16 +339,16 @@ export function CustomerInsights() {
                 <TableHeader>
                   <TableRow className="border-b">
                     <TableHead className="py-5 px-6 font-semibold">
-                      Region
+                      Khu vực
                     </TableHead>
                     <TableHead className="text-right py-5 px-6 font-semibold">
-                      Customers
+                      Khách hàng
                     </TableHead>
                     <TableHead className="text-right py-5 px-6 font-semibold">
-                      Revenue
+                      Doanh thu
                     </TableHead>
                     <TableHead className="text-right py-5 px-6 font-semibold">
-                      Growth
+                      Tăng trưởng
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -379,14 +379,14 @@ export function CustomerInsights() {
             </div>
             <div className="flex items-center justify-end space-x-2 py-6">
               <div className="text-muted-foreground text-sm hidden sm:block">
-                0 of {regionsData.length} row(s) selected.
+                Đã chọn 0 / {regionsData.length} dòng.
               </div>
               <div className="space-x-2 space-y-2">
                 <Button variant="outline" size="sm" disabled>
-                  Previous
+                  Trước
                 </Button>
                 <Button variant="outline" size="sm" disabled>
-                  Next
+                  Sau
                 </Button>
               </div>
             </div>

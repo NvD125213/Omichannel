@@ -1,37 +1,41 @@
-import { ChartAreaInteractive } from "@/features/dashboard/components/chart-area-interactive";
-import { DataTable } from "@/features/dashboard/components/data-table";
-import { SectionCards } from "@/features/dashboard/components/selection-cards";
+import { CustomerInsights } from "@/features/dashboard2/components/customer-insights";
+import { MetricsOverview } from "@/features/dashboard2/components/matrics-overview";
+import { QuickActions } from "@/features/dashboard2/components/quick-actions";
+import { RecentTransactions } from "@/features/dashboard2/components/recent-transactions";
+import { RevenueBreakdown } from "@/features/dashboard2/components/revenue-breakdown";
+import { SalesChart } from "@/features/dashboard2/components/sale-chart";
+import { TopProducts } from "@/features/dashboard2/components/top-products";
 
-import data from "@/constants/data.json";
-import focusDocumentsData from "@/constants/format-documents-data.json";
-import keyPersonnelData from "@/constants/key-personal-data.json";
-import pastPerformanceData from "@/constants/past-performance-data.json";
-
-import { DashboardStatsCards } from "@/features/dashboard/components/dashboard-stats-cards";
-
-export default function Page() {
+export default function Dashboard2() {
   return (
     <>
-      <div className="px-4 lg:px-6 py-4">
+      <div className="px-4 lg:px-6 py-4 flex md:flex-row flex-col md:items-center justify-between gap-2">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Báo cáo kinh doanh
+          </h1>
           <p className="text-muted-foreground">
-            Chào mừng đến với hệ thống Onmichannel
+            Kiểm soát hiệu suất kinh doanh và các chỉ số quan trọng trong thời
+            gian thực
           </p>
         </div>
+        <QuickActions />
       </div>
 
       <div className="@container/main px-4 lg:px-6 space-y-6">
-        <DashboardStatsCards />
-        <ChartAreaInteractive />
-      </div>
-      <div className="@container/main">
-        <DataTable
-          data={data}
-          pastPerformanceData={pastPerformanceData}
-          keyPersonnelData={keyPersonnelData}
-          focusDocumentsData={focusDocumentsData}
-        />
+        <MetricsOverview />
+
+        <div className="grid gap-6 grid-cols-1 @5xl:grid-cols-2">
+          <SalesChart />
+          <RevenueBreakdown />
+        </div>
+
+        <div className="grid gap-6 grid-cols-1 @5xl:grid-cols-2">
+          <RecentTransactions />
+          <TopProducts />
+        </div>
+
+        <CustomerInsights />
       </div>
     </>
   );

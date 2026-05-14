@@ -174,13 +174,13 @@ export function MessageAttachment({
         href={dataUrl || thumbUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="block max-w-[min(100%,280px)] shrink-0 overflow-hidden rounded-lg bg-muted/40 ring-1 ring-black/5 dark:ring-white/10"
+        className="block w-full max-w-[min(100%,280px)] overflow-hidden rounded-lg bg-muted/40 ring-1 ring-black/5 dark:ring-white/10"
         style={aspectRatio ? { aspectRatio } : undefined}
       >
         <img
           src={thumbUrl || imageSrc}
           alt={displayName}
-          className="max-h-72w-full cursor-pointer object-contain transition-opacity hover:opacity-95"
+          className="block h-auto max-h-72 w-full cursor-pointer object-contain transition-opacity hover:opacity-95"
           loading="lazy"
         />
       </a>
@@ -211,7 +211,7 @@ export function MessageAttachment({
     return (
       <div
         className={cn(
-          "mt-2 flex items-center gap-3 rounded-xl p-3",
+          "mt-2 flex min-w-0 max-w-full items-center gap-3 rounded-xl p-3",
           isOwnMessage
             ? "bg-primary-foreground/10"
             : "border border-border bg-muted/80",

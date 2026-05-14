@@ -15,28 +15,28 @@ import {
 
 const performanceMetrics = [
   {
-    title: "Total Revenue",
+    title: "Tổng doanh thu",
     current: "$54,230",
     previous: "$48,420",
     growth: 12.0,
     icon: DollarSign,
   },
   {
-    title: "Active Customers",
+    title: "Khách hàng hoạt động",
     current: "2,350",
     previous: "2,234",
     growth: 5.2,
     icon: Users,
   },
   {
-    title: "Total Orders",
+    title: "Tổng đơn hàng",
     current: "1,247",
     previous: "1,274",
     growth: -2.1,
     icon: ShoppingCart,
   },
   {
-    title: "Conversion Rate",
+    title: "Tỷ lệ chuyển đổi",
     current: "3.24%",
     previous: "2.99%",
     growth: 8.3,
@@ -79,7 +79,7 @@ export function MetricsOverview() {
               </p>
               <div className="text-2xl font-bold">{metric.current}</div>
               <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                <span>from {metric.previous}</span>
+                <span>so với {metric.previous}</span>
                 <ArrowUpRight className="size-3" />
               </div>
             </div>

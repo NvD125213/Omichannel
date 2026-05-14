@@ -186,7 +186,10 @@ export function GroupDataTable({
           ))
         ) : groups.length > 0 ? (
           groups.map((group) => (
-            <Card key={group.id} className="p-4 transition-all hover:shadow-md">
+            <Card
+              key={group.id}
+              className="p-4 transition-all hover:shadow-md max-w-lg"
+            >
               <div className="flex items-center justify-between gap-4">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">

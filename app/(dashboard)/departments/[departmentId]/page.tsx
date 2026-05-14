@@ -11,6 +11,7 @@ import { GroupFormDialog } from "@/features/groups/components/group-form-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { Group } from "@/features/groups/utils/schema";
 import { AppBreadcrumb } from "@/components/breadcrumb";
+import { EmptyData } from "@/components/empty-data";
 import {
   Home,
   Building2,
@@ -32,6 +33,7 @@ import {
 } from "use-query-params";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PERMISSIONS } from "@/constants/permission";
+import { IconMoodEmpty } from "@tabler/icons-react";
 
 // Sort options
 const sortOptions: FilterOption[] = [
@@ -170,14 +172,21 @@ function DepartmentDetailPageContent({
     },
   );
 
-  const tenantName = tenant && "name" in tenant ? tenant.name : "";
+  // const tenantName = tenant && "name" in tenant ? tenant.name : "";
 
   if (isLoading || isLoadingTenant) {
     return <Skeleton className="h-6 w-24" />;
   }
 
   if (!department) {
-    return <div>Department not found</div>;
+    return (
+      <EmptyData
+        icon={IconMoodEmpty}
+        title="Không tìm thấy dữ liệu chi tiết nào"
+        description="Hãy thử thêm mới thông tin phòng ban hoặc thay đổi thông tin tìm kiếm"
+        buttonText=""
+      />
+    );
   }
 
   return (
@@ -272,7 +281,7 @@ export default function DepartmentDetailPage({
   const { departmentId } = use(params);
 
   return (
-    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_DEPARTMENT_BY_ID]}>
+    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_GROUPS]}>
       <DepartmentDetailPageContent departmentId={departmentId} />
     </ProtectedRoute>
   );

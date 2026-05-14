@@ -67,6 +67,13 @@ function extractRawLabels(
   const root = response as Record<string, unknown>;
 
   const fromData = root.data as Record<string, unknown> | undefined;
+
+  const chatwoot = fromData?.chatwoot as Record<string, unknown> | undefined;
+  const chatwootPayloadObjects = coerceObjectArray(chatwoot?.payload);
+  if (chatwootPayloadObjects) return chatwootPayloadObjects;
+  const chatwootPayloadStrings = coerceStringArray(chatwoot?.payload);
+  if (chatwootPayloadStrings) return chatwootPayloadStrings;
+
   const stringLabels = coerceStringArray(fromData?.labels);
   if (stringLabels) return stringLabels;
 
@@ -80,6 +87,11 @@ function extractRawLabels(
     (fromData?.data as Record<string, unknown> | undefined)?.payload,
   );
   if (payloadStrings) return payloadStrings;
+
+  const payloadObjects = coerceObjectArray(
+    (fromData?.data as Record<string, unknown> | undefined)?.payload,
+  );
+  if (payloadObjects) return payloadObjects;
 
   return [];
 }

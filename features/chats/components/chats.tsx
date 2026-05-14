@@ -404,11 +404,11 @@ export function Chat() {
   const isSidebarFullyExpanded =
     !isNotificationSidebarCollapsed && !isConversationListCollapsed;
   const sidebarDesktopWidthClass = isSidebarFullyExpanded
-    ? "lg:w-2/5"
+    ? "lg:w-[45%]"
     : !isNotificationSidebarCollapsed && isConversationListCollapsed
-      ? "lg:w-[calc(13.333333%+5rem)]"
+      ? "lg:w-[calc(18%+5rem)]"
       : isNotificationSidebarCollapsed && !isConversationListCollapsed
-        ? "lg:w-[calc(26.666667%+4rem)]"
+        ? "lg:w-[calc(27%+4rem)]"
         : "lg:w-36";
 
   return (
@@ -540,7 +540,7 @@ export function Chat() {
                   ? "w-16"
                   : isConversationListCollapsed
                     ? "w-[calc(100%-5rem)]"
-                    : "w-1/3",
+                    : "w-2/5",
               )}
             >
               <ChatNotificationSidebar

@@ -49,25 +49,25 @@ const revenueData = [
 
 const chartConfig = {
   revenue: {
-    label: "Revenue",
+    label: "Doanh thu",
   },
   amount: {
-    label: "Amount",
+    label: "Giá trị",
   },
   subscriptions: {
-    label: "Subscriptions",
+    label: "Gói đăng ký",
     color: "var(--chart-1)",
   },
   sales: {
-    label: "One-time Sales",
+    label: "Bán lẻ một lần",
     color: "var(--chart-2)",
   },
   services: {
-    label: "Services",
+    label: "Dịch vụ",
     color: "var(--chart-3)",
   },
   partnerships: {
-    label: "Partnerships",
+    label: "Đối tác",
     color: "var(--chart-4)",
   },
 };
@@ -94,16 +94,16 @@ export function RevenueBreakdown() {
       <ChartStyle id={id} config={chartConfig} />
       <CardHeader className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pb-2">
         <div>
-          <CardTitle>Revenue Breakdown</CardTitle>
-          <CardDescription>Revenue distribution by source</CardDescription>
+          <CardTitle>Cơ cấu doanh thu</CardTitle>
+          <CardDescription>Phân bổ doanh thu theo nguồn</CardDescription>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2 sm:gap-0 w-full sm:w-auto">
           <Select value={activeCategory} onValueChange={setActiveCategory}>
             <SelectTrigger
               className="w-full sm:w-[175px] rounded-lg cursor-pointer"
-              aria-label="Select a category"
+              aria-label="Chọn danh mục"
             >
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder="Chọn danh mục" />
             </SelectTrigger>
             <SelectContent align="end" className="rounded-lg">
               {categories.map((key) => {
@@ -134,7 +134,7 @@ export function RevenueBreakdown() {
             </SelectContent>
           </Select>
           <Button variant="outline" className="w-full sm:w-auto cursor-pointer">
-            Export
+            Xuất dữ liệu
           </Button>
         </div>
       </CardHeader>
@@ -198,7 +198,7 @@ export function RevenueBreakdown() {
                               y={(viewBox.cy || 0) + 24}
                               className="fill-muted-foreground"
                             >
-                              Revenue
+                              Doanh thu
                             </tspan>
                           </text>
                         );

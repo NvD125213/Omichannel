@@ -22,67 +22,80 @@ const transactions = [
   {
     id: "TXN-001",
     customer: {
-      name: "Olivia Martin",
-      email: "olivia.martin@email.com",
-      avatar: "https://github.com/shadcn.png",
+      name: "Tập đoàn Vingroup",
+      email: "contact@vingroup.vn",
+      avatar:
+        "https://upload.wikimedia.org/wikipedia/vi/thumb/9/98/Vingroup_logo.svg/1280px-Vingroup_logo.svg.png",
     },
     amount: "$1,999.00",
     status: "completed",
-    date: "2 hours ago",
+    date: "2 giờ trước",
   },
   {
     id: "TXN-002",
     customer: {
-      name: "Jackson Lee",
-      email: "jackson.lee@email.com",
-      avatar: "https://github.com/leerob.png",
+      name: "Viettel Telecom",
+      email: "support@viettel.com.vn",
+      avatar:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Logo_Viettel.svg/1280px-Logo_Viettel.svg.png",
     },
     amount: "$2,999.00",
     status: "pending",
-    date: "5 hours ago",
+    date: "5 giờ trước",
   },
   {
     id: "TXN-003",
     customer: {
-      name: "Isabella Nguyen",
-      email: "isabella.nguyen@email.com",
-      avatar: "https://github.com/evilrabbit.png",
+      name: "FPT Corporation",
+      email: "fpt@fpt.com",
+      avatar:
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/FPT_logo_2010.svg/1280px-FPT_logo_2010.svg.png",
     },
     amount: "$39.00",
     status: "completed",
-    date: "1 day ago",
+    date: "1 ngày trước",
   },
   {
     id: "TXN-004",
     customer: {
-      name: "William Kim",
-      email: "will@email.com",
-      avatar: "https://github.com/rauchg.png",
+      name: "Masan Group",
+      email: "info@masangroup.com",
+      avatar:
+        "https://cdn.brvn.vn/news/480px/2013/MasanConsumer-ID2317_1374652469.jpg",
     },
     amount: "$299.00",
     status: "failed",
-    date: "2 days ago",
+    date: "2 ngày trước",
   },
   {
     id: "TXN-005",
     customer: {
-      name: "Sofia Davis",
-      email: "sofia.davis@email.com",
-      avatar: "https://github.com/jaredpalmer.png",
+      name: "Vinamilk",
+      email: "vinamilk@vinamilk.com.vn",
+      avatar:
+        "https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_Vinamilk_%282023%29.png",
     },
     amount: "$99.00",
     status: "completed",
-    date: "3 days ago",
+    date: "3 ngày trước",
   },
 ];
 
 export function RecentTransactions() {
+  const statusLabel: Record<string, string> = {
+    completed: "Hoàn thành",
+    pending: "Đang xử lý",
+    failed: "Thất bại",
+  };
+
   return (
     <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:space-y-0 pb-4">
         <div>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>Latest customer transactions</CardDescription>
+          <CardTitle>Giao dịch gần đây</CardTitle>
+          <CardDescription>
+            Các giao dịch mới nhất của khách hàng
+          </CardDescription>
         </div>
         <Button
           variant="outline"
@@ -90,7 +103,7 @@ export function RecentTransactions() {
           className="w-full sm:w-auto cursor-pointer"
         >
           <Eye className="size-4" />
-          View All
+          Xem tất cả
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -131,7 +144,7 @@ export function RecentTransactions() {
                     }
                     className="cursor-pointer shrink-0"
                   >
-                    {transaction.status}
+                    {statusLabel[transaction.status] ?? transaction.status}
                   </Badge>
                   <div className="text-left sm:text-right">
                     <p className="text-sm font-medium">{transaction.amount}</p>
@@ -152,13 +165,13 @@ export function RecentTransactions() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem className="cursor-pointer">
-                      View Details
+                      Xem chi tiết
                     </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer">
-                      Download Receipt
+                      Tải biên lai
                     </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer">
-                      Contact Customer
+                      Liên hệ khách hàng
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

@@ -25,6 +25,7 @@ import {
   IconTag,
   IconSubtitles,
   IconRobot,
+  IconBrain,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -57,31 +58,36 @@ export const sidebarData: SidebarData = {
       title: "Quản trị hệ thống",
       items: [
         {
-          title: "Tổng quan",
+          title: "Dashboard Overview",
           url: "/dashboard",
           icon: IconLayoutDashboard,
         },
+        // {
+        //   title: "Dashboard Business",
+        //   url: "/dashboard2",
+        //   icon: IconChartBar,
+        // },
         {
-          title: "Báo cáo kinh doanh",
-          url: "/dashboard2",
-          icon: IconChartBar,
+          title: "Dashboard A.I",
+          url: "/ai-dashboard",
+          icon: IconBrain,
         },
-        {
-          title: "Báo cáo vận hành",
-          icon: IconReportMoney,
-          items: [
-            {
-              title: "Báo cáo vận hành",
-              url: "/payment-dashboard",
-              icon: IconCreditCard,
-            },
-            {
-              title: "Báo cáo giao dịch",
-              url: "/payment-transactions",
-              icon: IconArrowsExchange,
-            },
-          ],
-        },
+        // {
+        //   title: "Báo cáo vận hành",
+        //   icon: IconReportMoney,
+        //   items: [
+        //     {
+        //       title: "Báo cáo vận hành",
+        //       url: "/payment-dashboard",
+        //       icon: IconCreditCard,
+        //     },
+        //     {
+        //       title: "Báo cáo giao dịch",
+        //       url: "/payment-transactions",
+        //       icon: IconArrowsExchange,
+        //     },
+        //   ],
+        // },
       ],
     },
     {
@@ -330,7 +336,7 @@ export const sidebarData: SidebarData = {
               icon: IconRobot,
             },
             {
-              title: "Quản lý nhãn hội thoại",
+              title: "Quản lý nhãn",
               url: "/settings/label",
               icon: IconTag,
             },
