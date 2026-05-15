@@ -226,7 +226,7 @@ export function SearchTrigger({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-md text-sm font-medium border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 relative justify-start text-muted-foreground sm:pr-12 md:w-36 lg:w-56"
+      className="inline-flex items-center gap-2 rounded-md text-sm font-medium border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 relative justify-start text-muted-foreground sm:pr-12 md:w-36 lg:w-56"
     >
       <Search className="size-4" />
       <span className="hidden lg:inline-flex">Tìm kiếm...</span>

@@ -542,10 +542,21 @@ export function ChatConversationList({
                   aria-pressed={isActive}
                   onClick={() => setActiveTab(tab)}
                   className={cn(
-                    "flex min-h-9 min-w-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 py-1 text-[10px] leading-tight transition-all duration-200 sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs",
+                    "flex min-h-9 min-w-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-1 text-[10px] leading-tight transition-all duration-200 sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs",
                     isActive
-                      ? "bg-background text-primary shadow-sm"
-                      : "text-muted-foreground hover:bg-background/70 hover:text-foreground hover:opacity-85 hover:shadow-sm",
+                      ? [
+                          "border-primary/20",
+                          "bg-primary/[0.08]",
+                          "text-primary",
+                          "backdrop-blur-sm",
+                        ]
+                      : [
+                          "border-transparent",
+                          "text-muted-foreground",
+                          "hover:border-border/60",
+                          "hover:bg-background/60",
+                          "hover:text-foreground",
+                        ],
                   )}
                 >
                   <span className="truncate text-center">
@@ -574,8 +585,6 @@ export function ChatConversationList({
       </div>
     </div>
   );
-
-  console.log(conversations);
 
   const getOnlineStatus = (conversation: ChatConversation) => {
     if (
@@ -931,9 +940,11 @@ export function ChatConversationList({
                             </div>
 
                             <div className="flex min-w-0 items-center justify-between gap-2">
-                              <p className="min-w-0 flex-1 truncate pr-1 text-xs text-muted-foreground sm:text-sm flex items-center gap-1">
+                              <p className="min-w-0 flex-1 pr-1 text-xs text-muted-foreground flex items-center gap-1">
                                 <Reply className="size-3 shrink-0 text-muted-foreground" />
-                                {conversation.lastMessage.content}
+                                <span className="truncate">
+                                  {conversation.lastMessage.content}
+                                </span>
                               </p>
 
                               {/* Unread count */}
@@ -957,7 +968,7 @@ export function ChatConversationList({
                                     .map((label) => (
                                       <span
                                         key={`${conversation.id}-${label}`}
-                                        className="inline-flex min-w-0 items-center gap-1 rounded-md border border-border/70 bg-background/90 px-2 py-1 text-[10px] font-medium text-foreground shadow-xs"
+                                        className="inline-flex min-w-0 items-center gap-1 rounded-md border border-border/70 bg-transparent px-2 py-1 text-[10px] font-medium text-foreground shadow-xs"
                                       >
                                         <span
                                           className="size-1.5 shrink-0 rounded-full"

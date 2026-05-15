@@ -25,11 +25,13 @@ const Section = ({
 }) => {
   return (
     <div
-      className={`bg-white rounded-xl border border-slate-100 overflow-hidden ${className}`}
+      className={`bg-transparent rounded-xl border border-transparent dark:border-zinc-800 overflow-hidden ${className}`}
     >
       {title && (
         <div className="px-5 py-3 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-zinc-200">
+            {title}
+          </h3>
         </div>
       )}
       <div className="p-5">{children}</div>
@@ -45,7 +47,7 @@ const TicketDetailGrid = () => {
   const ticket = ticketData?.data;
 
   return (
-    <div className="w-full bg-slate-50/50 px-4 py-6">
+    <div className="w-full bg-transparent px-4 py-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 py-4">
         <AppBreadcrumb
@@ -67,7 +69,7 @@ const TicketDetailGrid = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-10 gap-4 max-w-full">
         {/* ===== Row 1: Context (6) + Event (4) ===== */}
-        <div className="md:col-span-6 bg-white rounded-xl border border-slate-100 min-h-[300px]">
+        <div className="md:col-span-6 bg-transparent rounded-xl border border-transparent dark:border-zinc-800 min-h-[300px]">
           <TicketDetailLiveChatContext ticketId={ticketId} />
         </div>
 

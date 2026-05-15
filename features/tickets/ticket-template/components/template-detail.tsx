@@ -133,7 +133,7 @@ export function TemplateDetail({ templateId, ticketId }: TemplateDetailProps) {
 
       <div className="space-y-6">
         {/* Description Section */}
-        <div className="rounded-lg bg-slate-50/50 p-4 border border-slate-100">
+        <div className="rounded-lg bg-transparent p-4 border border-transparent dark:border-zinc-800">
           <h4 className="text-xs font-semibold mb-2 flex items-center gap-2 text-slate-700">
             <Plus className="size-3.5 text-primary" />
             Mô tả
@@ -145,7 +145,7 @@ export function TemplateDetail({ templateId, ticketId }: TemplateDetailProps) {
 
         {/* Configuration Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-transparent border border-transparent dark:border-zinc-800">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <Workflow className="size-4 text-blue-600 dark:text-blue-400" />
             </div>
@@ -159,7 +159,7 @@ export function TemplateDetail({ templateId, ticketId }: TemplateDetailProps) {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-100">
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-transparent border border-transparent dark:border-zinc-800">
             <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
               <ShieldCheck className="size-4 text-orange-600 dark:text-orange-400" />
             </div>

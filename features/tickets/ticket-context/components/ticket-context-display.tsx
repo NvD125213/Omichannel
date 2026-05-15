@@ -55,15 +55,15 @@ export default function TicketContextDisplay({
   };
 
   return (
-    <div className="relative rounded-lg p-4 group transition-all duration-300">
+    <div className="relative rounded-lg p-4 group transition-all duration-300 bg-white dark:bg-zinc-800/50 border border-transparent dark:border-zinc-700">
       {/* Header with User Info */}
       <div className="flex items-start gap-3 mb-4">
-        <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+        <Avatar className="h-10 w-10 border-2 border-white dark:border-zinc-700 shadow-sm">
           <AvatarImage
             src="https://cdn-icons-png.flaticon.com/512/219/219969.png"
             alt="User"
           />
-          <AvatarFallback className="bg-blue-100 text-blue-600 font-semibold">
+          <AvatarFallback className="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-semibold">
             NL
           </AvatarFallback>
         </Avatar>
@@ -71,41 +71,43 @@ export default function TicketContextDisplay({
           {/* Header */}
           <div className="flex items-center justify-between gap-3 mb-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-sm text-gray-900 truncate">
+              <h3 className="font-semibold text-sm text-gray-900 dark:text-zinc-100 truncate">
                 Người dùng 1
               </h3>
 
               {/* Online status */}
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-[10px] font-medium text-green-700 dark:text-green-400">
                 <span className="h-2 w-2 rounded-full bg-green-500" />
                 Online
               </span>
 
               {/* Context ID */}
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-700">
+              <span className="rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] font-medium text-gray-700 dark:text-zinc-300">
                 #{context.context_id}
               </span>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-zinc-400">
               {formatDateMin(context.created_at)}
             </div>
           </div>
 
           {/* Sub info */}
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-zinc-400">
             <span>
               Đã trả lời qua{" "}
-              <span className="font-semibold text-gray-700">Chat</span>
+              <span className="font-semibold text-gray-700 dark:text-zinc-300">
+                Chat
+              </span>
             </span>
 
-            <span className="h-1 w-1 rounded-full bg-gray-300" />
+            <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
 
             <span className="capitalize">
               Ngữ cảnh:{" "}
               <span className="font-medium">{context.context_type}</span>
             </span>
 
-            <span className="h-1 w-1 rounded-full bg-gray-300" />
+            <span className="h-1 w-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
 
             <span className="capitalize">
               Nguồn: <span className="font-medium">{context.source_type}</span>
@@ -115,12 +117,12 @@ export default function TicketContextDisplay({
       </div>
       {/* Context Info Box */}
       <div className="rounded-md flex gap-2 px-13">
-        <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
+        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-medium text-blue-900 mb-1">
+          <div className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-1">
             Dữ liệu metadata mã bối cảnh {context.context_id}
           </div>
-          <div className="text-xs text-blue-700 space-y-0.5">
+          <div className="text-xs text-blue-700 dark:text-blue-400/90 space-y-0.5">
             {Object.entries(context.context_metadata).map(([key, value]) => (
               <p key={key}>
                 <span className="font-medium">{key}:</span> {value as string}
@@ -134,7 +136,7 @@ export default function TicketContextDisplay({
         {/* Send mail */}
         <button
           onClick={() => alert("Gửi mail")}
-          className="flex items-center gap-1.5 text-gray-500 hover:text-blue-600 transition"
+          className="flex items-center gap-1.5 text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition"
         >
           <Mail className="h-3.5 w-3.5" />
           Gửi mail
@@ -146,7 +148,7 @@ export default function TicketContextDisplay({
             e.stopPropagation();
             setIsDeleteDialogOpen(true);
           }}
-          className="flex items-center gap-1.5 text-gray-500 hover:text-red-600 transition"
+          className="flex items-center gap-1.5 text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition"
         >
           <Trash2 className="h-3.5 w-3.5" />
           Xóa

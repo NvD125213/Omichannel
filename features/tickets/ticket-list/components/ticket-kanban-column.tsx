@@ -45,7 +45,7 @@ export function TicketKanbanColumn({
   return (
     <div
       className={cn(
-        "flex h-full max-h-full min-w-[300px] flex-1 shrink-0 flex-col rounded-xl border transition-all duration-200 bg-slate-50/50 dark:bg-zinc-900/50",
+        "flex h-full max-h-full min-w-[300px] flex-1 shrink-0 flex-col rounded-xl border transition-all duration-200 bg-transparent",
         isOver &&
           "ring-primary ring-2 scale-[1.01] shadow-lg bg-slate-100 dark:bg-zinc-800",
       )}

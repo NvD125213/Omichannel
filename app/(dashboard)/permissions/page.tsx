@@ -4,7 +4,7 @@ import { PERMISSIONS } from "@/constants/permission";
 
 function PermissionsPageContent() {
   return (
-    <div className="p-4 space-y-8 bg-background min-h-screen text-foreground animate-in fade-in duration-500">
+    <div className="p-4 space-y-8 bg-transparent min-h-screen text-foreground animate-in fade-in duration-500">
       <PermissionsMatrix />
     </div>
   );

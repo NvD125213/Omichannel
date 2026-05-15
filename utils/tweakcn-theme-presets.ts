@@ -134,6 +134,8 @@ export const tweakcnPresets: Record<string, ThemePreset> = {
       },
       dark: {
         background: "#1a1b1e",
+        "background-image":
+          "linear-gradient(180deg, #020617 0%, #0f0d1a 25%, #111827 55%, #1e1b4b 100%)",
         foreground: "#f0f0f0",
         card: "#222327",
         "card-foreground": "#f0f0f0",

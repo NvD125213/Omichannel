@@ -13,17 +13,19 @@ export function TopicFavouriteTabs() {
   const [activeTab, setActiveTab] = useState(TAB_TOPIC_FAVOURITE);
 
   return (
-    <Tabs
-      value={activeTab}
-      onValueChange={setActiveTab}
-      className="w-full"
-    >
-      <div className="rounded-lg border bg-card p-3 sm:p-4">
-        <TabsList className="grid h-auto w-full grid-cols-2">
-          <TabsTrigger value={TAB_TOPIC_FAVOURITE} className="cursor-pointer">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="rounded-lg border bg-transparent p-3 sm:p-4">
+        <TabsList className="grid h-auto w-full grid-cols-2 bg-transparent">
+          <TabsTrigger
+            value={TAB_TOPIC_FAVOURITE}
+            className="cursor-pointer bg-transparent"
+          >
             Chủ đề yêu thích
           </TabsTrigger>
-          <TabsTrigger value={TAB_TOPIC_DETAIL} className="cursor-pointer">
+          <TabsTrigger
+            value={TAB_TOPIC_DETAIL}
+            className="cursor-pointer bg-transparent"
+          >
             Chi tiết
           </TabsTrigger>
         </TabsList>

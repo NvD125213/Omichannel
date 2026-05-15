@@ -136,11 +136,13 @@ export default function TicketFlowInstanceDetail({
   if (!stepData) {
     return (
       <div className="flex flex-col items-center justify-center h-full py-12 text-center text-muted-foreground">
-        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-          <FileText className="h-6 w-6 text-slate-400" />
+        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+          <FileText className="h-6 w-6 text-slate-400 dark:text-zinc-500" />
         </div>
-        <p className="text-sm font-medium text-slate-900">Chưa chọn bước nào</p>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+          Chưa chọn bước nào
+        </p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
           Chọn một bước từ danh sách bên trái để xem chi tiết
         </p>
       </div>
@@ -152,7 +154,7 @@ export default function TicketFlowInstanceDetail({
       {" "}
       {/* Sticky Action Section at Top - chỉ hiển thị khi đã có instance */}
       {instance && (
-        <div className="shrink-0 pb-3 bg-white border-b border-slate-100 sticky top-0 z-10">
+        <div className="shrink-0 pb-3 bg-white dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800 sticky top-0 z-10">
           <div className="flex items-center gap-2">
             {instance.id && (
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -173,7 +175,7 @@ export default function TicketFlowInstanceDetail({
             <Button
               onClick={handleAction}
               disabled={isActionLoading}
-              className="flex-1"
+              className="flex-1 dark:border-zinc-700 dark:hover:bg-zinc-800"
               variant="outline"
             >
               {isActionLoading ? (
@@ -200,13 +202,13 @@ export default function TicketFlowInstanceDetail({
             {/* HEADER SECTION */}
             <div className="flex items-start gap-4">
               <div className="flex-1 min-w-0 pt-0.5">
-                <h3 className="font-bold text-lg text-slate-900 leading mb-2.5">
+                <h3 className="font-bold text-lg text-slate-900 dark:text-zinc-100 leading mb-2.5">
                   {stepData.name}
                 </h3>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="text-xs bg-white font-normal"
+                    className="text-xs bg-white dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 font-normal"
                   >
                     Bước {stepData.step_order}
                   </Badge>
@@ -225,7 +227,7 @@ export default function TicketFlowInstanceDetail({
             {/* ASSIGNEE SECTION */}
             {stepData.assignee && (
               <div className="group">
-                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                   {stepData.assignee_user_id ? (
                     <User className="w-3.5 h-3.5" />
                   ) : (
@@ -235,30 +237,30 @@ export default function TicketFlowInstanceDetail({
                     ? "Người thực hiện"
                     : "Nhóm thực hiện"}
                 </h4>
-                <div className="flex items-center gap-3 p-3 hover:bg-slate-50 transition-colors">
+                <div className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors rounded-lg">
                   {stepData.assignee_user_id ? (
-                    <Avatar className="h-9 w-9 border-2 border-white shadow-sm">
+                    <Avatar className="h-9 w-9 border-2 border-white dark:border-zinc-700 shadow-sm">
                       <AvatarImage
                         src={`/avatar/${stepData.assignee_user_id}.jpg`}
                         alt={stepData.assignee}
                       />
-                      <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 font-bold">
+                      <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 font-bold">
                         {stepData.assignee?.charAt(0)?.toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                   ) : (
-                    <div className="h-9 w-9 rounded-full bg-slate-200 flex items-center justify-center border-2 border-white shadow-sm">
-                      <Users className="h-4 w-4 text-slate-500" />
+                    <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-zinc-700 flex items-center justify-center border-2 border-white dark:border-zinc-700 shadow-sm">
+                      <Users className="h-4 w-4 text-slate-500 dark:text-zinc-400" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 truncate">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">
                       {stepData.assignee}
                     </p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <Badge
                         variant="secondary"
-                        className="text-[10px] h-4 px-1.5 font-normal bg-slate-200/50 text-slate-600 hover:bg-slate-200"
+                        className="text-[10px] h-4 px-1.5 font-normal bg-slate-200/50 text-slate-600 hover:bg-slate-200 dark:bg-zinc-700/50 dark:text-zinc-400 dark:hover:bg-zinc-700"
                       >
                         {stepData.assignee_user_id
                           ? "Người thực hiện"
@@ -274,12 +276,12 @@ export default function TicketFlowInstanceDetail({
             <div className="grid gap-6">
               {/* Timeline */}
               <div>
-                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <Calendar className="w-3.5 h-3.5" />
                   Thời gian xử lý
                 </h4>
-                <div className="grid grid-cols-2 gap-3 bg-white">
-                  <div className="bg-emerald-50/50 rounded-lg p-3 border border-emerald-100/50">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-emerald-50/50 dark:bg-emerald-950/30 rounded-lg p-3 border border-emerald-100/50 dark:border-emerald-900/50">
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Badge variant="outline" className="text-xs font-normal">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
@@ -288,42 +290,42 @@ export default function TicketFlowInstanceDetail({
                     </div>
                     {instance.started_at ? (
                       <div className="space-y-0.5">
-                        <div className="text-[12px]">
+                        <div className="text-[12px] text-slate-900 dark:text-zinc-200">
                           {convertDateTime(instance.started_at).time}
                         </div>
-                        <div className="text-[12px] text-emerald-600/80">
+                        <div className="text-[12px] text-emerald-600/80 dark:text-emerald-400/80">
                           {convertDateTime(instance.started_at).date}
                         </div>
                       </div>
                     ) : (
-                      <span className="text-xs text-slate-400 italic">
+                      <span className="text-xs text-slate-400 dark:text-zinc-500 italic">
                         --/--
                       </span>
                     )}
                   </div>
 
                   <div
-                    className={`rounded-lg p-3 border ${instance.finished_at ? "bg-blue-50/50 border-blue-100/50" : "bg-slate-50 border-slate-100"}`}
+                    className={`rounded-lg p-3 border ${instance.finished_at ? "bg-blue-50/50 border-blue-100/50 dark:bg-blue-950/30 dark:border-blue-900/50" : "bg-slate-50 border-slate-100 dark:bg-zinc-800/50 dark:border-zinc-700"}`}
                   >
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <Badge variant="outline" className="text-xs font-normal">
                         <div
-                          className={`w-1.5 h-1.5 rounded-full ${instance.finished_at ? "bg-blue-500" : "bg-slate-300"}`}
+                          className={`w-1.5 h-1.5 rounded-full ${instance.finished_at ? "bg-blue-500" : "bg-slate-300 dark:bg-zinc-600"}`}
                         ></div>
                         Kết thúc
                       </Badge>
                     </div>
                     {instance.finished_at ? (
                       <div className="space-y-0.5">
-                        <div className="text-[12px]">
+                        <div className="text-[12px] text-slate-900 dark:text-zinc-200">
                           {convertDateTime(instance.finished_at).time}
                         </div>
-                        <div className="text-[12px] text-blue-600/80 px-0.5">
+                        <div className="text-[12px] text-blue-600/80 dark:text-blue-400/80 px-0.5">
                           {convertDateTime(instance.finished_at).date}
                         </div>
                       </div>
                     ) : (
-                      <span className="text-xs text-slate-400 italic">
+                      <span className="text-xs text-slate-400 dark:text-zinc-500 italic">
                         --/--/--
                       </span>
                     )}
@@ -335,32 +337,38 @@ export default function TicketFlowInstanceDetail({
               <div className="space-y-3">
                 {/* Header */}
                 <div className="flex items-center gap-2">
-                  <IconReportMoney className="w-4 h-4 text-slate-400" />
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <IconReportMoney className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                     Thông tin Ticket
                   </h4>
                 </div>
 
                 {/* Card */}
-                <div className="bg-white ring-1 ring-slate-100 py-4 space-y-4">
+                <div className="bg-transparent border border-transparent dark:border-zinc-800 py-4 space-y-4 rounded-lg">
                   {/* Title */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Tiêu đề</span>
-                    <div className="text-sm font-medium px-2.5 py-0.5 rounded-full">
+                    <span className="text-xs text-slate-500 dark:text-zinc-400">
+                      Tiêu đề
+                    </span>
+                    <div className="text-sm font-medium text-slate-900 dark:text-zinc-100 px-2.5 py-0.5 rounded-full">
                       {instance.ticket.title}
                     </div>
                   </div>
                   {/* Code */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Code</span>
-                    <Badge className="text-xs font-medium bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">
+                    <span className="text-xs text-slate-500 dark:text-zinc-400">
+                      Code
+                    </span>
+                    <Badge className="text-xs font-medium bg-slate-100 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300 px-2.5 py-0.5 rounded-full">
                       #{instance.ticket.code}
                     </Badge>
                   </div>
 
                   {/* Status */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Trạng thái</span>
+                    <span className="text-xs text-slate-500 dark:text-zinc-400">
+                      Trạng thái
+                    </span>
                     <Badge
                       className={`${getStepBadgeStyles(
                         instance.ticket.status,
@@ -377,21 +385,13 @@ export default function TicketFlowInstanceDetail({
                 {/* Header */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Hash className="w-4 h-4 text-slate-400" />
-                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <Hash className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
+                    <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
                       Thông tin luồng
                     </h4>
                   </div>
                   <div className="flex items-center justify-between">
-                    <Badge
-                      className="
-                    text-xs font-medium 
-                    bg-indigo-50 text-indigo-600 
-                    border border-indigo-100
-                    px-2.5 py-0.5
-                    rounded-full
-                  "
-                    >
+                    <Badge className="text-xs font-medium bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 px-2.5 py-0.5 rounded-full">
                       {instance.flow.name}
                     </Badge>
                   </div>
@@ -401,8 +401,8 @@ export default function TicketFlowInstanceDetail({
                 <div className="rounded-xl space-y-4">
                   {/* Description */}
                   {instance.flow.description && (
-                    <div className="text-xs text-slate-600 bg-slate-50 rounded-lg p-3 leading-relaxed">
-                      <span className="block text-[10px] uppercase tracking-wide text-slate-400 mb-1">
+                    <div className="text-xs text-slate-600 dark:text-zinc-300 bg-transparent border border-transparent dark:border-zinc-800 rounded-lg p-3 leading-relaxed">
+                      <span className="block text-[10px] uppercase tracking-wide text-slate-400 dark:text-zinc-500 mb-1">
                         Mô tả
                       </span>
                       {instance.flow.description}
@@ -416,15 +416,15 @@ export default function TicketFlowInstanceDetail({
       ) : (
         /* Empty State when no instance */
         <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground translate-y-full">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-            <FileText className="h-6 w-6 text-slate-400" />
+          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+            <FileText className="h-6 w-6 text-slate-400 dark:text-zinc-500" />
           </div>
 
-          <p className="text-sm font-medium text-slate-900">
+          <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
             Chưa thực hiện đến bước này
           </p>
 
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
             Nhấn nút bên dưới để bắt đầu thực hiện bước
           </p>
 

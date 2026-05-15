@@ -14,7 +14,6 @@ import {
   HelpCircle,
   Loader2,
   FileText,
-  Filter,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -107,19 +106,19 @@ const getEventIcon = (type: string) => {
 const getEventBadgeStyles = (type: string) => {
   switch (type) {
     case ActionType.CREATED:
-      return "bg-blue-50 text-blue-700 border-blue-200";
+      return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
     case ActionType.UPDATED:
-      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800";
     case ActionType.DELETED:
-      return "bg-red-50 text-red-700 border-red-200";
+      return "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
     case ActionType.CLOSED:
-      return "bg-purple-50 text-purple-700 border-purple-200";
+      return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800";
     case ActionType.ASSIGNED:
-      return "bg-indigo-50 text-indigo-700 border-indigo-200";
+      return "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800";
     case ActionType.COMMENTED:
-      return "bg-amber-50 text-amber-700 border-amber-200";
+      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
     default:
-      return "bg-slate-50 text-slate-700 border-slate-200";
+      return "bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700";
   }
 };
 
@@ -129,9 +128,11 @@ const renderPayloadValue = (value: any) => {
   if (typeof value === "object" && "old" in value && "new" in value) {
     return (
       <span className="flex items-center gap-2 text-sm">
-        <span className="line-through text-red-400">{String(value.old)}</span>
-        <span className="text-slate-400">→</span>
-        <span className="font-semibold text-emerald-600">
+        <span className="line-through text-red-400 dark:text-red-400/80">
+          {String(value.old)}
+        </span>
+        <span className="text-slate-400 dark:text-zinc-500">→</span>
+        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
           {String(value.new)}
         </span>
       </span>
@@ -215,10 +216,10 @@ export function TicketEventTimelineData() {
   return (
     <div className="flex flex-col h-full">
       {/* Filter Bar */}
-      <div className="grid grid-cols-3 gap-2 p-2 px-1 pb-4 border-b border-dashed mb-2">
+      <div className="grid grid-cols-3 gap-2 p-2 px-1 pb-4 border-b border-dashed border-slate-200 dark:border-zinc-700 mb-2">
         {/* Status Filter */}
         <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
-          <SelectTrigger className="h-8 text-xs w-full bg-white">
+          <SelectTrigger className="h-8 text-xs w-full bg-white dark:bg-zinc-900 dark:border-zinc-700">
             <SelectValue placeholder="Loại sự kiện" />
           </SelectTrigger>
           <SelectContent>
@@ -236,7 +237,7 @@ export function TicketEventTimelineData() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={`h-8 justify-start text-left font-normal text-xs px-2 ${
+              className={`h-8 justify-start text-left font-normal text-xs px-2 dark:bg-zinc-900 dark:border-zinc-700 dark:hover:bg-zinc-800 ${
                 !dateFrom && "text-muted-foreground"
               }`}
             >
@@ -256,11 +257,11 @@ export function TicketEventTimelineData() {
               initialFocus
             />
             {dateFrom && (
-              <div className="p-2 border-t">
+              <div className="p-2 border-t dark:border-zinc-700">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="w-full h-7 text-xs"
+                  className="w-full h-7 text-xs dark:border-zinc-700"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDateFrom(undefined);
@@ -279,7 +280,7 @@ export function TicketEventTimelineData() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={`h-8 justify-start text-left font-normal text-xs px-2 ${
+              className={`h-8 justify-start text-left font-normal text-xs px-2 dark:bg-zinc-900 dark:border-zinc-700 dark:hover:bg-zinc-800 ${
                 !dateTo && "text-muted-foreground"
               }`}
             >
@@ -299,11 +300,11 @@ export function TicketEventTimelineData() {
               initialFocus
             />
             {dateTo && (
-              <div className="p-2 border-t">
+              <div className="p-2 border-t dark:border-zinc-700">
                 <Button
                   size="sm"
                   variant="outline"
-                  className="w-full h-7 text-xs"
+                  className="w-full h-7 text-xs dark:border-zinc-700"
                   onClick={(e) => {
                     e.stopPropagation();
                     setDateTo(undefined);
@@ -319,30 +320,30 @@ export function TicketEventTimelineData() {
       </div>
 
       {isLoading || (isFetching && events.length === 0) ? (
-        <div className="flex flex-col items-center justify-center p-12 text-slate-500 h-[60vh]">
+        <div className="flex flex-col items-center justify-center p-12 text-slate-500 dark:text-zinc-400 h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin mb-3" />
           <p className="text-sm">Đang tải lịch sử sự kiện...</p>
         </div>
       ) : isError ? (
-        <div className="flex flex-col items-center justify-center p-8 text-red-500 h-[60vh]">
+        <div className="flex flex-col items-center justify-center p-8 text-red-500 dark:text-red-400 h-[60vh]">
           <p className="text-sm">Không thể tải dữ liệu sự kiện</p>
         </div>
       ) : events.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-[60vh] text-center text-muted-foreground">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-            <FileText className="h-6 w-6 text-slate-400" />
+          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+            <FileText className="h-6 w-6 text-slate-400 dark:text-zinc-500" />
           </div>
-          <p className="text-sm font-medium text-slate-900">
+          <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
             Chưa có sự kiện nào cho ticket này
           </p>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
             Các hành vi sẽ được hệ thống tự động ghi lại
           </p>
         </div>
       ) : (
         <div
           ref={containerRef}
-          className="relative max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-2"
+          className="relative max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-slate-100 dark:scrollbar-track-zinc-900 pr-2"
         >
           <Timeline
             color="secondary"
@@ -366,7 +367,7 @@ export function TicketEventTimelineData() {
                       </Badge>
                       <Badge
                         variant="outline"
-                        className="bg-slate-50 text-slate-700 border-slate-200 text-[10px] px-2 py-0 h-5 font-semibold uppercase"
+                        className="bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 text-[10px] px-2 py-0 h-5 font-semibold uppercase"
                       >
                         {event.actor_type}
                       </Badge>
@@ -377,10 +378,10 @@ export function TicketEventTimelineData() {
                         <User className="h-3.5 w-3.5 text-white" />
                       </div>
                       <div className="flex flex-col">
-                        <h3 className="text-sm leading-none font-bold text-slate-900">
+                        <h3 className="text-sm leading-none font-bold text-slate-900 dark:text-zinc-100">
                           {event.actor_username}
                         </h3>
-                        <div className="flex items-center gap-1.5 text-slate-400 mt-1">
+                        <div className="flex items-center gap-1.5 text-slate-400 dark:text-zinc-500 mt-1">
                           <Clock className="h-3 w-3" />
                           <span className="text-[11px] font-medium">
                             {event.created_at
@@ -396,17 +397,20 @@ export function TicketEventTimelineData() {
 
                     {/* Payload content */}
                     {event.payload && typeof event.payload === "object" && (
-                      <div className="mt-2 space-y-2 bg-slate-50/50 p-2.5 rounded-lg border border-slate-100">
+                      <div className="mt-2 space-y-2 bg-slate-50/50 dark:bg-zinc-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-zinc-700">
                         {Object.entries(event.payload).map(([key, value]) => {
                           if (value === null || value === undefined)
                             return null;
                           return (
-                            <div key={key} className="text-xs text-slate-700">
+                            <div
+                              key={key}
+                              className="text-xs text-slate-700 dark:text-zinc-300"
+                            >
                               <div className="flex flex-col gap-1">
-                                <span className="font-semibold text-slate-500 capitalize border-b border-dashed border-slate-200 self-start pb-0.5">
+                                <span className="font-semibold text-slate-500 dark:text-zinc-400 capitalize border-b border-dashed border-slate-200 dark:border-zinc-600 self-start pb-0.5">
                                   {key.replace(/_/g, " ")}
                                 </span>
-                                <div className="pl-2 border-l-2 text-xs border-slate-200 ml-0.5">
+                                <div className="pl-2 border-l-2 text-xs border-slate-200 dark:border-zinc-600 ml-0.5">
                                   {renderPayloadValue(value)}
                                 </div>
                               </div>
@@ -424,14 +428,14 @@ export function TicketEventTimelineData() {
               <TimelineItem className="min-h-0">
                 <TimelineHeader>
                   <TimelineIcon>
-                    <div className="h-2 w-2 rounded-full bg-slate-300 ring-4 ring-slate-50" />
+                    <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-zinc-600 ring-4 ring-slate-50 dark:ring-zinc-900" />
                   </TimelineIcon>
                 </TimelineHeader>
                 <TimelineBody className="pt-0 pb-0">
                   <button
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 disabled:text-slate-400"
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-slate-400 dark:disabled:text-zinc-500"
                   >
                     {isFetchingNextPage ? "Đang tải..." : "Tải thêm sự kiện"}
                   </button>
@@ -443,11 +447,11 @@ export function TicketEventTimelineData() {
               <TimelineItem className="min-h-0">
                 <TimelineHeader>
                   <TimelineIcon>
-                    <div className="h-2 w-2 rounded-full bg-slate-300 ring-4 ring-slate-50" />
+                    <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-zinc-600 ring-4 ring-slate-50 dark:ring-zinc-900" />
                   </TimelineIcon>
                 </TimelineHeader>
                 <TimelineBody className="pt-0 pb-0">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
                     Hết chuỗi sự kiện
                   </span>
                 </TimelineBody>
@@ -461,8 +465,10 @@ export function TicketEventTimelineData() {
               >
                 {isFetchingNextPage && (
                   <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                    <span className="text-xs text-slate-400">Đang tải...</span>
+                    <Loader2 className="h-4 w-4 animate-spin text-slate-400 dark:text-zinc-500" />
+                    <span className="text-xs text-slate-400 dark:text-zinc-500">
+                      Đang tải...
+                    </span>
                   </div>
                 )}
               </div>

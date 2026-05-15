@@ -41,14 +41,12 @@ export default function StatiticCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-2xl border border-border/50 bg-linear-to-br from-violet-500/5 via-background to-background p-6 shadow-sm transition-shadow hover:shadow-md",
+        "flex flex-col rounded-2xl border border-border/50 bg-linear-to-br from-violet-500/5 p-6 shadow-sm transition-shadow hover:shadow-md",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm font-medium text-muted-foreground">
-          {title}
-        </p>
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
         <div
           className={cn(
             "flex size-11 shrink-0 items-center justify-center rounded-xl bg-violet-100/90 dark:bg-violet-500/20",
@@ -90,9 +88,7 @@ export default function StatiticCard({
         >
           {growthText}
         </span>
-        <span className="text-foreground">
-          {comparisonLabel}
-        </span>
+        <span className="text-foreground">{comparisonLabel}</span>
       </div>
     </div>
   );

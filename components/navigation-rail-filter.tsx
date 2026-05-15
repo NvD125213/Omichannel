@@ -113,7 +113,7 @@ function Dock({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-2xl bg-card/95 backdrop-blur-md border border-border/50 shadow-xl pointer-events-auto",
+        "flex items-center gap-2 rounded-2xl bg-transparent backdrop-blur-md border border-border/50 shadow-xl pointer-events-auto",
         orientation === "vertical"
           ? "flex-col h-fit py-3 mb-3"
           : "flex-row w-fit px-3",
@@ -655,7 +655,10 @@ export function NavigationRailFilter({
   };
 
   return (
-    <div className={cn("relative flex h-full bg-background", className)}>
+    <div
+      className={cn("relative flex h-full", className)}
+      style={{ backgroundImage: "var(--background-image)" }}
+    >
       {/* Collapsed Dock (macOS-like) */}
       <AnimatePresence mode="wait">
         {!isExpanded && (
@@ -855,7 +858,7 @@ export function NavigationRailFilter({
               damping: 30,
               mass: 1,
             }}
-            className="flex flex-col bg-background border-r border-border overflow-hidden h-full pointer-events-auto"
+            className="flex flex-col bg-transparent border-r border-border overflow-hidden h-full pointer-events-auto"
           >
             {/* Header */}
             <motion.div
@@ -933,7 +936,7 @@ export function NavigationRailFilter({
                       placeholder={searchPlaceholder}
                       value={searchValue}
                       onChange={handleSearchChange}
-                      className="h-10 bg-background border-input focus-visible:ring-2 focus-visible:ring-primary/20 pr-8"
+                      className="h-10 bg-transparent border-input focus-visible:ring-2 focus-visible:ring-primary/20 pr-8"
                     />
                     {searchValue && (
                       <Button
@@ -966,7 +969,7 @@ export function NavigationRailFilter({
                       >
                         <SelectTrigger
                           ref={selectTriggerRef}
-                          className="w-full h-10 bg-background border-input focus:ring-2 focus:ring-primary/20"
+                          className="w-full h-10 bg-transparent border-input focus:ring-2 focus:ring-primary/20"
                         >
                           <SelectValue placeholder={selectPlaceholder} />
                         </SelectTrigger>
@@ -1000,7 +1003,7 @@ export function NavigationRailFilter({
                       >
                         <SelectTrigger
                           ref={select2TriggerRef}
-                          className="w-full h-10 bg-background border-input focus:ring-2 focus:ring-primary/20"
+                          className="w-full h-10 bg-transparent border-input focus:ring-2 focus:ring-primary/20"
                         >
                           <SelectValue placeholder={select2Placeholder} />
                         </SelectTrigger>
@@ -1038,7 +1041,7 @@ export function NavigationRailFilter({
                             variant="outline"
                             role="combobox"
                             aria-expanded={comboboxOpen}
-                            className="w-full justify-between h-10 bg-background border-input hover:bg-accent/50"
+                            className="w-full justify-between h-10 bg-transparent border-input hover:bg-accent/50"
                           >
                             {comboboxValues.length > 0
                               ? `${comboboxValues.length} đã chọn`
@@ -1132,7 +1135,7 @@ export function NavigationRailFilter({
                             variant="outline"
                             role="combobox"
                             aria-expanded={tagsOpen}
-                            className="w-full justify-between h-10 bg-background border-input hover:bg-accent/50"
+                            className="w-full justify-between h-10 bg-transparent border-input hover:bg-accent/50"
                           >
                             {selectedTags.length > 0
                               ? `${selectedTags.length} tag đã chọn`
@@ -1256,7 +1259,7 @@ export function NavigationRailFilter({
                                   "flex items-center justify-center w-5 h-5 rounded border transition-colors",
                                   isVisible
                                     ? "bg-primary border-primary text-primary-foreground"
-                                    : "border-input bg-background",
+                                    : "border-input bg-transparent",
                                 )}
                               >
                                 {isVisible && <Check className="size-3" />}
@@ -1338,7 +1341,7 @@ export function NavigationRailFilter({
 
             {/* Footer Actions */}
             <motion.div
-              className="p-4 border-t border-border bg-muted/30 flex-shrink-0 space-y-3"
+              className="p-4 border-t border-border bg-transparent flex-shrink-0 space-y-3"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{

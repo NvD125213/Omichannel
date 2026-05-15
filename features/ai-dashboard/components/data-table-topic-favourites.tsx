@@ -81,7 +81,11 @@ function badgeForTag(tag: string) {
   }
 }
 
-export function DataTableTopicFavourites({ className }: { className?: string }) {
+export function DataTableTopicFavourites({
+  className,
+}: {
+  className?: string;
+}) {
   const data = userTrackingChatbotConstants.records;
   const [rowSelection, setRowSelection] = useState({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -187,13 +191,15 @@ export function DataTableTopicFavourites({ className }: { className?: string }) 
   return (
     <Card
       className={cn(
-        "border-border/50 bg-linear-to-br from-violet-500/5 via-background to-background shadow-sm",
+        "border-border/50 bg-linear-to-br from-violet-500/5 shadow-sm",
         className,
       )}
     >
       <CardHeader className="flex flex-col gap-3 pb-4">
         <div className="space-y-1">
-          <CardTitle className="text-xl sm:text-2xl">Theo dõi chatbot</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">
+            Theo dõi chatbot
+          </CardTitle>
           <CardDescription>
             Lịch sử chủ đề và trạng thái xử lý ({data.length} bản ghi)
           </CardDescription>
@@ -275,9 +281,7 @@ export function DataTableTopicFavourites({ className }: { className?: string }) 
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
-                        className={cn(
-                          cell.column.id === "tag" && "text-right",
-                        )}
+                        className={cn(cell.column.id === "tag" && "text-right")}
                       >
                         {flexRender(
                           cell.column.columnDef.cell,

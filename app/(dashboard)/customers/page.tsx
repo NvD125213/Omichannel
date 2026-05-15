@@ -93,7 +93,7 @@ function CustomersPageContent() {
   });
 
   const customers: Customer[] =
-    ((data?.data.items as unknown) as Customer[]) || [];
+    (data?.data.items as unknown as Customer[]) || [];
 
   const { mutateAsync: deleteCustomer } = useDeleteCustomer();
 
@@ -143,7 +143,10 @@ function CustomersPageContent() {
   };
 
   return (
-    <div className="flex h-full bg-background">
+    <div
+      className="flex h-full"
+      style={{ backgroundImage: "var(--background-image)" }}
+    >
       <NavigationRailFilter
         searchPlaceholder="Tìm kiếm khách hàng..."
         onSearchChange={handleSearchChange}

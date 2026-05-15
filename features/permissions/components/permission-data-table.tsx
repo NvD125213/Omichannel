@@ -290,15 +290,15 @@ export default function PermissionsMatrix() {
 
       <div className="rounded-md border max-h-[calc(100vh-12rem)] overflow-auto relative">
         <Table>
-          <TableHeader className="bg-muted/50 sticky top-0 z-20">
+          <TableHeader className="bg-transparent sticky top-0 z-20">
             <TableRow className="hover:bg-transparent border-b">
-              <TableHead className="w-[200px] sticky left-0 z-20 bg-background font-semibold shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
+              <TableHead className="w-[200px] sticky left-0 z-20 bg-transparent font-semibold shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
                 Quyền hạn
               </TableHead>
               {actions.map((action) => (
                 <TableHead
                   key={action}
-                  className="text-center min-w-[100px] h-10 bg-background/95 backdrop-blur-sm"
+                  className="text-center min-w-[100px] h-10 bg-transparent backdrop-blur-sm"
                 >
                   {action.charAt(0).toUpperCase() + action.slice(1)}
                 </TableHead>
@@ -309,9 +309,9 @@ export default function PermissionsMatrix() {
             {filteredData.map((row) => (
               <TableRow
                 key={row.model}
-                className="hover:bg-muted/50 border-b last:border-0"
+                className="hover:bg-transparent border-b last:border-0"
               >
-                <TableCell className="font-medium sticky left-0 z-10 bg-background shadow-[1px_0_0_0_rgba(0,0,0,0.1)] py-2">
+                <TableCell className="font-medium sticky left-0 z-10 bg-transparent shadow-[1px_0_0_0_rgba(0,0,0,0.1)] py-2">
                   {row.model
                     .replace(/_/g, " ")
                     .split(" ")

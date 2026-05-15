@@ -209,7 +209,7 @@ export function TokenChart({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/50 bg-linear-to-br from-violet-500/5 via-background to-background p-6 shadow-sm transition-shadow hover:shadow-md",
+        "rounded-2xl border border-border/50 bg-linear-to-br from-violet-500/5 p-6 shadow-sm transition-shadow hover:shadow-md",
         className,
       )}
     >

@@ -148,7 +148,7 @@ function RolesPageContent() {
   };
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-full bg-transparent">
       {/* Navigation Rail Filter */}
       <NavigationRailFilter
         searchPlaceholder="Tìm kiếm vai trò..."

@@ -183,7 +183,9 @@ const normalizeConversation = (
       assigneeType:
         typeof meta.assignee_type === "string" ? meta.assignee_type : undefined,
       hmacVerified:
-        typeof meta.hmac_verified === "boolean" ? meta.hmac_verified : undefined,
+        typeof meta.hmac_verified === "boolean"
+          ? meta.hmac_verified
+          : undefined,
     },
   };
 };
@@ -508,7 +510,7 @@ export function Chat() {
 
   return (
     <TooltipProvider delayDuration={450} skipDelayDuration={200}>
-      <div className="flex min-h-0 flex-1 w-full rounded-xl border shadow-sm overflow-hidden">
+      <div className="flex min-h-0 flex-1 w-full shadow-sm overflow-hidden pl-1">
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"

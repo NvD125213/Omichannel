@@ -52,7 +52,7 @@ export function DashboardHeader() {
 
   if (!mounted) {
     return (
-      <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl">
+      <header className="sticky bg-transparent top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 px-4 backdrop-blur-xl ml-2">
         <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
         <div className="ml-auto flex items-center gap-1">
           <Separator orientation="vertical" className="mx-2 h-6" />
@@ -62,7 +62,7 @@ export function DashboardHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl">
+    <header className="sticky bg-transparent top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 px-4 backdrop-blur-xl ml-2">
       <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
       <Separator orientation="vertical" className="mx-2 h-6" />
       <SearchTrigger onClick={() => setCommandSearchOpen(true)} />

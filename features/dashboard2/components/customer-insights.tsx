@@ -137,7 +137,7 @@ export function CustomerInsights() {
   const [activeTab, setActiveTab] = useState("growth");
 
   return (
-    <Card className="h-fit bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm">
+    <Card className="h-fit bg-linear-to-br from-violet-500/5 border-border/50 shadow-sm">
       <CardHeader>
         <CardTitle>Phân tích khách hàng</CardTitle>
         <CardDescription>Xu hướng tăng trưởng và nhân khẩu học</CardDescription>
@@ -260,7 +260,9 @@ export function CustomerInsights() {
                     <div className="p-4 rounded-lg max-lg:col-span-3 xl:col-span-3 border">
                       <div className="flex items-center gap-2 mb-2">
                         <Target className="size-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">LTV trung bình</span>
+                        <span className="text-sm font-medium">
+                          LTV trung bình
+                        </span>
                       </div>
                       <div className="text-2xl font-bold">$2,847</div>
                       <div className="text-xs text-green-600 flex items-center gap-1 mt-1">

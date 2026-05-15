@@ -53,7 +53,7 @@ export default function AppSidebar({
           />
         )}
       </SidebarFooter> */}
-      <SidebarRail />
+      {/* <SidebarRail /> */}
     </UISidebar>
   );
 }

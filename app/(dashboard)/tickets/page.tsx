@@ -300,7 +300,7 @@ function TicketListPageContent() {
   };
 
   return (
-    <div className="flex h-full bg-background relative">
+    <div className="flex h-full bg-transparent relative">
       {/* Navigation Rail Filter */}
       <NavigationRailFilter
         searchPlaceholder="Tìm kiếm theo mã ticket..."

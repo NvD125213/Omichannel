@@ -83,7 +83,7 @@ export function SessionChatChart() {
   }, [data.length, range]);
 
   return (
-    <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 border-border/50 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-col gap-4 pb-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <CardTitle>Số phiên chat đang online</CardTitle>

@@ -84,7 +84,7 @@ export function StatisticOnUserChart() {
   );
 
   return (
-    <Card className="border-border/50 bg-linear-to-br from-violet-500/5 via-background to-background shadow-sm transition-shadow hover:shadow-md">
+    <Card className="border-border/50 bg-linear-to-br from-violet-500/5 shadow-sm transition-shadow hover:shadow-md">
       <CardHeader className="pb-2">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div>

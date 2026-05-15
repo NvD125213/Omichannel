@@ -108,17 +108,17 @@ export default function TicketDetailLiveChatContext({
   }));
 
   return (
-    <div className="flex h-[calc(100vh-200px)] min-h-[600px] rounded-lg bg-white overflow-hidden relative">
-      <div className="flex-1 flex flex-col min-w-0 bg-white">
+    <div className="flex h-full rounded-lg bg-transparent border border-transparent dark:border-zinc-800 overflow-hidden relative">
+      <div className="flex-1 flex flex-col min-w-0 bg-transparent dark:bg-zinc-900">
         <div
           ref={containerRef}
-          className="flex-1 relative min-h-0 dark:bg-transparent overflow-y-auto space-y-4"
+          className="flex-1 relative min-h-0 overflow-y-auto space-y-4 bg-white dark:bg-zinc-900"
         >
           {isLoading || (isFetching && mappedTicketContexts.length === 0) ? (
             Array.from({ length: 3 }).map((_, index) => (
               <div
                 key={index}
-                className="relative rounded-lg p-4 bg-white border"
+                className="relative rounded-lg p-4 bg-white dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700"
               >
                 <div className="flex items-start gap-3 mb-4">
                   <Skeleton className="h-10 w-10 rounded-full" />
@@ -173,15 +173,17 @@ export default function TicketDetailLiveChatContext({
             >
               {isFetchingNextPage && (
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-slate-400" />
-                  <span className="text-xs text-slate-400">Đang tải...</span>
+                  <Loader2 className="h-4 w-4 animate-spin text-slate-400 dark:text-zinc-500" />
+                  <span className="text-xs text-slate-400 dark:text-zinc-500">
+                    Đang tải...
+                  </span>
                 </div>
               )}
             </div>
           )}
         </div>
 
-        <div className="bg-white">
+        <div className="bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800">
           <TicketMessageInput
             onSubmit={handleCreateContext}
             tenantId={meData?.tenant_id}

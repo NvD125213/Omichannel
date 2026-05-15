@@ -89,7 +89,7 @@ export function RecentTransactions() {
   };
 
   return (
-    <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 border-border/50 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:space-y-0 pb-4">
         <div>
           <CardTitle>Giao dịch gần đây</CardTitle>

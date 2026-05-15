@@ -170,9 +170,8 @@ export function MessageInput({
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingActiveRef = useRef(false);
 
-  const {
-    mutateAsync: createTenantConversationMessageAsync,
-  } = useCreateTenantConversationMessage();
+  const { mutateAsync: createTenantConversationMessageAsync } =
+    useCreateTenantConversationMessage();
   const { mutate: toggleTenantConversationTyping } =
     useToggleTenantConversationTyping();
 
@@ -426,7 +425,7 @@ export function MessageInput({
   }, []);
 
   return (
-    <div className="shrink-0 border-t bg-background px-3 py-2">
+    <div className="shrink-0 border-t bg-transparent px-3 py-2">
       {/* Reply strip */}
       {replyDraft ? (
         <div className="mb-1.5 flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-2.5 py-1.5">

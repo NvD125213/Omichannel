@@ -53,11 +53,13 @@ export function SalesChart() {
   const [timeRange, setTimeRange] = useState("12m");
 
   return (
-    <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 via-background to-background border-border/50 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="cursor-pointer bg-linear-to-br from-violet-500/5 border-border/50 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 pb-2">
         <div>
           <CardTitle>Hiệu suất bán hàng</CardTitle>
-          <CardDescription>So sánh doanh số theo tháng với mục tiêu</CardDescription>
+          <CardDescription>
+            So sánh doanh số theo tháng với mục tiêu
+          </CardDescription>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-2 sm:gap-0 w-full sm:w-auto">
           <Select value={timeRange} onValueChange={setTimeRange}>

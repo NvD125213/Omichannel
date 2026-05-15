@@ -71,7 +71,7 @@ function TicketFlowStepsPageContent() {
   };
 
   return (
-    <div className="flex h-full bg-background animate-in fade-in duration-500">
+    <div className="flex h-full bg-transparent animate-in fade-in duration-500">
       {/* Navigation Rail Filter */}
       <NavigationRailFilter
         searchPlaceholder="Tìm kiếm bước..."

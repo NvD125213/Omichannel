@@ -103,7 +103,7 @@ export function ReplyChatPizzaChart() {
   }, [timeFrom, timeTo]);
 
   return (
-    <Card className="h-full border-border/50 bg-linear-to-br from-fuchsia-500/5 via-background to-background shadow-sm transition-shadow hover:shadow-md">
+    <Card className="h-full border-border/50 bg-linear-to-br from-fuchsia-500/5 shadow-sm transition-shadow hover:shadow-md">
       <CardHeader className="flex flex-col gap-4 pb-2">
         <div className="flex items-start justify-between gap-3">
           <CardTitle>Phản hồi tin nhắn</CardTitle>

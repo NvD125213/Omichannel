@@ -259,7 +259,7 @@ export function TicketKanbanCard({
       {...listeners}
       style={style}
       className={cn(
-        "group relative cursor-grab overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm transition-all hover:shadow-md hover:border-border p-1",
+        "group relative cursor-grab overflow-hidden rounded-xl border border-border/60 bg-transparent shadow-sm transition-all hover:shadow-md hover:border-border p-1",
         isDragging &&
           "opacity-60 ring-2 ring-primary shadow-lg scale-[1.02] z-50 cursor-grabbing",
       )}

@@ -140,7 +140,7 @@ function TenantsPageContent() {
     : undefined;
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-full bg-transparent">
       <NavigationRailFilter
         searchPlaceholder="Tìm kiếm doanh nghiệp..."
         onSearchChange={handleSearchChange}

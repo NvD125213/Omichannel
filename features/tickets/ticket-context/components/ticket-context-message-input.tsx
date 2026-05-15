@@ -129,15 +129,16 @@ export default function TicketMessageInput({
   };
 
   return (
-    <div className="p-4 bg-white w-full">
+    <div className="p-4 bg-white dark:bg-zinc-900 w-full">
       <div className="flex flex-col gap-3">
         {/* Row 1: Metadata Input */}
         <div
           className={cn(
             "flex flex-wrap items-start gap-2 w-full min-h-[42px]",
-            "rounded-md border px-3 py-2 text-sm",
+            "rounded-md border border-slate-200 dark:border-zinc-700",
+            "bg-white dark:bg-zinc-800/50 px-3 py-2 text-sm",
             "focus-within:ring-2 focus-within:ring-ring",
-            metadataError && "border-red-500",
+            metadataError && "border-red-500 dark:border-red-500",
           )}
           onClick={() => inputRef.current?.focus()}
         >
@@ -188,7 +189,9 @@ export default function TicketMessageInput({
         </div>
 
         {metadataError && (
-          <p className="text-xs text-red-500 font-medium">{metadataError}</p>
+          <p className="text-xs text-red-500 dark:text-red-400 font-medium">
+            {metadataError}
+          </p>
         )}
 
         {/* Row 2: Controls */}
@@ -253,7 +256,7 @@ export default function TicketMessageInput({
             <Button
               onClick={handleSubmit}
               disabled={disabled || !contextType || !sourceType}
-              className="h-9 w-full bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
+              className="h-9 w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white shadow-xs"
             >
               <Send className="h-4 w-4 mr-2" />
               Thêm

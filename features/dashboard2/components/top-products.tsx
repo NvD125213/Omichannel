@@ -67,11 +67,13 @@ const products = [
 
 export function TopProducts() {
   return (
-    <Card className="cursor-pointer bg-linear-to-br from-fuchsia-500/5 via-background to-background border-border/50 shadow-sm hover:shadow-md transition-shadow">
+    <Card className="cursor-pointer bg-linear-to-br from-fuchsia-500/5 border-border/50 shadow-sm hover:shadow-md transition-shadow">
       <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:space-y-0 pb-4">
         <div>
           <CardTitle>Sản phẩm nổi bật</CardTitle>
-          <CardDescription>Sản phẩm có hiệu suất tốt nhất tháng này</CardDescription>
+          <CardDescription>
+            Sản phẩm có hiệu suất tốt nhất tháng này
+          </CardDescription>
         </div>
         <Button
           variant="outline"

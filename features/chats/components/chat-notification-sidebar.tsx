@@ -402,7 +402,7 @@ export function ChatNotificationSidebar({
     return (
       <aside
         className={cn(
-          "relative flex h-full w-full flex-col overflow-hidden border-r border-border bg-background text-foreground transition-all duration-200",
+          "relative flex h-full w-full flex-col overflow-hidden border-r border-border bg-transparent text-foreground transition-all duration-200",
         )}
       >
         <div className="flex-1 space-y-2 overflow-x-hidden overflow-y-auto p-2">
@@ -419,7 +419,12 @@ export function ChatNotificationSidebar({
             <CollapsedSidebarHoverMenu
               title="Cuộc trò chuyện"
               isActive={isConversationSelectionMode}
-              icon={<MessageCircle className="h-4 w-4 shrink-0" aria-hidden="true" />}
+              icon={
+                <MessageCircle
+                  className="h-4 w-4 shrink-0"
+                  aria-hidden="true"
+                />
+              }
             >
               {conversationSubItems.map((subItem) => {
                 const isActive =
@@ -443,7 +448,10 @@ export function ChatNotificationSidebar({
                       isSwitchingMenu && "opacity-80",
                     )}
                   >
-                    <subItem.icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <subItem.icon
+                      className="h-3.5 w-3.5 shrink-0"
+                      aria-hidden="true"
+                    />
                     <span className="truncate">{subItem.name}</span>
                   </button>
                 );
@@ -453,7 +461,9 @@ export function ChatNotificationSidebar({
             <CollapsedSidebarHoverMenu
               title="Kênh"
               isActive={hasInboxSelection}
-              icon={<FolderKanban className="h-4 w-4 shrink-0" aria-hidden="true" />}
+              icon={
+                <FolderKanban className="h-4 w-4 shrink-0" aria-hidden="true" />
+              }
             >
               {inboxes.length > 0 ? (
                 inboxes.map((inbox) => {
@@ -566,7 +576,7 @@ export function ChatNotificationSidebar({
   return (
     <aside
       className={cn(
-        "relative flex h-full w-full flex-col overflow-hidden border-r border-border bg-background text-foreground transition-all duration-200",
+        "relative flex h-full w-full flex-col overflow-hidden border-r border-border bg-transparent text-foreground transition-all duration-200",
       )}
     >
       <div className="flex-1 space-y-3 overflow-x-hidden overflow-y-auto p-2">
