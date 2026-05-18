@@ -39,7 +39,12 @@ import {
   chatwootOmniKeys,
 } from "@/hooks/chatwoot/use-chatwoot";
 import type { ListTenantConversationMessagesResponse } from "@/services/chatwoot/interface";
-import type { ChatMessage, ChatUser, PendingMessage, ReplyDraft } from "../utils/types";
+import type {
+  ChatMessage,
+  ChatUser,
+  PendingMessage,
+  ReplyDraft,
+} from "../utils/types";
 import { coerceToDate, getTime } from "@/helpers/format-message-time";
 import { MessageAttachment } from "./message-attachment";
 
@@ -162,36 +167,34 @@ const normalizeMessage = (
       thumbnail:
         typeof sender.thumbnail === "string" ? sender.thumbnail : undefined,
     },
-    attachments: attachments
-      .map((attachment) => {
-        const item =
-          attachment && typeof attachment === "object"
-            ? (attachment as Record<string, unknown>)
-            : {};
-        return {
-          id:
-            typeof item.id === "number" || typeof item.id === "string"
-              ? String(item.id)
-              : undefined,
-          message_id:
-            typeof item.message_id === "number" ||
-            typeof item.message_id === "string"
-              ? String(item.message_id)
-              : undefined,
-          file_type:
-            typeof item.file_type === "string" ? item.file_type : undefined,
-          extension:
-            typeof item.extension === "string" ? item.extension : undefined,
-          data_url:
-            typeof item.data_url === "string" ? item.data_url : undefined,
-          thumb_url:
-            typeof item.thumb_url === "string" ? item.thumb_url : undefined,
-          file_size:
-            typeof item.file_size === "number" ? item.file_size : undefined,
-          width: typeof item.width === "number" ? item.width : undefined,
-          height: typeof item.height === "number" ? item.height : undefined,
-        };
-      }) as ChatMessage["attachments"],
+    attachments: attachments.map((attachment) => {
+      const item =
+        attachment && typeof attachment === "object"
+          ? (attachment as Record<string, unknown>)
+          : {};
+      return {
+        id:
+          typeof item.id === "number" || typeof item.id === "string"
+            ? String(item.id)
+            : undefined,
+        message_id:
+          typeof item.message_id === "number" ||
+          typeof item.message_id === "string"
+            ? String(item.message_id)
+            : undefined,
+        file_type:
+          typeof item.file_type === "string" ? item.file_type : undefined,
+        extension:
+          typeof item.extension === "string" ? item.extension : undefined,
+        data_url: typeof item.data_url === "string" ? item.data_url : undefined,
+        thumb_url:
+          typeof item.thumb_url === "string" ? item.thumb_url : undefined,
+        file_size:
+          typeof item.file_size === "number" ? item.file_size : undefined,
+        width: typeof item.width === "number" ? item.width : undefined,
+        height: typeof item.height === "number" ? item.height : undefined,
+      };
+    }) as ChatMessage["attachments"],
   };
 };
 
@@ -423,7 +426,7 @@ export function MessageList({
 
     previousMessageCountRef.current = resolvedMessages.length;
     previousLastMessageIdRef.current = latestMessageId;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedMessages]);
 
   useEffect(() => {
@@ -440,7 +443,10 @@ export function MessageList({
         if (vp) {
           vp.scrollTo({ top: vp.scrollHeight, behavior: "smooth" });
         } else {
-          bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+          bottomRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+          });
         }
         isNearBottomRef.current = true;
         setShowBackToLatestButton(false);
@@ -516,7 +522,8 @@ export function MessageList({
   };
 
   const getViewport = (): HTMLDivElement | null => {
-    if (scrollViewportRef.current?.isConnected) return scrollViewportRef.current;
+    if (scrollViewportRef.current?.isConnected)
+      return scrollViewportRef.current;
     const vp = scrollAreaRef.current?.querySelector(
       '[data-slot="scroll-area-viewport"]',
     ) as HTMLDivElement | null;
@@ -778,7 +785,11 @@ export function MessageList({
     (pm) => pm.conversationId === conversationId,
   );
 
-  if (!isLoadingMessages && resolvedMessages.length === 0 && activePending.length === 0) {
+  if (
+    !isLoadingMessages &&
+    resolvedMessages.length === 0 &&
+    activePending.length === 0
+  ) {
     return (
       <div className="relative flex-1 min-h-0">
         <EmptyData
@@ -793,7 +804,10 @@ export function MessageList({
   }
 
   // Khi chưa có API messages nhưng có pending, vẫn hiển thị khung list
-  const showEmptyShell = !isLoadingMessages && resolvedMessages.length === 0 && activePending.length > 0;
+  const showEmptyShell =
+    !isLoadingMessages &&
+    resolvedMessages.length === 0 &&
+    activePending.length > 0;
 
   return (
     <div className="relative flex-1 min-h-0">
@@ -957,9 +971,7 @@ export function MessageList({
                     <div
                       className={cn(
                         "group/message flex min-w-0 w-full flex-wrap items-start gap-2 sm:flex-nowrap sm:items-center",
-                        isOwnMessage
-                          ? "justify-end"
-                          : "justify-start",
+                        isOwnMessage ? "justify-end" : "justify-start",
                       )}
                     >
                       {!isDeleted && (
@@ -1040,7 +1052,7 @@ export function MessageList({
                           isDeleted
                             ? "bg-muted/60 text-muted-foreground italic"
                             : isOwnMessage
-                              ? "bg-primary text-primary-foreground rounded-br-md ml-auto"
+                              ? "bg-primary text-primary-foreground rounded-br-md"
                               : "bg-muted rounded-bl-md",
                           isConsecutive && "mt-1",
                         )}

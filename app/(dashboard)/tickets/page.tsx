@@ -29,7 +29,8 @@ import {
   Signal,
   PlusCircle,
 } from "lucide-react";
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 import {
   NumberParam,
   StringParam,
@@ -67,6 +68,16 @@ export enum TicketPriority {
   URGENT = "urgent",
   CRITICAL = "critical",
 }
+
+const STATUS_COLUMN_OPTIONS: ColumnOption[] = [
+  { id: TicketStatus.PENDING, label: "Đang chờ" },
+  { id: TicketStatus.OPEN, label: "Đang mở" },
+  { id: TicketStatus.IN_PROGRESS, label: "Đang xử lý" },
+  { id: TicketStatus.ON_HOLD, label: "Tạm dừng" },
+  { id: TicketStatus.RESOLVED, label: "Đã giải quyết" },
+  { id: TicketStatus.CLOSED, label: "Đã đóng" },
+  { id: TicketStatus.CANCELLED, label: "Đã hủy" },
+];
 
 // Status options với icons
 const statusOptions: FilterOption[] = [
@@ -127,6 +138,7 @@ function TicketListPageContent() {
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({});
+  const [railLayoutAnimating, setRailLayoutAnimating] = useState(false);
 
   // Sync query params with URL - with default values
   const [query, setQuery] = useQueryParams({
@@ -282,15 +294,24 @@ function TicketListPageContent() {
     });
   };
 
-  const statusColumnOptions: ColumnOption[] = [
-    { id: TicketStatus.PENDING, label: "Đang chờ" },
-    { id: TicketStatus.OPEN, label: "Đang mở" },
-    { id: TicketStatus.IN_PROGRESS, label: "Đang xử lý" },
-    { id: TicketStatus.ON_HOLD, label: "Tạm dừng" },
-    { id: TicketStatus.RESOLVED, label: "Đã giải quyết" },
-    { id: TicketStatus.CLOSED, label: "Đã đóng" },
-    { id: TicketStatus.CANCELLED, label: "Đã hủy" },
-  ];
+  const handleRailLayoutTransition = useCallback((animating: boolean) => {
+    setRailLayoutAnimating(animating);
+  }, []);
+
+  const handleKanbanPageChange = useCallback(
+    (page: number) => setQuery({ page }),
+    [setQuery],
+  );
+
+  const handleKanbanPageSizeChange = useCallback(
+    (page_size: number) => setQuery({ page_size, page: 1 }),
+    [setQuery],
+  );
+
+  const selectedTagIds = useMemo(
+    () => (query.tag_ids || []).filter((id): id is string => id !== null),
+    [query.tag_ids],
+  );
 
   const handleColumnVisibilityChange = (columnId: string, visible: boolean) => {
     setColumnVisibility((prev) => ({
@@ -319,9 +340,7 @@ function TicketListPageContent() {
         onSelect2Change={handlePriorityChange}
         select2Icon={<Signal className="size-full" />}
         tags={tagItems}
-        selectedTags={(query.tag_ids || []).filter(
-          (id): id is string => id !== null,
-        )}
+        selectedTags={selectedTagIds}
         onTagSelect={handleTagSelect}
         onTagRemove={handleTagRemove}
         onClearAll={handleClearFilters}
@@ -329,19 +348,25 @@ function TicketListPageContent() {
         orientation={"vertical"}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        columnOptions={viewMode == "kanban" ? statusColumnOptions : undefined}
+        columnOptions={viewMode === "kanban" ? STATUS_COLUMN_OPTIONS : undefined}
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={handleColumnVisibilityChange}
         kanbanPage={query.page ?? 1}
         kanbanPageSize={query.page_size ?? 10}
         kanbanTotalPages={data?.data?.total_pages ?? 1}
         kanbanTotal={data?.data?.total ?? 0}
-        onKanbanPageChange={(page) => setQuery({ page })}
-        onKanbanPageSizeChange={(page_size) => setQuery({ page_size, page: 1 })}
+        onKanbanPageChange={handleKanbanPageChange}
+        onKanbanPageSizeChange={handleKanbanPageSizeChange}
+        onLayoutTransitionChange={handleRailLayoutTransition}
       />
 
       {/* Main Content */}
-      <div className="flex-1 space-y-8 text-foreground animate-in fade-in duration-500 overflow-auto">
+      <div
+        className={cn(
+          "min-w-0 flex-1 space-y-8 text-foreground animate-in fade-in duration-500 overflow-auto",
+          railLayoutAnimating && "pointer-events-none",
+        )}
+      >
         <div className="@container/main px-4 py-4 lg:px-6 space-y-6 h-full flex flex-col">
           <div className="flex items-center justify-between shrink-0">
             <AppBreadcrumb
@@ -382,7 +407,14 @@ function TicketListPageContent() {
             </div>
           )}
 
-          <div className="flex-1 min-h-0 flex flex-col gap-4">
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col gap-4",
+              viewMode === "kanban" &&
+                railLayoutAnimating &&
+                "[contain:layout_paint] [&_.kanban-board-root]:[content-visibility:auto]",
+            )}
+          >
             {viewMode === "list" ? (
               <DataTable
                 tickets={tickets}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlarmClockOff,
   Check,
@@ -295,6 +295,78 @@ export function ChatConversationList({
     });
   }, [activeTab, conversations, searchQuery]);
 
+  const conversationItemRefs = useRef(new Map<string, HTMLElement>());
+  const loadMoreForScrollRef = useRef<string | null>(null);
+
+  const registerConversationItemRef = useCallback(
+    (conversationId: string, node: HTMLElement | null) => {
+      if (node) {
+        conversationItemRefs.current.set(conversationId, node);
+      } else {
+        conversationItemRefs.current.delete(conversationId);
+      }
+    },
+    [],
+  );
+
+  const scrollSelectedConversationIntoView = useCallback(() => {
+    if (!selectedConversation) return false;
+
+    const node = conversationItemRefs.current.get(selectedConversation);
+    if (!node) return false;
+
+    node.scrollIntoView({ block: "center", behavior: "smooth" });
+    return true;
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    if (!selectedConversation || isLoading) return;
+
+    const isVisibleInList = sortedConversations.some(
+      (conversation) => conversation.id === selectedConversation,
+    );
+
+    if (isVisibleInList) {
+      loadMoreForScrollRef.current = null;
+      const frame = requestAnimationFrame(() => {
+        scrollSelectedConversationIntoView();
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+
+    const conversationInData = conversations.find(
+      (conversation) => conversation.id === selectedConversation,
+    );
+
+    if (conversationInData) {
+      loadMoreForScrollRef.current = null;
+      if (activeTab !== "all") {
+        setActiveTab("all");
+      }
+      return;
+    }
+
+    if (
+      hasMore &&
+      onLoadMore &&
+      !isLoadingMore &&
+      loadMoreForScrollRef.current !== selectedConversation
+    ) {
+      loadMoreForScrollRef.current = selectedConversation;
+      onLoadMore();
+    }
+  }, [
+    activeTab,
+    conversations,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    onLoadMore,
+    scrollSelectedConversationIntoView,
+    selectedConversation,
+    sortedConversations,
+  ]);
+
   const availableAgents = useMemo(() => users.slice(0, 5), [users]);
   const labelOptions = useMemo(
     () =>
@@ -312,7 +384,8 @@ export function ChatConversationList({
     if (typeof window === "undefined") return "";
 
     const url = new URL(window.location.href);
-    url.searchParams.set("conversationId", conversationId);
+    url.searchParams.set("conversation_id", conversationId);
+    url.searchParams.delete("conversationId");
     return url.toString();
   }, []);
 
@@ -679,7 +752,13 @@ export function ChatConversationList({
               {sortedConversations.map((conversation) => (
                 <ContextMenu key={conversation.id}>
                   <ContextMenuTrigger asChild>
-                    <div className="mx-auto w-fit">
+                    <motion.div
+                      ref={(node) =>
+                        registerConversationItemRef(conversation.id, node)
+                      }
+                      className="mx-auto w-fit"
+                      data-conversation-id={conversation.id}
+                    >
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
@@ -723,7 +802,7 @@ export function ChatConversationList({
                           {conversation.name}
                         </TooltipContent>
                       </Tooltip>
-                    </div>
+                    </motion.div>
                   </ContextMenuTrigger>
                   {renderConversationContextMenuContent(conversation)}
                 </ContextMenu>
@@ -870,10 +949,14 @@ export function ChatConversationList({
                     <ContextMenu key={conversation.id}>
                       <ContextMenuTrigger asChild>
                         <motion.div
+                          ref={(node) =>
+                            registerConversationItemRef(conversation.id, node)
+                          }
                           layout
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.18, ease: "easeOut" }}
+                          data-conversation-id={conversation.id}
                           className={cn(
                             "flex min-w-0 items-center gap-2 rounded-xl p-2 transition-all duration-200 sm:gap-3 sm:p-3",
                             "cursor-pointer relative overflow-hidden",

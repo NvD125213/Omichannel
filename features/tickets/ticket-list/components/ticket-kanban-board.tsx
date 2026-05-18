@@ -12,7 +12,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import type { Ticket } from "../utils/ticket-schema";
 import { TicketKanbanColumn } from "./ticket-kanban-column";
 import { TicketKanbanCard } from "./ticket-kanban-card";
@@ -37,7 +37,7 @@ const statuses = [
   { id: "cancelled", title: "Đã hủy", color: "bg-red-500" },
 ];
 
-export function TicketKanbanBoard({
+function TicketKanbanBoardComponent({
   tickets: initialTickets,
   onTicketUpdate,
   isLoading,
@@ -215,7 +215,7 @@ export function TicketKanbanBoard({
   };
 
   return (
-    <div className="h-full w-full">
+    <div className="kanban-board-root h-full w-full">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -245,3 +245,5 @@ export function TicketKanbanBoard({
     </div>
   );
 }
+
+export const TicketKanbanBoard = memo(TicketKanbanBoardComponent);

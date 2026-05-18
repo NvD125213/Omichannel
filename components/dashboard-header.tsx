@@ -71,16 +71,6 @@ export function DashboardHeader() {
         onOpenChange={setCommandSearchOpen}
       />
       <div className="ml-auto flex items-center gap-1">
-        {/* <TelesipSDK /> */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => window.showWidget?.()}
-          className="text-muted-foreground hover:text-emerald-500 transition-colors"
-        >
-          <Phone className="h-5 w-5" />
-          <span className="sr-only">Mở trình gọi điện</span>
-        </Button>
         <Button
           variant="ghost"
           size="icon"

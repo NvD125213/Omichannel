@@ -363,6 +363,15 @@ export type NavigationRailFilterProps = {
   kanbanTotal?: number;
   onKanbanPageChange?: (page: number) => void;
   onKanbanPageSizeChange?: (pageSize: number) => void;
+  /** Báo parent khi rail đang animate width (để tối ưu vùn nội dung nặng như Kanban) */
+  onLayoutTransitionChange?: (isAnimating: boolean) => void;
+};
+
+const RAIL_COLLAPSED_WIDTH = 56;
+const RAIL_EXPANDED_WIDTH = 350;
+const RAIL_WIDTH_TRANSITION = {
+  duration: 0.28,
+  ease: [0.32, 0.72, 0, 1] as const,
 };
 
 // Tag color mapping
@@ -433,8 +442,10 @@ export function NavigationRailFilter({
   kanbanTotal = 0,
   onKanbanPageChange,
   onKanbanPageSizeChange,
+  onLayoutTransitionChange,
 }: NavigationRailFilterProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [panelEverOpened, setPanelEverOpened] = useState(defaultExpanded);
   const [searchValue, setSearchValue] = useState("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -525,13 +536,33 @@ export function NavigationRailFilter({
     return () => clearTimeout(timer);
   }, [isExpanded, focusSection]);
 
-  // Handle click focus - expand and set section
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const handleClickFocus = useCallback((section: string) => {
-    setFocusSection(section);
-    setActiveSection(section);
+  const openPanel = useCallback(() => {
+    setPanelEverOpened(true);
     setIsExpanded(true);
   }, []);
+
+  useEffect(() => {
+    if (isExpanded) setPanelEverOpened(true);
+  }, [isExpanded]);
+
+  const handleRailAnimationStart = useCallback(() => {
+    onLayoutTransitionChange?.(true);
+  }, [onLayoutTransitionChange]);
+
+  const handleRailAnimationComplete = useCallback(() => {
+    onLayoutTransitionChange?.(false);
+  }, [onLayoutTransitionChange]);
+
+  // Handle click focus - expand and set section
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  const handleClickFocus = useCallback(
+    (section: string) => {
+      openPanel();
+      setFocusSection(section);
+      setActiveSection(section);
+    },
+    [openPanel],
+  );
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const handleSearchChange = useCallback(
@@ -654,730 +685,696 @@ export function NavigationRailFilter({
     }
   };
 
+  const isVertical = orientation === "vertical";
+  const railWidth = isExpanded ? RAIL_EXPANDED_WIDTH : RAIL_COLLAPSED_WIDTH;
+
   return (
-    <div
-      className={cn("relative flex h-full", className)}
-      style={{ backgroundImage: "var(--background-image)" }}
+    <motion.div
+      className={cn(
+        "relative h-full shrink-0 overflow-hidden",
+        !isVertical && "w-full",
+        className,
+      )}
+      style={{ backgroundImage: "transparent" }}
+      initial={false}
+      animate={
+        isVertical
+          ? { width: railWidth }
+          : { height: isExpanded ? RAIL_EXPANDED_WIDTH : RAIL_COLLAPSED_WIDTH }
+      }
+      transition={RAIL_WIDTH_TRANSITION}
+      onAnimationStart={handleRailAnimationStart}
+      onAnimationComplete={handleRailAnimationComplete}
     >
-      {/* Collapsed Dock (macOS-like) */}
-      <AnimatePresence mode="wait">
-        {!isExpanded && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className={cn(
-              "flex items-center z-10",
-              orientation === "vertical" ? "h-full" : "w-full justify-center",
-              verticalDockPositionClassName,
-            )}
+      {/* Dock (luôn trong DOM, fade khi mở panel) */}
+      <motion.div
+        className={cn(
+          "absolute inset-y-0 left-0 z-10 flex items-center",
+          isVertical ? "h-full" : "w-full justify-center",
+          verticalDockPositionClassName,
+        )}
+        style={{
+          width: RAIL_COLLAPSED_WIDTH,
+          pointerEvents: isExpanded ? "none" : "auto",
+        }}
+        initial={false}
+        animate={{ opacity: isExpanded ? 0 : 1 }}
+        transition={{ duration: 0.12 }}
+        aria-hidden={isExpanded}
+      >
+        <Dock
+          magnification={56}
+          distance={100}
+          panelWidth={56}
+          orientation={orientation}
+        >
+          {/* Main Filter Button */}
+          <DockItem
+            onClick={() => {
+              openPanel();
+              setActiveSection(null);
+            }}
+            isActive={hasActiveFilters}
+            badge={hasActiveFilters ? totalActiveFilters : undefined}
           >
-            <Dock
-              magnification={56}
-              distance={100}
-              panelWidth={56}
-              orientation={orientation}
+            <DockLabel>Bộ lọc</DockLabel>
+            <DockIcon>
+              {filterIcon || <Filter className="size-full" />}
+            </DockIcon>
+          </DockItem>
+
+          {/* View Mode Toggle */}
+          {viewMode && onViewModeChange && (
+            <DockItem
+              onClick={() =>
+                onViewModeChange(viewMode === "list" ? "kanban" : "list")
+              }
             >
-              {/* Main Filter Button */}
-              <DockItem
-                onClick={() => {
-                  setIsExpanded(true);
-                  setActiveSection(null);
-                }}
-                isActive={hasActiveFilters}
-                badge={hasActiveFilters ? totalActiveFilters : undefined}
-              >
-                <DockLabel>Bộ lọc</DockLabel>
+              <DockLabel>
+                {viewMode === "list" ? "Chế độ Kanban" : "Chế độ Danh sách"}
+              </DockLabel>
+              <DockIcon>
+                {viewMode === "list" ? (
+                  <LayoutGrid className="size-full" />
+                ) : (
+                  <List className="size-full" />
+                )}
+              </DockIcon>
+            </DockItem>
+          )}
+
+          <div
+            className={cn(
+              "bg-border/50",
+              orientation === "vertical" ? "w-6 h-px" : "h-6 w-px",
+            )}
+          />
+
+          {/* Search */}
+          <DockItem
+            onClick={() => handleClickFocus("search")}
+            isActive={!!searchValue}
+            badge={searchValue ? 1 : undefined}
+          >
+            <DockLabel>Tìm kiếm</DockLabel>
+            <DockIcon>
+              {searchIcon || <Search className="size-full" />}
+            </DockIcon>
+          </DockItem>
+
+          {/* Select */}
+          {selectOptions.length > 0 && (
+            <DockItem
+              onClick={() => handleClickFocus("select")}
+              isActive={!!selectValue}
+              badge={selectValue ? 1 : undefined}
+            >
+              <DockLabel>
+                {selectValue
+                  ? selectOptions.find((o) => o.value === selectValue)?.label ||
+                    selectLabel
+                  : selectPlaceholder}
+              </DockLabel>
+              <DockIcon>
+                {selectIcon || <ListFilter className="size-full" />}
+              </DockIcon>
+            </DockItem>
+          )}
+
+          {/* Select 2 (Priority) */}
+          {select2Options.length > 0 && (
+            <DockItem
+              onClick={() => handleClickFocus("select2")}
+              isActive={!!select2Value}
+              badge={select2Value ? 1 : undefined}
+            >
+              <DockLabel>
+                {select2Value
+                  ? select2Options.find((o) => o.value === select2Value)
+                      ?.label || select2Label
+                  : select2Placeholder}
+              </DockLabel>
+              <DockIcon>
+                {select2Icon || <ListFilter className="size-full" />}
+              </DockIcon>
+            </DockItem>
+          )}
+
+          {/* Combobox */}
+          {comboboxOptions.length > 0 && (
+            <DockItem
+              onClick={() => handleClickFocus("combobox")}
+              isActive={comboboxValues.length > 0}
+              badge={comboboxValues.length || undefined}
+            >
+              <DockLabel>{comboboxLabel}</DockLabel>
+              <DockIcon>
+                {comboboxIcon || <Layers className="size-full" />}
+              </DockIcon>
+            </DockItem>
+          )}
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <DockItem
+              onClick={() => handleClickFocus("tags")}
+              isActive={selectedTags.length > 0}
+              badge={selectedTags.length || undefined}
+            >
+              <DockLabel>Tags</DockLabel>
+              <DockIcon>{tagsIcon || <Tags className="size-full" />}</DockIcon>
+            </DockItem>
+          )}
+
+          {/* Columns (Display Options) */}
+          {columnOptions.length > 0 && (
+            <DockItem onClick={() => handleClickFocus("columns")}>
+              <DockLabel>Hiển thị cột</DockLabel>
+              <DockIcon>
+                {columnIcon || <Settings2 className="size-full" />}
+              </DockIcon>
+            </DockItem>
+          )}
+
+          {/* Kanban pagination (chỉ khi viewMode === "kanban") */}
+          {viewMode === "kanban" &&
+            onKanbanPageChange &&
+            onKanbanPageSizeChange && (
+              <DockItem onClick={() => handleClickFocus("kanban-pagination")}>
+                <DockLabel>Phân trang</DockLabel>
                 <DockIcon>
-                  {filterIcon || <Filter className="size-full" />}
+                  <ListOrdered className="size-full" />
                 </DockIcon>
               </DockItem>
+            )}
 
-              {/* View Mode Toggle */}
-              {viewMode && onViewModeChange && (
-                <DockItem
-                  onClick={() =>
-                    onViewModeChange(viewMode === "list" ? "kanban" : "list")
-                  }
-                >
-                  <DockLabel>
-                    {viewMode === "list" ? "Chế độ Kanban" : "Chế độ Danh sách"}
-                  </DockLabel>
-                  <DockIcon>
-                    {viewMode === "list" ? (
-                      <LayoutGrid className="size-full" />
-                    ) : (
-                      <List className="size-full" />
-                    )}
-                  </DockIcon>
-                </DockItem>
-              )}
-
+          {/* Clear All */}
+          {hasActiveFilters && (
+            <>
               <div
                 className={cn(
                   "bg-border/50",
                   orientation === "vertical" ? "w-6 h-px" : "h-6 w-px",
                 )}
               />
-
-              {/* Search */}
-              <DockItem
-                onClick={() => handleClickFocus("search")}
-                isActive={!!searchValue}
-                badge={searchValue ? 1 : undefined}
-              >
-                <DockLabel>Tìm kiếm</DockLabel>
+              <DockItem onClick={handleClearAll}>
+                <DockLabel>Xóa tất cả</DockLabel>
                 <DockIcon>
-                  {searchIcon || <Search className="size-full" />}
+                  <X className="size-full" />
                 </DockIcon>
               </DockItem>
+            </>
+          )}
+        </Dock>
+      </motion.div>
 
-              {/* Select */}
+      {panelEverOpened && (
+        <motion.div
+          className={cn(
+            "absolute inset-y-0 left-0 z-20 flex flex-col overflow-hidden border-border bg-transparent pointer-events-auto",
+            isVertical ? "h-full w-80 border-r" : "top-0 w-full border-b",
+          )}
+          initial={false}
+          animate={{ opacity: isExpanded ? 1 : 0 }}
+          transition={{ duration: 0.14 }}
+          aria-hidden={!isExpanded}
+          style={{ pointerEvents: isExpanded ? "auto" : "none" }}
+        >
+          {/* Header */}
+          <motion.div className="flex-shrink-0 border-b border-border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  key={activeSection || "default"}
+                  className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10"
+                >
+                  {getHeaderIcon()}
+                </motion.div>
+                <div>
+                  <h2 className="font-semibold text-base">Bộ lọc</h2>
+                  {hasActiveFilters && (
+                    <p className="text-xs text-muted-foreground">
+                      {totalActiveFilters} đang hoạt động
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1">
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearAll}
+                    className="text-muted-foreground hover:text-destructive h-8 px-2"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Filter Content */}
+          <ScrollArea className="flex-1">
+            <motion.div className="space-y-5 p-4">
+              {/* Search Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                  {renderLabelIcon(searchIcon, "search")}
+                  Tìm kiếm
+                </label>
+                <div className="relative">
+                  <Input
+                    ref={searchInputRef}
+                    placeholder={searchPlaceholder}
+                    value={searchValue}
+                    onChange={handleSearchChange}
+                    className="h-10 bg-transparent border-input focus-visible:ring-2 focus-visible:ring-primary/20 pr-8"
+                  />
+                  {searchValue && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchValue("");
+                        onSearchChange?.("");
+                      }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-muted"
+                    >
+                      <X className="size-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {/* Select Option */}
               {selectOptions.length > 0 && (
-                <DockItem
-                  onClick={() => handleClickFocus("select")}
-                  isActive={!!selectValue}
-                  badge={selectValue ? 1 : undefined}
-                >
-                  <DockLabel>
-                    {selectValue
-                      ? selectOptions.find((o) => o.value === selectValue)
-                          ?.label || selectLabel
-                      : selectPlaceholder}
-                  </DockLabel>
-                  <DockIcon>
-                    {selectIcon || <ListFilter className="size-full" />}
-                  </DockIcon>
-                </DockItem>
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      {renderLabelIcon(selectIcon, "select")}
+                      {selectLabel}
+                    </label>
+                    <Select value={selectValue} onValueChange={onSelectChange}>
+                      <SelectTrigger
+                        ref={selectTriggerRef}
+                        className="w-full h-10 bg-transparent border-input focus:ring-2 focus:ring-primary/20"
+                      >
+                        <SelectValue placeholder={selectPlaceholder} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {selectOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              {option.icon}
+                              {option.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
-              {/* Select 2 (Priority) */}
+              {/* Select 2 Option (Priority) */}
               {select2Options.length > 0 && (
-                <DockItem
-                  onClick={() => handleClickFocus("select2")}
-                  isActive={!!select2Value}
-                  badge={select2Value ? 1 : undefined}
-                >
-                  <DockLabel>
-                    {select2Value
-                      ? select2Options.find((o) => o.value === select2Value)
-                          ?.label || select2Label
-                      : select2Placeholder}
-                  </DockLabel>
-                  <DockIcon>
-                    {select2Icon || <ListFilter className="size-full" />}
-                  </DockIcon>
-                </DockItem>
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      {renderLabelIcon(select2Icon, "select2")}
+                      {select2Label}
+                    </label>
+                    <Select
+                      value={select2Value}
+                      onValueChange={onSelect2Change}
+                    >
+                      <SelectTrigger
+                        ref={select2TriggerRef}
+                        className="w-full h-10 bg-transparent border-input focus:ring-2 focus:ring-primary/20"
+                      >
+                        <SelectValue placeholder={select2Placeholder} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {select2Options.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className="flex items-center gap-2">
+                              {option.icon}
+                              {option.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
               )}
 
-              {/* Combobox */}
+              {/* Combobox (Multi-select) */}
               {comboboxOptions.length > 0 && (
-                <DockItem
-                  onClick={() => handleClickFocus("combobox")}
-                  isActive={comboboxValues.length > 0}
-                  badge={comboboxValues.length || undefined}
-                >
-                  <DockLabel>{comboboxLabel}</DockLabel>
-                  <DockIcon>
-                    {comboboxIcon || <Layers className="size-full" />}
-                  </DockIcon>
-                </DockItem>
+                <>
+                  <Separator />
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      {renderLabelIcon(comboboxIcon, "combobox")}
+                      {comboboxLabel}
+                    </label>
+                    <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          ref={comboboxTriggerRef}
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={comboboxOpen}
+                          className="w-full justify-between h-10 bg-transparent border-input hover:bg-accent/50"
+                        >
+                          {comboboxValues.length > 0
+                            ? `${comboboxValues.length} đã chọn`
+                            : `Chọn ${comboboxLabel.toLowerCase()}`}
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0" align="start">
+                        <Command>
+                          <CommandInput
+                            placeholder={`Tìm ${comboboxLabel.toLowerCase()}...`}
+                          />
+                          <CommandList>
+                            <CommandEmpty>Không tìm thấy kết quả.</CommandEmpty>
+                            <CommandGroup>
+                              {comboboxOptions.map((option) => (
+                                <CommandItem
+                                  key={option.value}
+                                  value={option.value}
+                                  onSelect={() =>
+                                    handleComboboxToggle(option.value)
+                                  }
+                                >
+                                  <div
+                                    className={cn(
+                                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                      comboboxValues.includes(option.value)
+                                        ? "bg-primary text-primary-foreground"
+                                        : "opacity-50",
+                                    )}
+                                  >
+                                    {comboboxValues.includes(option.value) && (
+                                      <Check className="h-3 w-3" />
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {option.icon}
+                                    {option.label}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {comboboxValues.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {comboboxValues.map((value) => {
+                          const option = comboboxOptions.find(
+                            (o) => o.value === value,
+                          );
+                          return (
+                            <Badge
+                              key={value}
+                              variant="secondary"
+                              className="pl-2 pr-1 py-1 gap-1 text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                            >
+                              {option?.label || value}
+                              <button
+                                onClick={() => handleComboboxToggle(value)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
               {/* Tags */}
               {tags.length > 0 && (
-                <DockItem
-                  onClick={() => handleClickFocus("tags")}
-                  isActive={selectedTags.length > 0}
-                  badge={selectedTags.length || undefined}
-                >
-                  <DockLabel>Tags</DockLabel>
-                  <DockIcon>
-                    {tagsIcon || <Tags className="size-full" />}
-                  </DockIcon>
-                </DockItem>
+                <>
+                  <Separator />
+                  <div ref={tagsRef} className="space-y-2">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      {renderLabelIcon(tagsIcon, "tags")}
+                      Tags
+                    </label>
+                    <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          ref={tagsTriggerRef}
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={tagsOpen}
+                          className="w-full justify-between h-10 bg-transparent border-input hover:bg-accent/50"
+                        >
+                          {selectedTags.length > 0
+                            ? `${selectedTags.length} tag đã chọn`
+                            : "Chọn tags..."}
+                          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Tìm tags..." />
+                          <CommandList>
+                            <CommandEmpty>Không tìm thấy kết quả.</CommandEmpty>
+                            <CommandGroup>
+                              {tags.map((tag) => {
+                                const isSelected = selectedTags.includes(
+                                  tag.id,
+                                );
+                                const colorClass =
+                                  tagColors[tag.color || "default"] ||
+                                  tagColors.default;
+
+                                return (
+                                  <CommandItem
+                                    key={tag.id}
+                                    value={tag.label}
+                                    onSelect={() => handleTagToggle(tag.id)}
+                                  >
+                                    <div
+                                      className={cn(
+                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                        isSelected
+                                          ? "bg-primary text-primary-foreground"
+                                          : "opacity-50",
+                                      )}
+                                    >
+                                      {isSelected && (
+                                        <Check className="h-3 w-3" />
+                                      )}
+                                    </div>
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        "text-xs font-medium px-2 py-0.5",
+                                        colorClass,
+                                      )}
+                                    >
+                                      {tag.label}
+                                    </Badge>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {selectedTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {selectedTags.map((tagId) => {
+                          const tag = tags.find((t) => t.id === tagId);
+                          if (!tag) return null;
+                          const colorClass =
+                            tagColors[tag.color || "default"] ||
+                            tagColors.default;
+
+                          return (
+                            <Badge
+                              key={tagId}
+                              variant="outline"
+                              className={cn(
+                                "pl-2 pr-1 py-1 gap-1 text-xs font-medium",
+                                colorClass,
+                              )}
+                            >
+                              {tag.label}
+                              <button
+                                onClick={() => onTagRemove?.(tagId)}
+                                className="ml-1 hover:text-destructive"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
 
               {/* Columns (Display Options) */}
               {columnOptions.length > 0 && (
-                <DockItem onClick={() => handleClickFocus("columns")}>
-                  <DockLabel>Hiển thị cột</DockLabel>
-                  <DockIcon>
-                    {columnIcon || <Settings2 className="size-full" />}
-                  </DockIcon>
-                </DockItem>
+                <>
+                  <Separator />
+                  <div ref={columnsRef} className="space-y-3">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      {renderLabelIcon(columnIcon, "columns")}
+                      Hiển thị cột
+                    </label>
+                    <div className="space-y-2">
+                      {columnOptions.map((column) => {
+                        const isVisible = columnVisibility[column.id] !== false;
+                        return (
+                          <div
+                            key={column.id}
+                            className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
+                            onClick={() =>
+                              onColumnVisibilityChange?.(column.id, !isVisible)
+                            }
+                          >
+                            <span className="text-sm">{column.label}</span>
+                            <div
+                              className={cn(
+                                "flex items-center justify-center w-5 h-5 rounded border transition-colors",
+                                isVisible
+                                  ? "bg-primary border-primary text-primary-foreground"
+                                  : "border-input bg-transparent",
+                              )}
+                            >
+                              {isVisible && <Check className="size-3" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
 
               {/* Kanban pagination (chỉ khi viewMode === "kanban") */}
               {viewMode === "kanban" &&
                 onKanbanPageChange &&
                 onKanbanPageSizeChange && (
-                  <DockItem
-                    onClick={() => handleClickFocus("kanban-pagination")}
-                  >
-                    <DockLabel>Phân trang</DockLabel>
-                    <DockIcon>
-                      <ListOrdered className="size-full" />
-                    </DockIcon>
-                  </DockItem>
-                )}
-
-              {/* Clear All */}
-              {hasActiveFilters && (
-                <>
-                  <div
-                    className={cn(
-                      "bg-border/50",
-                      orientation === "vertical" ? "w-6 h-px" : "h-6 w-px",
-                    )}
-                  />
-                  <DockItem onClick={handleClearAll}>
-                    <DockLabel>Xóa tất cả</DockLabel>
-                    <DockIcon>
-                      <X className="size-full" />
-                    </DockIcon>
-                  </DockItem>
-                </>
-              )}
-            </Dock>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Expanded Panel */}
-      <AnimatePresence mode="wait">
-        {isExpanded && (
-          <motion.div
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: 320 }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{
-              type: "spring",
-              stiffness: 250,
-              damping: 30,
-              mass: 1,
-            }}
-            className="flex flex-col bg-transparent border-r border-border overflow-hidden h-full pointer-events-auto"
-          >
-            {/* Header */}
-            <motion.div
-              className="p-4 border-b border-border flex-shrink-0"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.2 }}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <motion.div
-                    key={activeSection || "default"}
-                    className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10"
-                    initial={{ rotate: -180, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    {getHeaderIcon()}
-                  </motion.div>
-                  <div>
-                    <h2 className="font-semibold text-base">Bộ lọc</h2>
-                    {hasActiveFilters && (
+                  <>
+                    <Separator />
+                    <div ref={kanbanPaginationRef} className="space-y-3">
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <span className="text-xs text-muted-foreground">
+                            Trang
+                          </span>
+                          <Select
+                            value={String(kanbanPage ?? 1)}
+                            onValueChange={(v) =>
+                              onKanbanPageChange?.(Number(v))
+                            }
+                          >
+                            <SelectTrigger className="w-full h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from(
+                                {
+                                  length: Math.max(1, kanbanTotalPages ?? 1),
+                                },
+                                (_, i) => i + 1,
+                              ).map((p) => (
+                                <SelectItem key={p} value={String(p)}>
+                                  Trang {p}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-xs text-muted-foreground">
+                            Số ticket / trang
+                          </span>
+                          <Select
+                            value={String(kanbanPageSize ?? 10)}
+                            onValueChange={(v) =>
+                              onKanbanPageSizeChange?.(Number(v))
+                            }
+                          >
+                            <SelectTrigger className="w-full h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[10, 20, 30, 50].map((size) => (
+                                <SelectItem key={size} value={String(size)}>
+                                  {size}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                       <p className="text-xs text-muted-foreground">
-                        {totalActiveFilters} đang hoạt động
+                        Tổng {kanbanTotal ?? 0} ticket
                       </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1">
-                  {hasActiveFilters && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearAll}
-                      className="text-muted-foreground hover:text-destructive h-8 px-2"
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsExpanded(false)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronLeft className="size-4" />
-                  </Button>
-                </div>
-              </div>
+                    </div>
+                  </>
+                )}
             </motion.div>
+          </ScrollArea>
 
-            {/* Filter Content */}
-            <ScrollArea className="flex-1">
-              <motion.div
-                className="p-4 space-y-5"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 30,
-                  delay: 0.15,
-                }}
+          {/* Footer Actions */}
+          <motion.div className="flex-shrink-0 space-y-3 border-t border-border bg-transparent p-4">
+            {/* Toolbar Actions Slot */}
+            {toolbarActions && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {toolbarActions}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 h-9"
+                onClick={handleClearAll}
+                disabled={!hasActiveFilters}
               >
-                {/* Search Input */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                    {renderLabelIcon(searchIcon, "search")}
-                    Tìm kiếm
-                  </label>
-                  <div className="relative">
-                    <Input
-                      ref={searchInputRef}
-                      placeholder={searchPlaceholder}
-                      value={searchValue}
-                      onChange={handleSearchChange}
-                      className="h-10 bg-transparent border-input focus-visible:ring-2 focus-visible:ring-primary/20 pr-8"
-                    />
-                    {searchValue && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSearchValue("");
-                          onSearchChange?.("");
-                        }}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-muted"
-                      >
-                        <X className="size-3" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Select Option */}
-                {selectOptions.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        {renderLabelIcon(selectIcon, "select")}
-                        {selectLabel}
-                      </label>
-                      <Select
-                        value={selectValue}
-                        onValueChange={onSelectChange}
-                      >
-                        <SelectTrigger
-                          ref={selectTriggerRef}
-                          className="w-full h-10 bg-transparent border-input focus:ring-2 focus:ring-primary/20"
-                        >
-                          <SelectValue placeholder={selectPlaceholder} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {selectOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div className="flex items-center gap-2">
-                                {option.icon}
-                                {option.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-
-                {/* Select 2 Option (Priority) */}
-                {select2Options.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        {renderLabelIcon(select2Icon, "select2")}
-                        {select2Label}
-                      </label>
-                      <Select
-                        value={select2Value}
-                        onValueChange={onSelect2Change}
-                      >
-                        <SelectTrigger
-                          ref={select2TriggerRef}
-                          className="w-full h-10 bg-transparent border-input focus:ring-2 focus:ring-primary/20"
-                        >
-                          <SelectValue placeholder={select2Placeholder} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {select2Options.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              <div className="flex items-center gap-2">
-                                {option.icon}
-                                {option.label}
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-
-                {/* Combobox (Multi-select) */}
-                {comboboxOptions.length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        {renderLabelIcon(comboboxIcon, "combobox")}
-                        {comboboxLabel}
-                      </label>
-                      <Popover
-                        open={comboboxOpen}
-                        onOpenChange={setComboboxOpen}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            ref={comboboxTriggerRef}
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={comboboxOpen}
-                            className="w-full justify-between h-10 bg-transparent border-input hover:bg-accent/50"
-                          >
-                            {comboboxValues.length > 0
-                              ? `${comboboxValues.length} đã chọn`
-                              : `Chọn ${comboboxLabel.toLowerCase()}`}
-                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder={`Tìm ${comboboxLabel.toLowerCase()}...`}
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                Không tìm thấy kết quả.
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {comboboxOptions.map((option) => (
-                                  <CommandItem
-                                    key={option.value}
-                                    value={option.value}
-                                    onSelect={() =>
-                                      handleComboboxToggle(option.value)
-                                    }
-                                  >
-                                    <div
-                                      className={cn(
-                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                        comboboxValues.includes(option.value)
-                                          ? "bg-primary text-primary-foreground"
-                                          : "opacity-50",
-                                      )}
-                                    >
-                                      {comboboxValues.includes(
-                                        option.value,
-                                      ) && <Check className="h-3 w-3" />}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {option.icon}
-                                      {option.label}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-
-                      {comboboxValues.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {comboboxValues.map((value) => {
-                            const option = comboboxOptions.find(
-                              (o) => o.value === value,
-                            );
-                            return (
-                              <Badge
-                                key={value}
-                                variant="secondary"
-                                className="pl-2 pr-1 py-1 gap-1 text-xs bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
-                              >
-                                {option?.label || value}
-                                <button
-                                  onClick={() => handleComboboxToggle(value)}
-                                  className="ml-1 hover:text-destructive"
-                                >
-                                  <X className="size-3" />
-                                </button>
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {/* Tags */}
-                {tags.length > 0 && (
-                  <>
-                    <Separator />
-                    <div ref={tagsRef} className="space-y-2">
-                      <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        {renderLabelIcon(tagsIcon, "tags")}
-                        Tags
-                      </label>
-                      <Popover open={tagsOpen} onOpenChange={setTagsOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            ref={tagsTriggerRef}
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={tagsOpen}
-                            className="w-full justify-between h-10 bg-transparent border-input hover:bg-accent/50"
-                          >
-                            {selectedTags.length > 0
-                              ? `${selectedTags.length} tag đã chọn`
-                              : "Chọn tags..."}
-                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-64 p-0" align="start">
-                          <Command>
-                            <CommandInput placeholder="Tìm tags..." />
-                            <CommandList>
-                              <CommandEmpty>
-                                Không tìm thấy kết quả.
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {tags.map((tag) => {
-                                  const isSelected = selectedTags.includes(
-                                    tag.id,
-                                  );
-                                  const colorClass =
-                                    tagColors[tag.color || "default"] ||
-                                    tagColors.default;
-
-                                  return (
-                                    <CommandItem
-                                      key={tag.id}
-                                      value={tag.label}
-                                      onSelect={() => handleTagToggle(tag.id)}
-                                    >
-                                      <div
-                                        className={cn(
-                                          "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
-                                          isSelected
-                                            ? "bg-primary text-primary-foreground"
-                                            : "opacity-50",
-                                        )}
-                                      >
-                                        {isSelected && (
-                                          <Check className="h-3 w-3" />
-                                        )}
-                                      </div>
-                                      <Badge
-                                        variant="outline"
-                                        className={cn(
-                                          "text-xs font-medium px-2 py-0.5",
-                                          colorClass,
-                                        )}
-                                      >
-                                        {tag.label}
-                                      </Badge>
-                                    </CommandItem>
-                                  );
-                                })}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-
-                      {selectedTags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {selectedTags.map((tagId) => {
-                            const tag = tags.find((t) => t.id === tagId);
-                            if (!tag) return null;
-                            const colorClass =
-                              tagColors[tag.color || "default"] ||
-                              tagColors.default;
-
-                            return (
-                              <Badge
-                                key={tagId}
-                                variant="outline"
-                                className={cn(
-                                  "pl-2 pr-1 py-1 gap-1 text-xs font-medium",
-                                  colorClass,
-                                )}
-                              >
-                                {tag.label}
-                                <button
-                                  onClick={() => onTagRemove?.(tagId)}
-                                  className="ml-1 hover:text-destructive"
-                                >
-                                  <X className="size-3" />
-                                </button>
-                              </Badge>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {/* Columns (Display Options) */}
-                {columnOptions.length > 0 && (
-                  <>
-                    <Separator />
-                    <div ref={columnsRef} className="space-y-3">
-                      <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                        {renderLabelIcon(columnIcon, "columns")}
-                        Hiển thị cột
-                      </label>
-                      <div className="space-y-2">
-                        {columnOptions.map((column) => {
-                          const isVisible =
-                            columnVisibility[column.id] !== false;
-                          return (
-                            <div
-                              key={column.id}
-                              className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-accent/50 cursor-pointer transition-colors"
-                              onClick={() =>
-                                onColumnVisibilityChange?.(
-                                  column.id,
-                                  !isVisible,
-                                )
-                              }
-                            >
-                              <span className="text-sm">{column.label}</span>
-                              <div
-                                className={cn(
-                                  "flex items-center justify-center w-5 h-5 rounded border transition-colors",
-                                  isVisible
-                                    ? "bg-primary border-primary text-primary-foreground"
-                                    : "border-input bg-transparent",
-                                )}
-                              >
-                                {isVisible && <Check className="size-3" />}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Kanban pagination (chỉ khi viewMode === "kanban") */}
-                {viewMode === "kanban" &&
-                  onKanbanPageChange &&
-                  onKanbanPageSizeChange && (
-                    <>
-                      <Separator />
-                      <div ref={kanbanPaginationRef} className="space-y-3">
-                        <div className="space-y-3">
-                          <div className="space-y-2">
-                            <span className="text-xs text-muted-foreground">
-                              Trang
-                            </span>
-                            <Select
-                              value={String(kanbanPage ?? 1)}
-                              onValueChange={(v) =>
-                                onKanbanPageChange?.(Number(v))
-                              }
-                            >
-                              <SelectTrigger className="w-full h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Array.from(
-                                  {
-                                    length: Math.max(1, kanbanTotalPages ?? 1),
-                                  },
-                                  (_, i) => i + 1,
-                                ).map((p) => (
-                                  <SelectItem key={p} value={String(p)}>
-                                    Trang {p}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <span className="text-xs text-muted-foreground">
-                              Số ticket / trang
-                            </span>
-                            <Select
-                              value={String(kanbanPageSize ?? 10)}
-                              onValueChange={(v) =>
-                                onKanbanPageSizeChange?.(Number(v))
-                              }
-                            >
-                              <SelectTrigger className="w-full h-9">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {[10, 20, 30, 50].map((size) => (
-                                  <SelectItem key={size} value={String(size)}>
-                                    {size}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Tổng {kanbanTotal ?? 0} ticket
-                        </p>
-                      </div>
-                    </>
-                  )}
-              </motion.div>
-            </ScrollArea>
-
-            {/* Footer Actions */}
-            <motion.div
-              className="p-4 border-t border-border bg-transparent flex-shrink-0 space-y-3"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                type: "spring",
-                stiffness: 400,
-                damping: 30,
-                delay: 0.2,
-              }}
-            >
-              {/* Toolbar Actions Slot */}
-              {toolbarActions && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  {toolbarActions}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-9"
-                  onClick={handleClearAll}
-                  disabled={!hasActiveFilters}
-                >
-                  Đặt lại
-                </Button>
-                {/* <Button
+                Đặt lại
+              </Button>
+              {/* <Button
                   className="flex-1 h-9 bg-primary hover:bg-primary/90"
                   onClick={onApplyFilters}
                 >
                   Áp dụng
                 </Button> */}
-              </div>
-            </motion.div>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
