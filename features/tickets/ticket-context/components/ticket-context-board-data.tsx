@@ -109,10 +109,10 @@ export default function TicketDetailLiveChatContext({
 
   return (
     <div className="flex h-full rounded-lg bg-transparent border border-transparent dark:border-zinc-800 overflow-hidden relative">
-      <div className="flex-1 flex flex-col min-w-0 bg-transparent dark:bg-zinc-900">
+      <div className="flex-1 flex flex-col min-w-0 bg-transparent">
         <div
           ref={containerRef}
-          className="flex-1 relative min-h-0 overflow-y-auto space-y-4 bg-white dark:bg-zinc-900"
+          className="flex-1 relative min-h-0 overflow-y-auto space-y-4 bg-transparent"
         >
           {isLoading || (isFetching && mappedTicketContexts.length === 0) ? (
             Array.from({ length: 3 }).map((_, index) => (
@@ -183,7 +183,7 @@ export default function TicketDetailLiveChatContext({
           )}
         </div>
 
-        <div className="bg-white dark:bg-zinc-900 border-t border-slate-200 dark:border-zinc-800">
+        <div className="bg-transparent border-t border-slate-200 dark:border-zinc-800">
           <TicketMessageInput
             onSubmit={handleCreateContext}
             tenantId={meData?.tenant_id}

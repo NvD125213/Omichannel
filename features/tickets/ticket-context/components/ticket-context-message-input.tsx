@@ -129,7 +129,7 @@ export default function TicketMessageInput({
   };
 
   return (
-    <div className="p-4 bg-white dark:bg-zinc-900 w-full">
+    <div className="p-4 bg-transparent w-full">
       <div className="flex flex-col gap-3">
         {/* Row 1: Metadata Input */}
         <div

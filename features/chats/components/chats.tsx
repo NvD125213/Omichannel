@@ -113,6 +113,14 @@ const normalizeConversation = (
       conversation.created_at,
   );
 
+  const rawInboxId = conversation["inbox_id"];
+  const inboxId =
+    typeof rawInboxId === "number"
+      ? rawInboxId
+      : typeof rawInboxId === "string"
+        ? Number(rawInboxId)
+        : Number.NaN;
+
   return {
     id: conversationId,
     type: "direct",
@@ -132,6 +140,7 @@ const normalizeConversation = (
     unreadCount,
     isPinned: false,
     isMuted: Boolean(conversation["muted"]),
+    inboxId: Number.isFinite(inboxId) ? inboxId : undefined,
     meta: {
       sender: {
         id:
@@ -501,7 +510,7 @@ export function Chat() {
   const isSidebarFullyExpanded =
     !isNotificationSidebarCollapsed && !isConversationListCollapsed;
   const sidebarDesktopWidthClass = isSidebarFullyExpanded
-    ? "lg:w-[50%]"
+    ? "lg:w-[45%]"
     : !isNotificationSidebarCollapsed && isConversationListCollapsed
       ? "lg:w-[calc(18%+5rem)]"
       : isNotificationSidebarCollapsed && !isConversationListCollapsed
@@ -510,7 +519,7 @@ export function Chat() {
 
   return (
     <TooltipProvider delayDuration={450} skipDelayDuration={200}>
-      <div className="flex min-h-0 flex-1 w-full shadow-sm overflow-hidden pl-1">
+      <div className="flex h-full min-h-0 flex-1 w-full overflow-hidden pl-1 shadow-sm">
         {isSidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -520,7 +529,7 @@ export function Chat() {
 
         <div
           className={cn(
-            "w-100 border-r shrink-0 fixed inset-y-0 left-0 z-50 transition-[width,transform] duration-500 ease-in-out lg:relative lg:block",
+            "max-lg:w-full border-r shrink-0 fixed inset-y-0 left-0 z-50 transition-[width,transform] duration-500 ease-in-out lg:relative lg:block lg:min-h-0",
             isSidebarOpen
               ? "translate-x-0"
               : "-translate-x-full lg:translate-x-0",
@@ -629,7 +638,7 @@ export function Chat() {
             </div>
           </div>
 
-          <div className="flex h-[calc(100%-64px)]">
+          <div className="flex h-[calc(100%-4rem)] min-h-0 overflow-hidden">
             <div
               className={cn(
                 "shrink-0 transition-[width] duration-500 ease-in-out",
@@ -637,7 +646,9 @@ export function Chat() {
                   ? "w-16"
                   : isConversationListCollapsed
                     ? "w-[calc(100%-5rem)]"
-                    : "w-[35%]",
+                    : isSidebarFullyExpanded
+                      ? "w-[38%]"
+                      : "w-[35%]",
               )}
             >
               <ChatNotificationSidebar
@@ -661,7 +672,7 @@ export function Chat() {
                   ? "w-20"
                   : isNotificationSidebarCollapsed
                     ? "w-[calc(100%-4rem)]"
-                    : "flex-1",
+                    : "min-w-0 flex-1",
               )}
             >
               <ChatConversationList
@@ -684,7 +695,7 @@ export function Chat() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
           <div className="flex items-center h-16 px-4 border-b">
             <Button
               variant="ghost"

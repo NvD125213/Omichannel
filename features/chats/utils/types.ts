@@ -170,6 +170,8 @@ export interface ChatConversation {
   isPinned: boolean;
   isMuted: boolean;
   labels: string[];
+  /** Khớp `inbox_id` từ API conversations ↔ `id` trong danh sách inboxes */
+  inboxId?: number;
   meta?: ChatConversationMeta;
 }
 

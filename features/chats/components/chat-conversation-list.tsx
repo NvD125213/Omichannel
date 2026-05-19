@@ -21,6 +21,7 @@ import {
   Inbox,
   User,
   Reply,
+  Cast,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +40,10 @@ import { EmptyData } from "@/components/empty-data";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
-import { useListTenantLabels } from "@/hooks/chatwoot/use-chatwoot";
+import {
+  useListTenantInboxes,
+  useListTenantLabels,
+} from "@/hooks/chatwoot/use-chatwoot";
 import { useBulkAction } from "@/hooks/chatwoot/use-chatwoot";
 
 type ConversationTab = "mine" | "unread" | "all";
@@ -180,6 +184,11 @@ import type { ChatConversation, ChatUser } from "../utils/types";
 import { useChat } from "../utils/use-chat";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface TenantInboxItem {
+  id?: number | string;
+  name?: string;
+}
+
 interface ConversationListProps {
   tenantId: string;
   conversations: ChatConversation[];
@@ -209,7 +218,35 @@ export function ChatConversationList({
   onSelectConversation,
 }: ConversationListProps) {
   const { searchQuery, setSearchQuery } = useChat();
+  const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
+
+  const inboxNameById = useMemo(() => {
+    const inboxPayload = (
+      inboxData?.data as { chatwoot?: { payload?: unknown } } | undefined
+    )?.chatwoot?.payload;
+    const inboxes: TenantInboxItem[] = Array.isArray(inboxPayload)
+      ? (inboxPayload as TenantInboxItem[])
+      : [];
+
+    const map = new Map<number, string>();
+    for (const inbox of inboxes) {
+      const inboxId =
+        typeof inbox.id === "number"
+          ? inbox.id
+          : typeof inbox.id === "string"
+            ? Number(inbox.id)
+            : Number.NaN;
+      if (!Number.isFinite(inboxId)) continue;
+
+      const inboxName =
+        typeof inbox.name === "string" && inbox.name.length > 0
+          ? inbox.name
+          : "Kênh chưa đặt tên";
+      map.set(inboxId, inboxName);
+    }
+    return map;
+  }, [inboxData]);
   const { mutate: bulkAction, isPending: isBulkActionPending } =
     useBulkAction();
   const [searchInput, setSearchInput] = useState(searchQuery);
@@ -944,6 +981,13 @@ export function ChatConversationList({
                     conversation.meta?.assignee?.availableName?.trim() ||
                     conversation.meta?.assignee?.name?.trim() ||
                     "";
+                  const inboxDisplayName =
+                    conversation.inboxId !== undefined &&
+                    Number.isFinite(conversation.inboxId)
+                      ? (inboxNameById.get(conversation.inboxId) ??
+                        "Kênh chưa đặt tên")
+                      : conversation.meta?.channel?.trim() ||
+                        "Kênh chưa đặt tên";
 
                   return (
                     <ContextMenu key={conversation.id}>
@@ -1022,13 +1066,20 @@ export function ChatConversationList({
                               </div>
                             </div>
 
-                            <div className="flex min-w-0 items-center justify-between gap-2">
-                              <p className="min-w-0 flex-1 pr-1 text-xs text-muted-foreground flex items-center gap-1">
+                            <div className="flex min-w-0 items-center gap-2">
+                              <p className="min-w-0 flex-1 text-xs text-muted-foreground flex items-center gap-1">
                                 <Reply className="size-3 shrink-0 text-muted-foreground" />
                                 <span className="truncate">
                                   {conversation.lastMessage.content}
                                 </span>
                               </p>
+
+                              <div className="flex shrink-0 items-center gap-1 text-[10px] leading-none text-muted-foreground/80">
+                                <span aria-hidden="true">·</span>
+                                <span className="whitespace-nowrap py-0.5">
+                                  {conversationTime}
+                                </span>
+                              </div>
 
                               {/* Unread count */}
                               {conversation.unreadCount > 0 && (
@@ -1078,24 +1129,23 @@ export function ChatConversationList({
 
                               <div
                                 className={cn(
-                                  "flex items-center justify-end gap-1 text-[10px] pt-1.5 leading-none text-muted-foreground/80",
+                                  "flex items-center justify-between gap-1 text-[10px] pt-2 leading-none text-muted-foreground/80",
                                 )}
                               >
+                                <div className="flex min-w-0 items-center gap-1">
+                                  <Cast className="size-3 shrink-0" />
+                                  <span className="truncate">
+                                    {inboxDisplayName}
+                                  </span>
+                                </div>
                                 {assigneeAvailableName && (
-                                  <>
-                                    <span className="max-w-32 truncate flex items-center gap-1">
-                                      <User className="size-3 shrink-0" />
-                                      <span className="truncate py-0.5">
-                                        {assigneeAvailableName}
-                                      </span>
+                                  <span className="flex max-w-32 items-center gap-1 truncate">
+                                    <User className="size-3 shrink-0" />
+                                    <span className="truncate py-0.5">
+                                      {assigneeAvailableName}
                                     </span>
-                                    <span className="shrink-0">•</span>
-                                  </>
+                                  </span>
                                 )}
-
-                                <span className="shrink-0">
-                                  {conversationTime}
-                                </span>
                               </div>
                             </div>
                           </div>
