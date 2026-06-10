@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlarmClockOff,
   Check,
@@ -22,6 +23,7 @@ import {
   User,
   Reply,
   Cast,
+  Clock,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -181,6 +183,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { TenantConversationsListMeta } from "@/services/chatwoot/interface";
 import type { ChatConversation, ChatUser } from "../utils/types";
+import { clearConversationUnreadInListCache } from "../utils/chatwoot-realtime-cache";
 import { useChat } from "../utils/use-chat";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -217,7 +220,8 @@ export function ChatConversationList({
   onLoadMore,
   onSelectConversation,
 }: ConversationListProps) {
-  const { searchQuery, setSearchQuery } = useChat();
+  const queryClient = useQueryClient();
+  const { searchQuery, setSearchQuery, markAsRead } = useChat();
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
 
@@ -286,6 +290,31 @@ export function ChatConversationList({
       conversations.filter((conversation) => conversation.type === "direct"),
     [conversations],
   );
+  const handleSelectConversation = useCallback(
+    (conversationId: string) => {
+      markAsRead(conversationId);
+      if (tenantId) {
+        clearConversationUnreadInListCache(
+          queryClient,
+          tenantId,
+          conversationId,
+        );
+      }
+      onSelectConversation(conversationId);
+    },
+    [markAsRead, onSelectConversation, queryClient, tenantId],
+  );
+
+  useEffect(() => {
+    if (!selectedConversation || !tenantId) return;
+    markAsRead(selectedConversation);
+    clearConversationUnreadInListCache(
+      queryClient,
+      tenantId,
+      selectedConversation,
+    );
+  }, [markAsRead, queryClient, selectedConversation, tenantId]);
+
   const unreadConversations = useMemo(
     () => conversations.filter((conversation) => conversation.unreadCount > 0),
     [conversations],
@@ -334,6 +363,7 @@ export function ChatConversationList({
 
   const conversationItemRefs = useRef(new Map<string, HTMLElement>());
   const loadMoreForScrollRef = useRef<string | null>(null);
+  const previousSelectedConversationRef = useRef<string | null>(null);
 
   const registerConversationItemRef = useCallback(
     (conversationId: string, node: HTMLElement | null) => {
@@ -359,12 +389,18 @@ export function ChatConversationList({
   useEffect(() => {
     if (!selectedConversation || isLoading) return;
 
+    const selectionChanged =
+      previousSelectedConversationRef.current !== selectedConversation;
+    previousSelectedConversationRef.current = selectedConversation;
+
     const isVisibleInList = sortedConversations.some(
       (conversation) => conversation.id === selectedConversation,
     );
 
     if (isVisibleInList) {
       loadMoreForScrollRef.current = null;
+      if (!selectionChanged) return;
+
       const frame = requestAnimationFrame(() => {
         scrollSelectedConversationIntoView();
       });
@@ -801,7 +837,7 @@ export function ChatConversationList({
                           <button
                             type="button"
                             onClick={() =>
-                              onSelectConversation(conversation.id)
+                              handleSelectConversation(conversation.id)
                             }
                             className={cn(
                               "flex size-11 items-center justify-center rounded-xl border transition-colors",
@@ -1008,7 +1044,9 @@ export function ChatConversationList({
                               ? "bg-primary/10 text-accent-foreground shadow-sm"
                               : "hover:bg-accent/50",
                           )}
-                          onClick={() => onSelectConversation(conversation.id)}
+                          onClick={() =>
+                            handleSelectConversation(conversation.id)
+                          }
                         >
                           {/* Avatar with online indicator */}
                           <div className="relative shrink-0">
@@ -1075,23 +1113,40 @@ export function ChatConversationList({
                               </p>
 
                               <div className="flex shrink-0 items-center gap-1 text-[10px] leading-none text-muted-foreground/80">
-                                <span aria-hidden="true">·</span>
+                                <span aria-hidden="true">
+                                  <Clock className="size-3 shrink-0 text-muted-foreground" />
+                                </span>
                                 <span className="whitespace-nowrap py-0.5">
                                   {conversationTime}
                                 </span>
                               </div>
 
                               {/* Unread count */}
-                              {conversation.unreadCount > 0 && (
-                                <Badge
-                                  variant="default"
-                                  className="min-w-[20px] h-5 text-xs cursor-pointer shrink-0"
-                                >
-                                  {conversation.unreadCount > 99
-                                    ? "99+"
-                                    : conversation.unreadCount}
-                                </Badge>
-                              )}
+                              <div className="relative shrink-0">
+                                {conversation.unreadCount > 0 &&
+                                  selectedConversation !== conversation.id && (
+                                    <Badge
+                                      variant="default"
+                                      className="min-w-[22px]
+                                        h-[22px]
+                                        px-1.5
+                                        rounded-full
+                                        bg-green-500
+                                        text-white
+                                        text-[11px]
+                                        font-bold
+                                        border-2
+                                        border-white
+                                        shadow-md
+                                        shrink-0"
+                                    >
+                                      {" "}
+                                      {conversation.unreadCount > 99
+                                        ? "99+"
+                                        : conversation.unreadCount}{" "}
+                                    </Badge>
+                                  )}
+                              </div>
                             </div>
 
                             <div className="flex min-w-0 flex-col">

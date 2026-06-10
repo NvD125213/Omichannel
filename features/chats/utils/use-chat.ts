@@ -29,6 +29,12 @@ interface ChatActions {
   setSelectedConversation: (conversationId: string | null) => void;
   setSearchQuery: (query: string) => void;
   addMessage: (conversationId: string, message: ChatMessage) => void;
+  upsertMessage: (conversationId: string, message: ChatMessage) => void;
+  patchConversation: (
+    conversationId: string,
+    updater: (conversation: ChatConversation) => ChatConversation,
+  ) => void;
+  removeConversation: (conversationId: string) => void;
   markAsRead: (conversationId: string) => void;
   togglePin: (conversationId: string) => void;
   toggleMute: (conversationId: string) => void;
@@ -90,6 +96,36 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
               },
             }
           : conv,
+      ),
+    })),
+
+  upsertMessage: (conversationId, message) =>
+    set((state) => {
+      const existing = state.messages[conversationId] ?? [];
+      const messageId = String(message.id ?? "");
+      if (messageId && existing.some((item) => String(item.id) === messageId)) {
+        return state;
+      }
+
+      return {
+        messages: {
+          ...state.messages,
+          [conversationId]: [...existing, message],
+        },
+      };
+    }),
+
+  patchConversation: (conversationId, updater) =>
+    set((state) => ({
+      conversations: state.conversations.map((conv) =>
+        conv.id === conversationId ? updater(conv) : conv,
+      ),
+    })),
+
+  removeConversation: (conversationId) =>
+    set((state) => ({
+      conversations: state.conversations.filter(
+        (conv) => conv.id !== conversationId,
       ),
     })),
 

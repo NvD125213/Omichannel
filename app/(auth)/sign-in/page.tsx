@@ -12,9 +12,9 @@ function SignInFallback() {
               OA
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-semibold">Onmichannel</span>
+              <span className="text-xl font-semibold">OMNI HUB</span>
               <span className="text-muted-foreground text-sm">
-                Onmichannel Dashboard
+                OMNI HUB Dashboard
               </span>
             </div>
           </div>

@@ -94,10 +94,10 @@ export default function SignIn() {
               OC
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-semibold text-white">
-                CGV Onmichannel
+              <span className="text-xl font-semibold text-white">OMNI HUB</span>
+              <span className="text-sm text-zinc-400">
+                Phần mềm quản trị hợp nhất kinh doanh số và dữ liệu đa kênh{" "}
               </span>
-              <span className="text-sm text-zinc-400">Quản trị hệ thống</span>
             </div>
           </Link>
 
@@ -144,7 +144,7 @@ export default function SignIn() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-violet-500 to-fuchsia-500 text-sm font-bold text-white">
               OC
             </div>
-            <span className="text-lg font-semibold">Onmichannel</span>
+            <span className="text-lg font-semibold">OMNI HUB</span>
           </div>
 
           <div className="space-y-2 text-center lg:text-left">

@@ -67,11 +67,6 @@ export const sidebarData: SidebarData = {
         //   url: "/dashboard2",
         //   icon: IconChartBar,
         // },
-        {
-          title: "Dashboard A.I",
-          url: "/ai-dashboard",
-          icon: IconBrain,
-        },
         // {
         //   title: "Báo cáo vận hành",
         //   icon: IconReportMoney,
@@ -329,11 +324,6 @@ export const sidebarData: SidebarData = {
               title: "Agent",
               url: "/settings/agent",
               icon: IconSubtitles,
-            },
-            {
-              title: "Agent Bots",
-              url: "/settings/agent-bot",
-              icon: IconRobot,
             },
             {
               title: "Quản lý nhãn",

@@ -18,12 +18,12 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const items = [
-  { id: "recents", label: "Recents" },
-  { id: "home", label: "Home" },
-  { id: "applications", label: "Applications" },
-  { id: "desktop", label: "Desktop" },
-  { id: "downloads", label: "Downloads" },
-  { id: "documents", label: "Documents" },
+  { id: "recents", label: "Mới nhất" },
+  { id: "home", label: "Trang chủ" },
+  { id: "applications", label: "Ứng dụng" },
+  { id: "desktop", label: "Máy tính" },
+  { id: "downloads", label: "Tải xuống" },
+  { id: "documents", label: "Tài liệu" },
 ] as const;
 
 const displayFormSchema = z.object({
@@ -58,8 +58,8 @@ export default function DisplayPage() {
 
   return (
     <ContentSection
-      title="Display"
-      desc="Turn items on or off to control what's displayed in the app."
+      title="Hiển thị"
+      desc="Bật hoặc tắt các mục để kiểm soát những gì được hiển thị trong ứng dụng."
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -69,9 +69,9 @@ export default function DisplayPage() {
             render={() => (
               <FormItem>
                 <div className="mb-4">
-                  <FormLabel className="text-base">Sidebar</FormLabel>
+                  <FormLabel className="text-base">Thanh bên</FormLabel>
                   <FormDescription>
-                    Select the items you want to display in the sidebar.
+                    Chọn các mục bạn muốn hiển thị trong thanh bên.
                   </FormDescription>
                 </div>
                 {items.map((item) => (
@@ -111,7 +111,7 @@ export default function DisplayPage() {
               </FormItem>
             )}
           />
-          <Button type="submit">Update display</Button>
+          <Button type="submit">Cập nhật hiển thị</Button>
         </form>
       </Form>
     </ContentSection>

@@ -19,9 +19,9 @@ export default function AIDashboardPage() {
     <>
       <div className="px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">AI Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Agent Dashboard</h1>
           <p className="text-muted-foreground">
-            Tổng quan số liệu chatbot và AI
+            Tổng quan số liệu về hệ thống chatbot agent
           </p>
         </div>
       </div>

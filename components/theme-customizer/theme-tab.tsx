@@ -107,7 +107,7 @@ export function ThemeTab({
   return (
     <div className="p-4 space-y-6">
       {/* Shadcn UI Theme Presets */}
-      <div className="space-y-3">
+      {/* <div className="space-y-3">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Shadcn UI Theme Presets</Label>
           <Button
@@ -176,15 +176,15 @@ export function ThemeTab({
             </div>
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
 
       <Separator />
 
       {/* Tweakcn Theme Presets */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Tweakcn Theme Presets</Label>
-          <Button
+          <Label className="text-sm font-medium">Tùy chỉnh màu nền</Label>
+          {/* <Button
             variant="outline"
             size="sm"
             onClick={handleRandomTweakcn}
@@ -192,7 +192,7 @@ export function ThemeTab({
           >
             <Dices className="h-3.5 w-3.5 mr-1.5" />
             Random
-          </Button>
+          </Button> */}
         </div>
 
         <Select
@@ -261,7 +261,7 @@ export function ThemeTab({
 
       {/* Radius Selection */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Radius</Label>
+        <Label className="text-sm font-medium">Độ bo cong</Label>
         <div className="grid grid-cols-5 gap-2">
           {radiusOptions.map((option) => (
             <div
@@ -285,7 +285,7 @@ export function ThemeTab({
 
       {/* Mode Section */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Mode</Label>
+        <Label className="text-sm font-medium">Chế độ</Label>
         <div className="grid grid-cols-2 gap-2">
           <Button
             variant={!isDarkMode ? "secondary" : "outline"}
@@ -294,7 +294,7 @@ export function ThemeTab({
             className="cursor-pointer"
           >
             <Sun className="size-4 mr-1" />
-            Light
+            Sáng
             {!isDarkMode && <Check className="h-3.5 w-3.5 ml-1" />}
           </Button>
           <Button
@@ -304,7 +304,7 @@ export function ThemeTab({
             className="cursor-pointer"
           >
             <Moon className="size-4 mr-1" />
-            Dark
+            Tối
             {isDarkMode && <Check className="h-3.5 w-3.5 ml-1" />}
           </Button>
         </div>
@@ -321,52 +321,19 @@ export function ThemeTab({
           className="w-full cursor-pointer"
         >
           <Upload className="size-3.5 mr-1.5" />
-          Import Theme
+          Nhập màu nền
         </Button>
       </div>
-
-      {/* Brand Colors Section */}
-      <Accordion
-        type="single"
-        collapsible
-        className="w-full border-b rounded-lg"
-      >
-        <AccordionItem
-          value="brand-colors"
-          className="border border-border rounded-lg overflow-hidden"
-        >
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors">
-            <Label className="text-sm font-medium cursor-pointer">
-              Brand Colors
-            </Label>
-          </AccordionTrigger>
-          <AccordionContent className="px-4 pb-4 pt-2 space-y-3 border-t border-border bg-muted/20">
-            {baseColors.map((color) => (
-              <div
-                key={color.cssVar}
-                className="flex items-center justify-between"
-              >
-                <ColorPicker
-                  label={color.name}
-                  cssVar={color.cssVar}
-                  value={brandColorsValues[color.cssVar] || ""}
-                  onChange={handleColorChange}
-                />
-              </div>
-            ))}
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
 
       {/* Tweakcn */}
       <div className="p-4 bg-muted rounded-lg space-y-3">
         <div className="flex items-center gap-2">
           <Palette className="size-4 text-primary" />
-          <span className="text-sm font-medium">Advanced Customization</span>
+          <span className="text-sm font-medium">Tùy chỉnh nâng cao</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          For advanced theme customization with real-time preview, visual color
-          picker, and hundreds of prebuilt themes, visit{" "}
+          Để tùy chỉnh nâng cao với xem trước thời gian thực, bộ chọn màu thực
+          tế, và hàng trăm bộ chọn màu sẵn có, vui lòng truy cập{" "}
           <a
             href="https://tweakcn.com/editor/theme"
             target="_blank"
@@ -386,7 +353,7 @@ export function ThemeTab({
           }
         >
           <ExternalLink className="size-3.5 mr-1.5" />
-          Open Tweakcn
+          Mở Tweakcn
         </Button>
       </div>
     </div>

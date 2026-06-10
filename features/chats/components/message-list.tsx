@@ -47,6 +47,7 @@ import type {
 } from "../utils/types";
 import { coerceToDate, getTime } from "@/helpers/format-message-time";
 import { MessageAttachment } from "./message-attachment";
+import { normalizeMessage } from "../utils/normalize-message";
 
 const coerceMessageRecords = (
   value: unknown,
@@ -104,98 +105,6 @@ const isDeletedMessage = (message: ChatMessage) => {
     typeof contentAttributes === "object" &&
     (contentAttributes as Record<string, unknown>).deleted === true;
   return deletedFlag;
-};
-
-const normalizeMessage = (
-  message: Record<string, unknown>,
-  currentConversationId: string,
-  /** Chỉ dùng khi API thiếu id — ổn định theo payload, không dùng Math.random() */
-  syntheticSeq?: number,
-): ChatMessage => {
-  const sender = (message.sender ?? {}) as Record<string, unknown>;
-  const attachments = Array.isArray(message.attachments)
-    ? message.attachments
-    : [];
-  return {
-    id:
-      typeof message.id === "number" || typeof message.id === "string"
-        ? String(message.id)
-        : `msg-${currentConversationId}-noid-${syntheticSeq ?? 0}-${String(message.created_at ?? message.updated_at ?? "")}`,
-    content:
-      (typeof message.content === "string" && message.content) ||
-      (typeof message.processed_message_content === "string" &&
-        message.processed_message_content) ||
-      "",
-    created_at: String(coerceToDate(message.created_at ?? message.updated_at)),
-    updated_at: String(coerceToDate(message.updated_at ?? message.created_at)),
-    conversation_id:
-      typeof message.conversation_id === "number" ||
-      typeof message.conversation_id === "string"
-        ? String(message.conversation_id)
-        : currentConversationId,
-    message_type:
-      typeof message.message_type === "number"
-        ? message.message_type
-        : undefined,
-    content_attributes:
-      message.content_attributes &&
-      typeof message.content_attributes === "object" &&
-      !Array.isArray(message.content_attributes)
-        ? (message.content_attributes as Record<string, unknown>)
-        : undefined,
-    sender_id:
-      typeof message.sender_id === "number" ||
-      typeof message.sender_id === "string"
-        ? String(message.sender_id)
-        : typeof sender.id === "number"
-          ? String(sender.id)
-          : undefined,
-    sender: {
-      id: 1,
-      name: typeof sender.name === "string" ? sender.name : undefined,
-      available_name:
-        typeof sender.available_name === "string"
-          ? sender.available_name
-          : undefined,
-      avatar_url:
-        typeof sender.avatar_url === "string" ? sender.avatar_url : undefined,
-      type: typeof sender.type === "string" ? sender.type : undefined,
-      availability_status:
-        typeof sender.availability_status === "string"
-          ? sender.availability_status
-          : undefined,
-      thumbnail:
-        typeof sender.thumbnail === "string" ? sender.thumbnail : undefined,
-    },
-    attachments: attachments.map((attachment) => {
-      const item =
-        attachment && typeof attachment === "object"
-          ? (attachment as Record<string, unknown>)
-          : {};
-      return {
-        id:
-          typeof item.id === "number" || typeof item.id === "string"
-            ? String(item.id)
-            : undefined,
-        message_id:
-          typeof item.message_id === "number" ||
-          typeof item.message_id === "string"
-            ? String(item.message_id)
-            : undefined,
-        file_type:
-          typeof item.file_type === "string" ? item.file_type : undefined,
-        extension:
-          typeof item.extension === "string" ? item.extension : undefined,
-        data_url: typeof item.data_url === "string" ? item.data_url : undefined,
-        thumb_url:
-          typeof item.thumb_url === "string" ? item.thumb_url : undefined,
-        file_size:
-          typeof item.file_size === "number" ? item.file_size : undefined,
-        width: typeof item.width === "number" ? item.width : undefined,
-        height: typeof item.height === "number" ? item.height : undefined,
-      };
-    }) as ChatMessage["attachments"],
-  };
 };
 
 const getAvatarInitials = (name?: string) => {

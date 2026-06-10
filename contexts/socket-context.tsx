@@ -8,17 +8,24 @@ import {
   ReactNode,
 } from "react";
 import { Socket } from "socket.io-client";
-import { getSocket } from "@/lib/socket";
+import {
+  authenticateSocket,
+  disconnectSocket,
+  getSocket,
+} from "@/lib/socket";
 import { getAccessToken } from "@/lib/auth";
+import { useAuth } from "@/contexts/auth-context";
 
 interface SocketContextType {
   socket: Socket | null;
   isConnected: boolean;
+  isAuthenticated: boolean;
 }
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
+  isAuthenticated: false,
 });
 
 export const useSocket = () => {
@@ -26,61 +33,92 @@ export const useSocket = () => {
 };
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
+  const { isAuthenticated: isUserAuthenticated } = useAuth();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const token = getAccessToken();
 
-    if (!token) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setIsConnected(false);
-      }
+    if (!isUserAuthenticated || !token) {
+      disconnectSocket();
+      setSocket(null);
+      setIsConnected(false);
+      setIsAuthenticated(false);
       return;
     }
 
     const socketInstance = getSocket(token);
 
+    const sendAuthenticate = () => {
+      const latestToken = getAccessToken();
+      if (latestToken) {
+        authenticateSocket(socketInstance, latestToken);
+      }
+    };
+
     function onConnect() {
       setIsConnected(true);
-      console.log("Socket connected");
     }
 
     function onDisconnect() {
       setIsConnected(false);
-      console.log("Socket disconnected");
+      setIsAuthenticated(false);
     }
 
-    // Nếu socket instance đã tồn tại (singleton) nhưng chưa connect hoặc auth cũ
-    if (socketInstance) {
-      socketInstance.auth = { token }; // Update token mới nhất
-      if (!socketInstance.connected) {
-        socketInstance.connect();
-      } else {
-        // Nếu đã connect rồi (từ đâu đó), set state
-        setIsConnected(true);
+    function onConnectionEstablished() {
+      sendAuthenticate();
+    }
+
+    function onAuthenticated(data: Record<string, unknown>) {
+      setIsAuthenticated(true);
+      if (process.env.NODE_ENV === "development") {
+        console.log("[socket] authenticated — joined tenant room", data);
       }
     }
 
+    function onAnyEvent(eventName: string, ...args: unknown[]) {
+      if (process.env.NODE_ENV !== "development") return;
+      if (eventName === "connect" || eventName === "disconnect") return;
+      console.log("[socket] ←", eventName, args.length === 1 ? args[0] : args);
+    }
+
+    function onAuthenticationError(error: { message?: string }) {
+      setIsAuthenticated(false);
+      console.error("[socket] authentication failed:", error?.message);
+    }
+
+    // Gắn listener TRƯỚC khi connect để không bỏ lỡ connection_established
     socketInstance.on("connect", onConnect);
     socketInstance.on("disconnect", onDisconnect);
+    socketInstance.on("connection_established", onConnectionEstablished);
+    socketInstance.on("authenticated", onAuthenticated);
+    socketInstance.on("authentication_error", onAuthenticationError);
+
+    socketInstance.onAny(onAnyEvent);
+
+    if (!socketInstance.connected) {
+      socketInstance.connect();
+    } else {
+      setIsConnected(true);
+      sendAuthenticate();
+    }
 
     setSocket(socketInstance);
 
     return () => {
       socketInstance.off("connect", onConnect);
       socketInstance.off("disconnect", onDisconnect);
-      // Không disconnect ở đây vì singleton có thể được dùng lại,
-      // hoặc logic app muốn giữ connection khi navigate.
-      // Tuy nhiên nếu Provider unmount (ví dụ user logout), socket nên disconnect.
-      // Tùy thuộc vào kiến trúc. Để an toàn, remove listeners là đủ.
+      socketInstance.off("connection_established", onConnectionEstablished);
+      socketInstance.off("authenticated", onAuthenticated);
+      socketInstance.off("authentication_error", onAuthenticationError);
+      socketInstance.offAny(onAnyEvent);
     };
-  }, []);
+  }, [isUserAuthenticated]);
 
   return (
-    <SocketContext.Provider value={{ socket, isConnected }}>
+    <SocketContext.Provider value={{ socket, isConnected, isAuthenticated }}>
       {children}
     </SocketContext.Provider>
   );

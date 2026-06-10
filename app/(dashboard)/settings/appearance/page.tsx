@@ -74,8 +74,8 @@ export default function AppearancePage() {
 
   return (
     <ContentSection
-      title="Appearance"
-      desc="Customize the appearance of the app. Automatically switch between day and night themes."
+      title="Giao diện"
+      desc="Tùy chỉnh giao diện của ứng dụng. Tự động chuyển đổi giữa chế độ ban ngày và ban đêm."
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -102,7 +102,7 @@ export default function AppearancePage() {
                   ))}
                 </div>
                 <FormDescription>
-                  Set the font you want to use in the dashboard.
+                  Chọn font chữ bạn muốn sử dụng trong dashboard.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -115,7 +115,7 @@ export default function AppearancePage() {
               <FormItem>
                 <FormLabel>Theme</FormLabel>
                 <FormDescription>
-                  Select the theme for the dashboard.
+                  Chọn chế độ giao diện bạn muốn sử dụng trong dashboard.
                 </FormDescription>
                 <FormControl>
                   <div className="grid max-w-md grid-cols-2 gap-8 pt-2">

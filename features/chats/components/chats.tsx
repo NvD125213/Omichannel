@@ -43,6 +43,7 @@ import { MessageList } from "./message-list";
 import { EmptyData } from "@/components/empty-data";
 import { StringParam, useQueryParams } from "use-query-params";
 import { coerceToDate } from "@/helpers/format-message-time";
+import { useChatwootRealtime } from "@/hooks/chatwoot/use-chatwoot-realtime";
 
 /** Params list conversations — GET `/api/v1/chatwoot/tenants/:tenant_id/conversations` */
 const TENANT_CONVERSATION_LIST_BASE = {
@@ -390,6 +391,11 @@ export function Chat() {
     hasNextConversationPage,
     isChatwootFetchingNextPage,
   ]);
+
+  useChatwootRealtime({
+    tenantId,
+    selectedConversationId: selectedConversationFromQuery,
+  });
 
   // Lấy store chat từ context
   const chatStore = useChat();

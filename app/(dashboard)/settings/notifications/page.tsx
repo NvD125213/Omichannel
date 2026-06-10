@@ -56,14 +56,11 @@ export default function NotificationsPage() {
   }
 
   return (
-    <ContentSection
-      title="Notifications"
-      desc="Configure how you receive notifications."
-    >
+    <ContentSection title="Thông báo" desc="Cấu hình cách bạn nhận thông báo.">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-4">
           <div>
-            <h3 className="mb-4 text-lg font-medium">Email Notifications</h3>
+            <h3 className="mb-4 text-lg font-medium">Thông báo email</h3>
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -72,10 +69,10 @@ export default function NotificationsPage() {
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Communication emails
+                        Thông báo email
                       </FormLabel>
                       <FormDescription>
-                        Receive emails about your account activity.
+                        Nhận email về hoạt động của tài khoản của bạn.
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -94,10 +91,10 @@ export default function NotificationsPage() {
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Marketing emails
+                        Thông báo email marketing
                       </FormLabel>
                       <FormDescription>
-                        Receive emails about new products, features, and more.
+                        Nhận email về sản phẩm, tính năng mới và thêm.
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -115,9 +112,11 @@ export default function NotificationsPage() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-base">Social emails</FormLabel>
+                      <FormLabel className="text-base">
+                        Thông báo email xã hội
+                      </FormLabel>
                       <FormDescription>
-                        Receive emails for friend requests, follows, and more.
+                        Nhận email về yêu cầu kết bạn, theo dõi và thêm.
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -136,10 +135,10 @@ export default function NotificationsPage() {
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                     <div className="space-y-0.5">
                       <FormLabel className="text-base">
-                        Security emails
+                        Thông báo email bảo mật
                       </FormLabel>
                       <FormDescription>
-                        Receive emails about your account security.
+                        Nhận email về bảo mật tài khoản của bạn.
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -155,7 +154,7 @@ export default function NotificationsPage() {
             </div>
           </div>
           <div>
-            <h3 className="mb-4 text-lg font-medium">Push Notifications</h3>
+            <h3 className="mb-4 text-lg font-medium">Thông báo push</h3>
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -169,9 +168,9 @@ export default function NotificationsPage() {
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel>Mobile push notifications</FormLabel>
+                      <FormLabel>Thông báo push trên điện thoại</FormLabel>
                       <FormDescription>
-                        Receive push notifications on your mobile device.
+                        Nhận thông báo push trên điện thoại của bạn.
                       </FormDescription>
                     </div>
                   </FormItem>
@@ -179,7 +178,7 @@ export default function NotificationsPage() {
               />
             </div>
           </div>
-          <Button type="submit">Update notifications</Button>
+          <Button type="submit">Cập nhật thông báo</Button>
         </form>
       </Form>
     </ContentSection>

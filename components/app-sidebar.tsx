@@ -10,22 +10,26 @@ import {
 import { sidebarData } from "@/constants/sidebar-data";
 import { useAuth } from "@/contexts/auth-context";
 import { useSidebarConfig } from "@/contexts/sidebar-context";
+import type { NavGroup } from "@/lib/types";
 import React, { useMemo } from "react";
-import { NavGroup } from "./nav-group";
-import { NavUser } from "./nav-user";
+import { NavGroup as NavGroupComponent } from "./nav-group";
 import { TeamSwitcher } from "./team-switcher";
 import { filterNavGroupsByPermissions } from "@/lib/filter-nav-items";
 
+type AppSidebarProps = React.ComponentProps<typeof UISidebar> & {
+  navGroups?: NavGroup[];
+};
+
 export default function AppSidebar({
+  navGroups = sidebarData.navGroups,
   ...props
-}: React.ComponentProps<typeof UISidebar>) {
-  const { user, permissions } = useAuth();
+}: AppSidebarProps) {
+  const { permissions } = useAuth();
   const { config } = useSidebarConfig();
 
-  // Filter nav groups dựa trên user permissions
   const filteredNavGroups = useMemo(() => {
-    return filterNavGroupsByPermissions(sidebarData.navGroups, permissions);
-  }, [permissions]);
+    return filterNavGroupsByPermissions(navGroups, permissions);
+  }, [navGroups, permissions]);
 
   return (
     <UISidebar
@@ -39,7 +43,7 @@ export default function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         {filteredNavGroups.map((nav) => (
-          <NavGroup key={nav.title} {...nav} />
+          <NavGroupComponent key={nav.title} {...nav} />
         ))}
       </SidebarContent>
       {/* <SidebarFooter>

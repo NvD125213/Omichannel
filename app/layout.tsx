@@ -32,10 +32,11 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Hệ thống Onmichannel",
-  description: "Bảng quản trị hệ thống đa kênh Onmichannel của CGV Telecom",
+  title: "Hệ thống OMNI HUB",
+  description: "Bảng quản trị hệ thống đa kênh OMNI HUB của CGV Telecom",
   icons: {
-    icon: "/logocon/logo_icon_1.png",
+    icon: [{ url: "/icon", type: "image/png", sizes: "32x32" }],
+    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
   },
 };
 

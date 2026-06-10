@@ -162,8 +162,8 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
               onValueChange={setActiveTab}
               className="h-full flex flex-col"
             >
-              <div className="py-2">
-                <TabsList className="grid w-full grid-cols-2 rounded-none h-12 p-1.5">
+              {/* <div className="py-2">
+                <TabsList className="grid w-full grid-cols-1 rounded-none h-12 p-1.5">
                   <TabsTrigger
                     value="theme"
                     className="cursor-pointer data-[state=active]:bg-background"
@@ -177,11 +177,11 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
                     <Layout className="size-4" /> Layout
                   </TabsTrigger>
                 </TabsList>
-                {/* <TabsList className="grid w-full grid-cols-2 rounded-none h-12 p-1.5">
+                <TabsList className="grid w-full grid-cols-2 rounded-none h-12 p-1.5">
                   <TabsTrigger value="theme" className="cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Palette className="h-4 w-4 mr-1" /> Theme</TabsTrigger>
                   <TabsTrigger value="layout" className="cursor-pointer data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"><Layout className="h-4 w-4 mr-1" /> Layout</TabsTrigger>
-                </TabsList> */}
-              </div>
+                </TabsList>
+              </div> */}
 
               <TabsContent value="theme" className="flex-1 mt-0">
                 <ThemeTab
@@ -195,10 +195,10 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
                   onImportClick={handleImportClick}
                 />
               </TabsContent>
-
+              {/* 
               <TabsContent value="layout" className="flex-1 mt-0">
                 <LayoutTab />
-              </TabsContent>
+              </TabsContent> */}
             </Tabs>
           </div>
         </SheetContent>
