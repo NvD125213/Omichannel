@@ -1,33 +1,6 @@
 "use client";
 
-import {
-  IconArrowsExchange,
-  IconBarrierBlock,
-  IconBrain,
-  IconBrowserCheck,
-  IconCalendar,
-  IconChartBar,
-  IconChecklist,
-  IconCoin,
-  IconColumns,
-  IconCreditCard,
-  IconError404,
-  IconHelp,
-  IconLayoutDashboard,
-  IconLock,
-  IconLockAccess,
-  IconMessages,
-  IconNotification,
-  IconPalette,
-  IconServerOff,
-  IconTable,
-  IconTool,
-  IconUserCog,
-  IconUserOff,
-  IconUsers,
-  IconBuilding,
-} from "@tabler/icons-react";
-import { Building, KanbanIcon, MailIcon, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 
@@ -39,151 +12,26 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Icons } from "@/features/discord/components/icons";
-
-interface SearchItem {
-  title: string;
-  url: string;
-  group: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
+import { sidebarData } from "@/constants/sidebar-data";
+import { useAuth } from "@/contexts/auth-context";
+import { filterNavGroupsByPermissions } from "@/lib/filter-nav-items";
+import { flattenNavGroupsForSearch } from "@/lib/flatten-nav-for-search";
 
 interface CommandSearchProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const searchItems: SearchItem[] = [
-  {
-    title: "Tổng quan",
-    url: "/dashboard",
-    group: "Dashboards",
-    icon: IconLayoutDashboard,
-  },
-  {
-    title: "Báo cáo kinh doanh",
-    url: "/dashboard2",
-    group: "Dashboards",
-    icon: IconChartBar,
-  },
-  {
-    title: "Báo cáo vận hành",
-    url: "/payment-dashboard",
-    group: "Dashboards",
-    icon: IconCreditCard,
-  },
-  {
-    title: "Báo cáo giao dịch",
-    url: "/payment-transactions",
-    group: "Dashboards",
-    icon: IconArrowsExchange,
-  },
-
-  { title: "Mail", url: "/mail", group: "Apps", icon: MailIcon },
-  { title: "Discord", url: "/discord", group: "Apps", icon: Icons.discord },
-  { title: "Tasks", url: "/tasks", group: "Apps", icon: IconChecklist },
-  { title: "Users", url: "/users", group: "Apps", icon: IconUsers },
-  { title: "Departments", url: "/departments", group: "Apps", icon: Building },
-  { title: "Chats", url: "/chats", group: "Apps", icon: IconMessages },
-  { title: "Calendar", url: "/calendar", group: "Apps", icon: IconCalendar },
-  { title: "AI Chat", url: "/ai-chat", group: "Apps", icon: IconBrain },
-  { title: "Kanban", url: "/kanban", group: "Apps", icon: KanbanIcon },
-  {
-    title: "Sign Up",
-    url: "/sign-up",
-    group: "Auth Pages",
-    icon: IconLockAccess,
-  },
-  {
-    title: "Reset Password 1",
-    url: "/reset-password-1",
-    group: "Auth Pages",
-    icon: IconLockAccess,
-  },
-  {
-    title: "Reset Password 2",
-    url: "/reset-password-2",
-    group: "Auth Pages",
-    icon: IconLockAccess,
-  },
-  {
-    title: "Unauthorized",
-    url: "/unauthorized",
-    group: "Errors",
-    icon: IconLock,
-  },
-  { title: "Forbidden", url: "/forbidden", group: "Errors", icon: IconUserOff },
-  {
-    title: "Not Found",
-    url: "/not-found",
-    group: "Errors",
-    icon: IconError404,
-  },
-  {
-    title: "Internal Server Error",
-    url: "/internal-server-error",
-    group: "Errors",
-    icon: IconServerOff,
-  },
-  {
-    title: "Maintenance",
-    url: "/maintenance-error",
-    group: "Errors",
-    icon: IconBarrierBlock,
-  },
-  {
-    title: "Profile",
-    url: "/settings",
-    group: "Settings",
-    icon: IconUserCog,
-  },
-  {
-    title: "Account",
-    url: "/settings/account",
-    group: "Settings",
-    icon: IconTool,
-  },
-  {
-    title: "Appearance",
-    url: "/settings/appearance",
-    group: "Settings",
-    icon: IconPalette,
-  },
-  {
-    title: "Notifications",
-    url: "/settings/notifications",
-    group: "Settings",
-    icon: IconNotification,
-  },
-  {
-    title: "Display",
-    url: "/settings/display",
-    group: "Settings",
-    icon: IconBrowserCheck,
-  },
-  { title: "Help Center", url: "/help-center", group: "Pages", icon: IconHelp },
-  {
-    title: "Column Pricing",
-    url: "/pricing/column",
-    group: "Pages",
-    icon: IconColumns,
-  },
-  {
-    title: "Table Pricing",
-    url: "/pricing/table",
-    group: "Pages",
-    icon: IconTable,
-  },
-  {
-    title: "Single Pricing",
-    url: "/pricing/single",
-    group: "Pages",
-    icon: IconCoin,
-  },
-];
-
 export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
+  const { permissions } = useAuth();
+
   const groupedItems = React.useMemo(() => {
+    const filteredGroups = filterNavGroupsByPermissions(
+      sidebarData.navGroups,
+      permissions,
+    );
+    const searchItems = flattenNavGroupsForSearch(filteredGroups);
+
     return searchItems.reduce(
       (acc, item) => {
         if (!acc[item.group]) {
@@ -192,21 +40,21 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
         acc[item.group].push(item);
         return acc;
       },
-      {} as Record<string, SearchItem[]>,
+      {} as Record<string, typeof searchItems>,
     );
-  }, []);
+  }, [permissions]);
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Search pages..." />
+      <CommandInput placeholder="Tìm kiếm trang..." />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>Không tìm thấy kết quả.</CommandEmpty>
         {Object.entries(groupedItems).map(([group, items]) => (
           <CommandGroup key={group} heading={group}>
             {items.map((item) => {
               const Icon = item.icon;
               return (
-                <CommandItem key={item.url} asChild>
+                <CommandItem key={item.url} asChild value={item.title}>
                   <Link href={item.url} onClick={() => onOpenChange(false)}>
                     <Icon className="mr-2 size-4 text-muted-foreground" />
                     {item.title}
@@ -226,12 +74,11 @@ export function SearchTrigger({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-2 rounded-md text-sm font-medium border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3 relative justify-start text-muted-foreground sm:pr-12 md:w-36 lg:w-56"
+      className="relative inline-flex h-8 items-center justify-start gap-2 rounded-md border border-input bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-sm hover:bg-accent hover:text-accent-foreground sm:pr-12 md:w-36 lg:w-56"
     >
       <Search className="size-4" />
-      <span className="hidden lg:inline-flex">Tìm kiếm...</span>
-      <span className="inline-flex lg:hidden">Tìm kiếm...</span>
-      <kbd className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
+      <span>Tìm kiếm...</span>
+      <kbd className="pointer-events-none absolute top-1/2 right-1.5 hidden h-5 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
         <span className="text-xs">⌘</span>K
       </kbd>
     </button>

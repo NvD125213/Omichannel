@@ -25,7 +25,7 @@ const Section = ({
 }) => {
   return (
     <div
-      className={`bg-transparent rounded-xl border border-transparent dark:border-zinc-800 overflow-hidden ${className}`}
+      className={`dark:bg-transparent rounded-xl border border-transparent overflow-hidden ${className}`}
     >
       {title && (
         <div className="px-5 py-3 border-b border-slate-100">

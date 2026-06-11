@@ -4,12 +4,9 @@ import {
   AlertCircle,
   Bell,
   BellOff,
-  Info,
   MoreVertical,
-  Phone,
   Search,
   Users,
-  Video,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -23,11 +20,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useAuth } from "@/contexts/auth-context";
+import { useToggleTenantConversationStatus } from "@/hooks/chatwoot/use-chatwoot";
+import { cn } from "@/lib/utils";
 import type { ChatConversation, ChatUser } from "../utils/types";
+
+type ConversationStatusValue = "resolved" | "reopened";
+
+const CONVERSATION_STATUS_OPTIONS: {
+  value: ConversationStatusValue;
+  label: string;
+}[] = [
+  { value: "reopened", label: "Mở lại" },
+  { value: "resolved", label: "Đã giải quyết" },
+];
+
+const getConversationStatusValue = (
+  status?: string,
+): ConversationStatusValue => {
+  if (status === "reopened") return "reopened";
+  // Mặc định: resolved (kể cả khi chưa có status từ API)
+  return "resolved";
+};
 
 interface ChatHeaderProps {
   conversation: ChatConversation | null;
@@ -40,12 +60,32 @@ export function ChatHeader({
   conversation,
   users,
   onToggleMute,
-  onToggleInfo,
 }: ChatHeaderProps) {
+  const { user } = useAuth();
+  const tenantId = user?.tenant_id ?? "";
+  const { mutate: toggleConversationStatus, isPending: isTogglingStatus } =
+    useToggleTenantConversationStatus();
+
+  const conversationStatus: ConversationStatusValue =
+    getConversationStatusValue(conversation?.status);
+
+  const handleStatusChange = (value: ConversationStatusValue) => {
+    if (!conversation || !tenantId || value === conversationStatus) return;
+
+    toggleConversationStatus({
+      tenantId,
+      conversationId: conversation.id,
+      data: {
+        status: value,
+        snoozed_until: null,
+      },
+    });
+  };
+
   if (!conversation) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground flex items-center gap-2">
+      <div className="flex h-full items-center justify-center">
+        <p className="flex items-center gap-2 text-muted-foreground">
           <AlertCircle className="size-4" />
           Lựa chọn một cuộc hội thoại để bắt đầu trò chuyện
         </p>
@@ -53,14 +93,8 @@ export function ChatHeader({
     );
   }
 
-  const getConversationUsers = () => {
-    if (conversation.type === "direct") {
-      return users.filter((user) =>
-        conversation.participants.includes(user.id),
-      );
-    }
-    return users.filter((user) => conversation.participants.includes(user.id));
-  };
+  const getConversationUsers = () =>
+    users.filter((userItem) => conversation.participants.includes(userItem.id));
 
   const conversationUsers = getConversationUsers();
   const primaryUser = conversationUsers[0];
@@ -68,21 +102,24 @@ export function ChatHeader({
   const getStatusText = () => {
     if (conversation.type === "group") {
       const onlineCount = conversationUsers.filter(
-        (user) => user.status === "online",
+        (userItem) => userItem.status === "online",
       ).length;
-      return `${conversation.participants.length} members, ${onlineCount} online`;
-    } else if (primaryUser) {
+      return `${conversation.participants.length} thành viên, ${onlineCount} trực tuyến`;
+    }
+
+    if (primaryUser) {
       switch (primaryUser.status) {
         case "online":
-          return "Active now";
+          return "Đang hoạt động";
         case "away":
-          return "Away";
+          return "Vắng mặt";
         case "offline":
-          return `Last seen ${new Date(primaryUser.lastSeen).toLocaleDateString()}`;
+          return `Hoạt động lần cuối ${new Date(primaryUser.lastSeen).toLocaleDateString("vi-VN")}`;
         default:
           return "";
       }
     }
+
     return "";
   };
 
@@ -91,9 +128,9 @@ export function ChatHeader({
 
     switch (primaryUser?.status) {
       case "online":
-        return "text-green-600";
+        return "text-green-600 dark:text-green-400";
       case "away":
-        return "text-yellow-600";
+        return "text-amber-600 dark:text-amber-400";
       case "offline":
         return "text-muted-foreground";
       default:
@@ -102,9 +139,8 @@ export function ChatHeader({
   };
 
   return (
-    <div className="flex items-center justify-between h-full">
-      {/* Left side - Avatar and info */}
-      <div className="flex items-center gap-3">
+    <div className="flex h-full items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <Avatar className="size-10 cursor-pointer">
           <AvatarImage src={conversation.avatar} alt={conversation.name} />
           <AvatarFallback>
@@ -122,76 +158,46 @@ export function ChatHeader({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold truncate">{conversation.name}</h2>
+            <h2 className="truncate font-semibold">{conversation.name}</h2>
             {conversation.isMuted && (
               <BellOff className="size-4 text-muted-foreground" />
             )}
             {conversation.type === "group" && (
-              <Badge variant="secondary" className="text-xs cursor-pointer">
-                Group
+              <Badge variant="secondary" className="cursor-pointer text-xs">
+                Nhóm
               </Badge>
             )}
           </div>
-          <p className={`text-sm ${getStatusColor()}`}>{getStatusText()}</p>
+          <p className={cn("text-sm", getStatusColor())}>{getStatusText()}</p>
         </div>
       </div>
 
-      {/* Right side - Action buttons */}
-      <div className="flex items-center gap-1">
-        {/* Search */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="cursor-pointer">
-              <Search className="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Search in conversation</p>
-          </TooltipContent>
-        </Tooltip>
+      <div className="flex shrink-0 items-center gap-2">
+        <Select
+          value={conversationStatus}
+          onValueChange={(value) =>
+            handleStatusChange(value as ConversationStatusValue)
+          }
+          disabled={!tenantId || isTogglingStatus}
+        >
+          <SelectTrigger
+            className={cn(
+              "h-8 w-[9.5rem] border-border/70 bg-transparent text-xs dark:bg-transparent",
+              conversationStatus === "resolved" &&
+                "text-emerald-700 dark:text-emerald-300",
+            )}
+          >
+            <SelectValue placeholder="Trạng thái" />
+          </SelectTrigger>
+          <SelectContent align="end">
+            {CONVERSATION_STATUS_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {/* Phone call */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="cursor-pointer">
-              <Phone className="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Voice call</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Video call */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="cursor-pointer">
-              <Video className="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Video call</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Info */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onToggleInfo}
-              className="cursor-pointer"
-            >
-              <Info className="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Conversation info</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* More options */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="cursor-pointer">
@@ -202,32 +208,32 @@ export function ChatHeader({
             <DropdownMenuItem onClick={onToggleMute} className="cursor-pointer">
               {conversation.isMuted ? (
                 <>
-                  <Bell className="size-4 mr-2" />
-                  Unmute conversation
+                  <Bell className="mr-2 size-4" />
+                  Bật thông báo
                 </>
               ) : (
                 <>
-                  <BellOff className="size-4 mr-2" />
-                  Mute conversation
+                  <BellOff className="mr-2 size-4" />
+                  Tắt thông báo
                 </>
               )}
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer">
-              <Search className="size-4 mr-2" />
-              Search messages
+              <Search className="mr-2 size-4" />
+              Tìm kiếm tin nhắn
             </DropdownMenuItem>
             {conversation.type === "group" && (
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer">
-                  <Users className="size-4 mr-2" />
-                  Manage members
+                  <Users className="mr-2 size-4" />
+                  Quản lý thành viên
                 </DropdownMenuItem>
               </>
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer text-destructive">
-              Delete conversation
+              Xóa cuộc hội thoại
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

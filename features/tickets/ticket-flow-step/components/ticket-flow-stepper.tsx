@@ -40,6 +40,7 @@ import {
 import { EmptyData } from "@/components/empty-data";
 import { IconFilter, IconMoodEmpty } from "@tabler/icons-react";
 import TicketFlowInstanceDetail from "./ticket-flow-instance-detail";
+import { cn } from "@/lib/utils";
 
 interface StepData {
   id: string;
@@ -58,31 +59,33 @@ const normalizeStatus = (status?: string) => status?.toLowerCase() ?? "default";
 const getStepIcon = (status?: string) => {
   switch (normalizeStatus(status)) {
     case "completed":
-      return <Check className="h-4 w-4 text-white" />;
+      return <Check className="h-3.5 w-3.5 text-white" />;
 
     case "running":
     case "active":
-      return <CircleDot className="h-4 w-4 text-white" />;
+      return <CircleDot className="h-3.5 w-3.5 text-white" />;
 
     case "pending":
-      return <Clock className="h-4 w-4 text-slate-500 dark:text-zinc-300" />;
+      return (
+        <Clock className="h-3.5 w-3.5 text-muted-foreground dark:text-muted-foreground" />
+      );
 
     case "paused":
       return (
-        <PauseCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        <PauseCircle className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" />
       );
 
     case "failed":
-      return <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />;
+      return <XCircle className="h-3.5 w-3.5 text-red-700 dark:text-red-300" />;
 
     case "cancelled":
       return (
-        <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+        <AlertCircle className="h-3.5 w-3.5 text-rose-700 dark:text-rose-300" />
       );
 
     default:
       return (
-        <HelpCircle className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
+        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
       );
   }
 };
@@ -90,51 +93,51 @@ const getStepIcon = (status?: string) => {
 const getStepBadgeStyles = (status?: string) => {
   switch (normalizeStatus(status)) {
     case "completed":
-      return "bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800";
+      return "border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-300";
 
     case "running":
     case "active":
-      return "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800";
+      return "border-primary/25 bg-primary/10 text-primary dark:border-primary/35 dark:bg-primary/15 dark:text-primary";
     case "pending":
-      return "bg-zinc-50 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
+      return "border-border bg-muted/50 text-muted-foreground dark:bg-muted/30";
 
     case "paused":
-      return "bg-amber-50 text-amber-500 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
+      return "border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-800/60 dark:bg-amber-950/40 dark:text-amber-300";
 
     case "failed":
-      return "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
+      return "border-red-200/80 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300";
 
     case "cancelled":
-      return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800";
+      return "border-rose-200/80 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300";
 
     default:
-      return "bg-gray-50 text-gray-500 border-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700";
+      return "border-border bg-muted/40 text-muted-foreground dark:bg-muted/25";
   }
 };
 
 const getStepIconBackground = (status?: string) => {
   switch (normalizeStatus(status)) {
     case "completed":
-      return "bg-green-500";
+      return "bg-emerald-500 shadow-sm shadow-emerald-500/30";
 
     case "running":
     case "active":
-      return "bg-indigo-500";
+      return "bg-primary shadow-sm shadow-primary/30";
 
     case "pending":
-      return "bg-zinc-200 dark:bg-zinc-600";
+      return "bg-muted ring-1 ring-border";
 
     case "paused":
-      return "bg-amber-200 dark:bg-amber-900/50";
+      return "bg-amber-200 ring-1 ring-amber-300/80 dark:bg-amber-900/50 dark:ring-amber-700/60";
 
     case "failed":
-      return "bg-red-500/10 dark:bg-red-900/40";
+      return "bg-red-100 ring-1 ring-red-200 dark:bg-red-950/50 dark:ring-red-800/60";
 
     case "cancelled":
-      return "bg-rose-500/10 dark:bg-rose-900/40";
+      return "bg-rose-100 ring-1 ring-rose-200 dark:bg-rose-950/50 dark:ring-rose-800/60";
 
     default:
-      return "bg-gray-300 dark:bg-zinc-600";
+      return "bg-muted ring-1 ring-border";
   }
 };
 
@@ -331,8 +334,8 @@ export default function TicketFlowStepper({
     return (
       <div className="flex items-center justify-center p-12">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-600 dark:text-indigo-400" />
-          <p className="text-sm text-slate-500 dark:text-zinc-400">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
             Đang tải luồng xử lý...
           </p>
         </div>
@@ -355,18 +358,18 @@ export default function TicketFlowStepper({
   const selectedStepData = filteredStepsData.find((s) => s.id === selectedStep);
 
   return (
-    <div className="grid grid-cols-10 gap-4 h-full bg-white dark:bg-transparent rounded-lg">
+    <div className="grid h-full grid-cols-10 gap-4 rounded-lg bg-transparent">
       {/* Left Column - Steps List (60% - 6 cols) */}
-      <div className="col-span-6 border-r border-slate-200 dark:border-zinc-800 pr-4">
+      <div className="col-span-6 border-r border-border/60 pr-4">
         {/* Filter Bar */}
-        <div className="pb-3 mb-3 border-b border-slate-200 dark:border-zinc-800 flex items-center gap-2 justify-between">
+        <div className="mb-3 flex items-center gap-2 justify-between border-b border-border/60 pb-3">
           {/* Status Filter */}
-          <p className="text-sm font-medium text-slate-700 dark:text-zinc-200 flex items-center gap-2 bg-slate-50 dark:bg-zinc-800 px-2 py-1 rounded-lg">
-            <IconFilter className="size-4" />
+          <p className="flex items-center gap-2 rounded-lg bg-muted/40 px-2.5 py-1.5 text-sm font-medium text-foreground dark:bg-muted/25">
+            <IconFilter className="size-4 text-muted-foreground" />
             Bộ lọc
           </p>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 text-xs w-48 dark:bg-zinc-900 dark:border-zinc-700">
+            <SelectTrigger className="h-8 w-48 border-border/70 bg-transparent text-xs dark:bg-transparent dark:hover:bg-muted/30">
               <SelectValue placeholder="Trạng thái" />
             </SelectTrigger>
             <SelectContent>
@@ -382,7 +385,7 @@ export default function TicketFlowStepper({
 
           {/* Active Filter Summary */}
           {statusFilter !== "all" && (
-            <div className="flex items-center justify-between text-xs text-slate-600 dark:text-zinc-400 mt-2">
+            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <span className="font-medium">Đang lọc:</span>
                 <Badge
@@ -395,7 +398,7 @@ export default function TicketFlowStepper({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 px-2 text-xs text-slate-500 hover:text-slate-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => setStatusFilter("all")}
               >
                 <X className="h-3 w-3 mr-0.5" />
@@ -408,11 +411,11 @@ export default function TicketFlowStepper({
         {filteredStepsData.length === 0 ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center space-y-2">
-              <IconMoodEmpty className="h-12 w-12 text-slate-300 dark:text-zinc-600 mx-auto" />
-              <p className="text-sm font-medium text-slate-600 dark:text-zinc-300">
+              <IconMoodEmpty className="mx-auto h-12 w-12 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-foreground">
                 Không tìm thấy kết quả
               </p>
-              <p className="text-xs text-slate-400 dark:text-zinc-500">
+              <p className="text-xs text-muted-foreground">
                 Thử thay đổi bộ lọc để xem kết quả khác
               </p>
             </div>
@@ -420,7 +423,7 @@ export default function TicketFlowStepper({
         ) : (
           <div
             ref={containerRef}
-            className="max-h-[calc(100vh-18rem)] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-slate-100 dark:scrollbar-track-zinc-900 pr-2 pt-4"
+            className="max-h-[calc(100vh-18rem)] overflow-y-auto pr-2 pt-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border"
           >
             <Timeline
               color="secondary"
@@ -442,11 +445,12 @@ export default function TicketFlowStepper({
                   </TimelineHeader>
                   <TimelineBody className="-translate-y-1.5 pt-0 pb-5">
                     <div
-                      className={`flex flex-col gap-1.5 cursor-pointer p-2.5 rounded-md transition-all ${
+                      className={cn(
+                        "flex cursor-pointer flex-col gap-1.5 rounded-lg border border-transparent p-2.5 transition-all",
                         selectedStep === step.id
-                          ? "bg-indigo-50/60 border border-indigo-200/70 dark:bg-indigo-950/40 dark:border-indigo-800/70"
-                          : "hover:bg-slate-50/80 dark:hover:bg-zinc-800/50"
-                      }`}
+                          ? "border-primary/25 bg-primary/8 dark:border-primary/30 dark:bg-primary/10"
+                          : "hover:border-border/50 hover:bg-muted/35 dark:hover:bg-muted/20",
+                      )}
                       onClick={() => setSelectedStep(step.id)}
                     >
                       <div className="flex items-center gap-1.5">
@@ -458,19 +462,19 @@ export default function TicketFlowStepper({
                         </Badge>
                         <Badge
                           variant="outline"
-                          className="text-xs px-1.5 py-1 h-5 font-medium bg-white dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700"
+                          className="h-5 border-border/70 bg-background/80 px-1.5 py-1 text-xs font-medium text-foreground dark:bg-muted/30"
                         >
                           Bước {step.step_order}
                         </Badge>
                       </div>
 
-                      <h3 className="font-medium text-sm text-slate-900 dark:text-zinc-100 leading-tight">
+                      <h3 className="text-sm leading-tight font-medium text-foreground">
                         {step.name}
                       </h3>
 
                       <div className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3 text-slate-400 dark:text-zinc-500" />
-                        <span className="text-xs text-slate-500 dark:text-zinc-400">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">
                           {
                             convertDateTime(step.created_at, "short").datetime
                           }{" "}
@@ -486,11 +490,11 @@ export default function TicketFlowStepper({
                 <TimelineItem className="min-h-0">
                   <TimelineHeader>
                     <TimelineIcon>
-                      <Loader2 className="h-3 w-3 animate-spin text-indigo-500 dark:text-indigo-400" />
+                      <Loader2 className="h-3 w-3 animate-spin text-primary" />
                     </TimelineIcon>
                   </TimelineHeader>
                   <TimelineBody className="pt-0 pb-2">
-                    <span className="text-xs text-slate-400 dark:text-zinc-500 italic">
+                    <span className="text-xs italic text-muted-foreground">
                       Đang tải...
                     </span>
                   </TimelineBody>
@@ -502,11 +506,11 @@ export default function TicketFlowStepper({
                 <TimelineItem className="min-h-0">
                   <TimelineHeader>
                     <TimelineIcon>
-                      <div className="h-1.5 w-1.5 rounded-sm bg-slate-300 dark:bg-zinc-600" />
+                      <div className="h-1.5 w-1.5 rounded-sm bg-muted-foreground/40" />
                     </TimelineIcon>
                   </TimelineHeader>
                   <TimelineBody className="pt-0 pb-2">
-                    <span className="text-xs text-slate-400 dark:text-zinc-500 italic">
+                    <span className="text-xs italic text-muted-foreground">
                       Không còn sự kiện
                     </span>
                   </TimelineBody>
@@ -519,7 +523,7 @@ export default function TicketFlowStepper({
 
       {/* Right Column - Step Details (40% - 4 cols) */}
       <div className="col-span-4 pl-2">
-        <div className="scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-slate-100 dark:scrollbar-track-zinc-900 pr-2">
+        <div className="pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
           <AnimatePresence mode="wait">
             <TicketFlowInstanceDetail
               instance={selectedStepInstance}

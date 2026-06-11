@@ -204,7 +204,7 @@ export default function TicketMessageInput({
               onValueChange={setContextType}
               disabled={disabled}
             >
-              <SelectTrigger className="h-9 w-full">
+              <SelectTrigger className="h-9 w-full bg-transparent dark:bg-transparent dark:hover:bg-transparent">
                 <SelectValue placeholder="Chọn bối cảnh" />
               </SelectTrigger>
               <SelectContent>
@@ -222,10 +222,10 @@ export default function TicketMessageInput({
               onValueChange={setContextId}
               disabled={disabled}
             >
-              <SelectTrigger className="h-9 w-full">
+              <SelectTrigger className="h-9 w-full bg-transparent dark:bg-transparent dark:hover:bg-transparent">
                 <SelectValue placeholder="Chọn ctx-id" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-transparent">
                 <SelectItem value="ctx-001">Context 001</SelectItem>
                 <SelectItem value="ctx-002">Context 002</SelectItem>
                 <SelectItem value="ctx-003">Context 003</SelectItem>
@@ -238,7 +238,7 @@ export default function TicketMessageInput({
               onValueChange={setSourceType}
               disabled={disabled}
             >
-              <SelectTrigger className="h-9 w-full">
+              <SelectTrigger className="h-9 w-full bg-transparent dark:bg-transparent dark:hover:bg-transparent">
                 <SelectValue placeholder="Chọn source" />
               </SelectTrigger>
               <SelectContent>

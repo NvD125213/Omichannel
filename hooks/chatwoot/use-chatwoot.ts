@@ -32,6 +32,11 @@ import type {
   UpdateTenantChatwootAccountRequest,
   BulkActionRequest,
 } from "@/services/chatwoot/interface";
+import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
+import {
+  applyConversationStatusToListCache,
+  clearConversationUnreadInListCache,
+} from "@/features/chats/utils/chatwoot-realtime-cache";
 import { chatwootService } from "@/services/chatwoot/service";
 
 /** Query keys — Đa kênh `/api/v1/chatwoot` (tách biệt hooks `chatwoots` gọi trực tiếp Chatwoot) */
@@ -1135,24 +1140,46 @@ export const useToggleTenantConversationStatus = () => {
         conversationId,
         data,
       ),
-    onSuccess: (res, variables) => {
+    onSuccess: async (res, variables) => {
       if (res.status_code === 200 || res.status_code === 201) {
-        toast.success(
-          res.message || "Cập nhật trạng thái hội thoại thành công",
+        const { tenantId, conversationId, data } = variables;
+        const status =
+          typeof data.status === "string" ? data.status : "reopened";
+
+        applyConversationStatusToListCache(
+          queryClient,
+          tenantId,
+          conversationId,
+          status,
         );
+        clearConversationUnreadInListCache(
+          queryClient,
+          tenantId,
+          conversationId,
+        );
+        useChatUnreadStore.getState().clearUnread(conversationId);
+
+        try {
+          await chatwootService.updateTenantConversationLastSeen(
+            tenantId,
+            conversationId,
+          );
+        } catch {
+          // Trạng thái đã cập nhật; last_seen thất bại không chặn luồng chính.
+        }
+
+        toast.success("Cập nhật trạng thái hội thoại thành công");
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.tenantConversation(
-            variables.tenantId,
-            variables.conversationId,
+            tenantId,
+            conversationId,
           ),
         });
         queryClient.invalidateQueries({
-          queryKey: chatwootOmniKeys.tenantConversationsBase(
-            variables.tenantId,
-          ),
+          queryKey: chatwootOmniKeys.tenantConversationsBase(tenantId),
         });
       } else {
-        toast.error(res.message || "Cập nhật trạng thái hội thoại thất bại");
+        toast.error("Có lỗi khi cập nhật trạng thái hội thoại");
       }
     },
     onError: (error: unknown) => {
@@ -1412,5 +1439,21 @@ export const useBulkAction = () => {
           ?.data?.message || "Có lỗi khi thực hiện";
       toast.error(msg);
     },
+  });
+};
+
+export const useTenantConversationLastSeen = () => {
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+    }: {
+      tenantId: string;
+      conversationId: string;
+    }) =>
+      chatwootService.updateTenantConversationLastSeen(
+        tenantId,
+        conversationId,
+      ),
   });
 };

@@ -8,9 +8,9 @@ export default function HelpCenterPage() {
     <>
       <div className="px-4 lg:px-6 py-4">
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold tracking-tight">Help Center</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Trung tâm trợ giúp</h1>
           <p className="text-muted-foreground">
-            Find answers, guides, and support resources
+            Tìm câu trả lời, hướng dẫn và tài liệu hỗ trợ
           </p>
         </div>
       </div>

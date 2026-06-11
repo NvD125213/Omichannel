@@ -26,6 +26,11 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
+import { ChatUnreadBadge } from "@/components/chat-unread-badge";
+import {
+  getInboxUnreadCount,
+  useUnreadByInboxId,
+} from "@/features/chats/utils/chat-unread-store";
 import {
   useListTenantInboxes,
   useListTenantLabels,
@@ -376,6 +381,7 @@ export function ChatNotificationSidebar({
   onSidebarInboxChange,
   onSidebarLabelChange,
 }: ChatNotificationSidebarProps) {
+  const unreadByInboxId = useUnreadByInboxId();
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
   const inboxPayload = (
@@ -508,6 +514,12 @@ export function ChatNotificationSidebar({
                         aria-hidden="true"
                       />
                       <span className="truncate">{inboxName}</span>
+                      {Number.isFinite(inboxId) && (
+                        <ChatUnreadBadge
+                          count={getInboxUnreadCount(unreadByInboxId, inboxId)}
+                          className="ml-auto"
+                        />
+                      )}
                     </button>
                   );
                 })
@@ -774,9 +786,22 @@ export function ChatNotificationSidebar({
                         aria-hidden="true"
                       />
                       {!isCollapsed && (
-                        <span className="relative z-10 truncate">
-                          {inboxName}
-                        </span>
+                        <>
+                          <span className="relative z-10 truncate">
+                            {inboxName}
+                          </span>
+                          <ChatUnreadBadge
+                            count={
+                              Number.isFinite(inboxId)
+                                ? getInboxUnreadCount(
+                                    unreadByInboxId,
+                                    inboxId,
+                                  )
+                                : 0
+                            }
+                            className="relative z-10 ml-auto"
+                          />
+                        </>
                       )}
                     </button>
                   </SidebarTooltip>

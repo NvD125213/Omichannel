@@ -10,6 +10,10 @@ import {
 import { sidebarData } from "@/constants/sidebar-data";
 import { useAuth } from "@/contexts/auth-context";
 import { useSidebarConfig } from "@/contexts/sidebar-context";
+import {
+  formatUnreadBadgeCount,
+  useTotalUnread,
+} from "@/features/chats/utils/chat-unread-store";
 import type { NavGroup } from "@/lib/types";
 import React, { useMemo } from "react";
 import { NavGroup as NavGroupComponent } from "./nav-group";
@@ -26,10 +30,43 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const { permissions } = useAuth();
   const { config } = useSidebarConfig();
+  const totalUnread = useTotalUnread();
 
   const filteredNavGroups = useMemo(() => {
     return filterNavGroupsByPermissions(navGroups, permissions);
   }, [navGroups, permissions]);
+
+  const navGroupsWithUnreadBadges = useMemo(() => {
+    if (totalUnread <= 0) return filteredNavGroups;
+
+    return filteredNavGroups.map((group) => ({
+      ...group,
+      items: group.items.map((item) => {
+        if ("url" in item && item.url === "/chats") {
+          return {
+            ...item,
+            badge: formatUnreadBadgeCount(totalUnread),
+          };
+        }
+
+        if ("items" in item && item.items) {
+          return {
+            ...item,
+            items: item.items.map((subItem) =>
+              subItem.url === "/chats"
+                ? {
+                    ...subItem,
+                    badge: formatUnreadBadgeCount(totalUnread),
+                  }
+                : subItem,
+            ),
+          };
+        }
+
+        return item;
+      }),
+    }));
+  }, [filteredNavGroups, totalUnread]);
 
   return (
     <UISidebar
@@ -42,7 +79,7 @@ export default function AppSidebar({
         <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        {filteredNavGroups.map((nav) => (
+        {navGroupsWithUnreadBadges.map((nav) => (
           <NavGroupComponent key={nav.title} {...nav} />
         ))}
       </SidebarContent>

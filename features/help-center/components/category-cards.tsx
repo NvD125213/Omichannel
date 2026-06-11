@@ -15,8 +15,8 @@ import {
 
 const categories = [
   {
-    title: "Getting Started",
-    description: "New to the platform? Start here",
+    title: "Bắt đầu",
+    description: "Mới sử dụng nền tảng? Bắt đầu tại đây",
     icon: Sparkles,
     color: "text-violet-500",
     bgColor: "bg-violet-500/10",
@@ -24,8 +24,8 @@ const categories = [
     articleCount: 12,
   },
   {
-    title: "Account & Settings",
-    description: "Manage your account and preferences",
+    title: "Tài khoản & Cài đặt",
+    description: "Quản lý tài khoản và tùy chọn cá nhân",
     icon: Settings,
     color: "text-blue-500",
     bgColor: "bg-blue-500/10",
@@ -33,8 +33,8 @@ const categories = [
     articleCount: 8,
   },
   {
-    title: "Billing & Payments",
-    description: "Questions about billing and subscriptions",
+    title: "Thanh toán & Gói dịch vụ",
+    description: "Câu hỏi về thanh toán và đăng ký gói",
     icon: CreditCard,
     color: "text-emerald-500",
     bgColor: "bg-emerald-500/10",
@@ -42,8 +42,8 @@ const categories = [
     articleCount: 15,
   },
   {
-    title: "Security & Privacy",
-    description: "Keep your account secure",
+    title: "Bảo mật & Quyền riêng tư",
+    description: "Giữ tài khoản của bạn an toàn",
     icon: Shield,
     color: "text-red-500",
     bgColor: "bg-red-500/10",
@@ -51,8 +51,8 @@ const categories = [
     articleCount: 10,
   },
   {
-    title: "API & Integrations",
-    description: "Developer resources and API docs",
+    title: "API & Tích hợp",
+    description: "Tài liệu dành cho nhà phát triển và API",
     icon: KeyRound,
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
@@ -60,8 +60,8 @@ const categories = [
     articleCount: 20,
   },
   {
-    title: "Team & Collaboration",
-    description: "Working with teams and members",
+    title: "Nhóm & Cộng tác",
+    description: "Làm việc với nhóm và thành viên",
     icon: Users,
     color: "text-purple-500",
     bgColor: "bg-purple-500/10",
@@ -69,8 +69,8 @@ const categories = [
     articleCount: 14,
   },
   {
-    title: "Guides & Tutorials",
-    description: "Step-by-step guides and tutorials",
+    title: "Hướng dẫn & Bài viết",
+    description: "Hướng dẫn từng bước và bài viết chi tiết",
     icon: BookOpen,
     color: "text-cyan-500",
     bgColor: "bg-cyan-500/10",
@@ -78,8 +78,8 @@ const categories = [
     articleCount: 18,
   },
   {
-    title: "Support & Contact",
-    description: "Get in touch with our support team",
+    title: "Hỗ trợ & Liên hệ",
+    description: "Liên hệ đội ngũ hỗ trợ của chúng tôi",
     icon: MessageSquare,
     color: "text-pink-500",
     bgColor: "bg-pink-500/10",
@@ -114,7 +114,7 @@ export function CategoryCards() {
               </div>
               <div className="mt-auto">
                 <Badge variant="outline" className="text-xs">
-                  {category.articleCount} articles
+                  {category.articleCount} bài viết
                 </Badge>
               </div>
             </CardContent>

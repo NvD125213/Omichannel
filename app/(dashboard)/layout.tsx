@@ -1,4 +1,5 @@
 import AppSidebar from "@/components/app-sidebar";
+import { ChatUnreadSync } from "@/components/chat-unread-sync";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { ProtectedRoute } from "@/components/protected-route";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -19,6 +20,7 @@ export default function DashboardLayout({
           <AppSidebar />
           <SidebarInset>
             <Suspense>
+              <ChatUnreadSync />
               <DashboardHeader />
             </Suspense>
             <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 has-data-dashboard-inset-flush:p-0">

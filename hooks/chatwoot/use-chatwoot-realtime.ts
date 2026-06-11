@@ -15,6 +15,7 @@ import {
   normalizeMessage,
 } from "@/features/chats/utils/normalize-message";
 import { useChatStore } from "@/features/chats/utils/use-chat";
+import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 
 interface UseChatwootRealtimeOptions {
   tenantId: string;
@@ -30,6 +31,8 @@ export function useChatwootRealtime({
   const upsertMessage = useChatStore((state) => state.upsertMessage);
   const patchConversation = useChatStore((state) => state.patchConversation);
   const removeConversation = useChatStore((state) => state.removeConversation);
+  const incrementUnread = useChatUnreadStore((state) => state.incrementUnread);
+  const clearUnread = useChatUnreadStore((state) => state.clearUnread);
 
   const selectedConversationRef = useRef(selectedConversationId);
 
@@ -54,6 +57,19 @@ export function useChatwootRealtime({
       if (isActiveConversation) {
         const normalized = normalizeMessage(messagePayload, conversationId);
         upsertMessage(conversationId, normalized);
+        clearUnread(conversationId);
+      } else {
+        const rawInboxId = messagePayload.inbox_id;
+        const inboxId =
+          typeof rawInboxId === "number"
+            ? rawInboxId
+            : typeof rawInboxId === "string"
+              ? Number(rawInboxId)
+              : Number.NaN;
+        incrementUnread(
+          conversationId,
+          Number.isFinite(inboxId) ? inboxId : undefined,
+        );
       }
 
       appendMessageToConversationMessagesCache(
@@ -246,5 +262,7 @@ export function useChatwootRealtime({
     upsertMessage,
     patchConversation,
     removeConversation,
+    incrementUnread,
+    clearUnread,
   ]);
 }

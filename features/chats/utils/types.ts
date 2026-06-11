@@ -169,6 +169,8 @@ export interface ChatConversation {
   unreadCount: number;
   isPinned: boolean;
   isMuted: boolean;
+  /** Trạng thái hội thoại Chatwoot: open, resolved, pending, ... */
+  status?: string;
   labels: string[];
   /** Khớp `inbox_id` từ API conversations ↔ `id` trong danh sách inboxes */
   inboxId?: number;

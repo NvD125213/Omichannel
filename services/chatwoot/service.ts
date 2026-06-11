@@ -647,4 +647,15 @@ export const chatwootService = {
     );
     return response.data;
   },
+
+  /** GET /api/v1/chatwoot/tenants/{tenant_id}/conversations/{conversation_id}/update_last_seen */
+  updateTenantConversationLastSeen: async (
+    tenantId: string,
+    conversationId: string,
+  ): Promise<unknown> => {
+    const response = await apiClient.post<unknown>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/update_last_seen`,
+    );
+    return response.data;
+  },
 };

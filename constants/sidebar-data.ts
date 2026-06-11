@@ -188,11 +188,11 @@ export const sidebarData: SidebarData = {
           badgeColor: "green",
           icon: IconMessages,
         },
-        {
-          title: "Calendar",
-          url: "/calendar",
-          icon: IconCalendar,
-        },
+        // {
+        //   title: "Calendar",
+        //   url: "/calendar",
+        //   icon: IconCalendar,
+        // },
         // {
         //   title: "AI Chat",
         //   url: "/ai-chat",
@@ -347,11 +347,11 @@ export const sidebarData: SidebarData = {
             },
           ],
         },
-        {
-          title: "Help Center",
-          url: "/help-center",
-          icon: IconHelp,
-        },
+        // {
+        //   title: "Help Center",
+        //   url: "/help-center",
+        //   icon: IconHelp,
+        // },
       ],
     },
   ],

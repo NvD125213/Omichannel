@@ -80,17 +80,17 @@ type NavBadgeColor =
   | "default";
 
 const NAV_BADGE_COLORS: Record<NavBadgeColor, string> = {
-  violet: "bg-sidebar-primary/15 text-sidebar-primary",
-  green: "bg-green-500/15 text-green-400",
-  teal: "bg-teal-500/15 text-teal-400",
-  red: "bg-red-500/15 text-red-400",
-  blue: "bg-blue-500/15 text-blue-400",
-  yellow: "bg-amber-500/15 text-amber-400",
-  purple: "bg-purple-500/15 text-purple-400",
-  orange: "bg-orange-500/15 text-orange-400",
-  pink: "bg-pink-500/15 text-pink-400",
-  indigo: "bg-indigo-500/15 text-indigo-400",
-  default: "bg-sidebar-foreground/15 text-sidebar-foreground",
+  violet: "bg-violet-500 text-white shadow-sm shadow-violet-500/25",
+  green: "bg-emerald-500 text-white shadow-sm shadow-emerald-500/30",
+  teal: "bg-teal-500 text-white shadow-sm shadow-teal-500/25",
+  red: "bg-red-500 text-white shadow-sm shadow-red-500/25",
+  blue: "bg-blue-500 text-white shadow-sm shadow-blue-500/25",
+  yellow: "bg-amber-500 text-white shadow-sm shadow-amber-500/25",
+  purple: "bg-purple-500 text-white shadow-sm shadow-purple-500/25",
+  orange: "bg-orange-500 text-white shadow-sm shadow-orange-500/25",
+  pink: "bg-pink-500 text-white shadow-sm shadow-pink-500/25",
+  indigo: "bg-indigo-500 text-white shadow-sm shadow-indigo-500/25",
+  default: "bg-sidebar-foreground/80 text-sidebar",
 };
 
 const NavBadge = ({
@@ -105,7 +105,7 @@ const NavBadge = ({
   return (
     <Badge
       className={cn(
-        "ml-auto rounded-full border-0 px-2 py-0.5 text-[10px] font-medium",
+        "ml-auto min-w-5 rounded-full border-0 px-2 py-0.5 text-[10px] font-semibold tabular-nums",
         colorClasses,
       )}
     >

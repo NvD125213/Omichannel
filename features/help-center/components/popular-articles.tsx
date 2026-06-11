@@ -7,55 +7,56 @@ import Link from "next/link";
 
 const popularArticles = [
   {
-    title: "Getting Started: Your First Project",
+    title: "Bắt đầu: Dự án đầu tiên của bạn",
     description:
-      "Learn how to set up your first project and navigate the dashboard",
-    category: "Getting Started",
-    readTime: "5 min read",
-    views: "12.5k",
+      "Tìm hiểu cách thiết lập dự án đầu tiên và điều hướng bảng điều khiển",
+    category: "Bắt đầu",
+    readTime: "5 phút đọc",
+    views: "12,5k",
     href: "#",
   },
   {
-    title: "Understanding User Roles and Permissions",
+    title: "Hiểu về vai trò và quyền người dùng",
     description:
-      "A comprehensive guide to managing team members and their access levels",
-    category: "Team & Collaboration",
-    readTime: "8 min read",
-    views: "8.2k",
+      "Hướng dẫn toàn diện về quản lý thành viên nhóm và mức truy cập",
+    category: "Nhóm & Cộng tác",
+    readTime: "8 phút đọc",
+    views: "8,2k",
     href: "#",
   },
   {
-    title: "Setting Up Two-Factor Authentication",
-    description: "Step-by-step instructions to secure your account with 2FA",
-    category: "Security & Privacy",
-    readTime: "3 min read",
-    views: "15.3k",
-    href: "#",
-  },
-  {
-    title: "API Authentication and Best Practices",
+    title: "Thiết lập xác thực hai yếu tố (2FA)",
     description:
-      "Learn how to authenticate API requests and follow security best practices",
-    category: "API & Integrations",
-    readTime: "12 min read",
-    views: "6.7k",
+      "Hướng dẫn từng bước để bảo mật tài khoản bằng xác thực hai yếu tố",
+    category: "Bảo mật & Quyền riêng tư",
+    readTime: "3 phút đọc",
+    views: "15,3k",
     href: "#",
   },
   {
-    title: "Managing Billing and Subscriptions",
-    description: "Everything you need to know about managing your subscription",
-    category: "Billing & Payments",
-    readTime: "4 min read",
-    views: "9.1k",
-    href: "#",
-  },
-  {
-    title: "Customizing Your Workspace",
+    title: "Xác thực API và thực hành tốt nhất",
     description:
-      "Personalize your dashboard and workspace to fit your workflow",
-    category: "Account & Settings",
-    readTime: "6 min read",
-    views: "7.4k",
+      "Cách xác thực yêu cầu API và tuân thủ các nguyên tắc bảo mật",
+    category: "API & Tích hợp",
+    readTime: "12 phút đọc",
+    views: "6,7k",
+    href: "#",
+  },
+  {
+    title: "Quản lý thanh toán và gói đăng ký",
+    description: "Mọi thứ bạn cần biết về quản lý gói dịch vụ",
+    category: "Thanh toán & Gói dịch vụ",
+    readTime: "4 phút đọc",
+    views: "9,1k",
+    href: "#",
+  },
+  {
+    title: "Tùy chỉnh không gian làm việc",
+    description:
+      "Cá nhân hóa bảng điều khiển và không gian làm việc theo quy trình của bạn",
+    category: "Tài khoản & Cài đặt",
+    readTime: "6 phút đọc",
+    views: "7,4k",
     href: "#",
   },
 ];
@@ -64,12 +65,12 @@ export function PopularArticles() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">Popular Articles</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Bài viết phổ biến</h2>
         <Link
           href="#"
           className="text-muted-foreground hover:text-foreground text-sm transition-colors"
         >
-          View all articles →
+          Xem tất cả bài viết →
         </Link>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -99,7 +100,7 @@ export function PopularArticles() {
                     </div>
                     <div className="flex items-center gap-1">
                       <TrendingUp className="size-3" />
-                      {article.views} views
+                      {article.views} lượt xem
                     </div>
                   </div>
                   <ArrowRight className="text-muted-foreground size-4" />

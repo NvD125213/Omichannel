@@ -43,7 +43,7 @@ import { MessageList } from "./message-list";
 import { EmptyData } from "@/components/empty-data";
 import { StringParam, useQueryParams } from "use-query-params";
 import { coerceToDate } from "@/helpers/format-message-time";
-import { useChatwootRealtime } from "@/hooks/chatwoot/use-chatwoot-realtime";
+import { useChatUnreadStore } from "../utils/chat-unread-store";
 
 /** Params list conversations — GET `/api/v1/chatwoot/tenants/:tenant_id/conversations` */
 const TENANT_CONVERSATION_LIST_BASE = {
@@ -141,6 +141,8 @@ const normalizeConversation = (
     unreadCount,
     isPinned: false,
     isMuted: Boolean(conversation["muted"]),
+    status:
+      typeof conversation["status"] === "string" ? conversation["status"] : "open",
     inboxId: Number.isFinite(inboxId) ? inboxId : undefined,
     meta: {
       sender: {
@@ -392,11 +394,6 @@ export function Chat() {
     isChatwootFetchingNextPage,
   ]);
 
-  useChatwootRealtime({
-    tenantId,
-    selectedConversationId: selectedConversationFromQuery,
-  });
-
   // Lấy store chat từ context
   const chatStore = useChat();
   const {
@@ -440,6 +437,7 @@ export function Chat() {
 
   useEffect(() => {
     setConversations(displayConversations);
+    useChatUnreadStore.getState().mergeFromConversations(displayConversations);
   }, [displayConversations, setConversations]);
 
   useEffect(() => {

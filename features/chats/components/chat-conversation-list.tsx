@@ -43,10 +43,11 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
+  useBulkAction,
   useListTenantInboxes,
   useListTenantLabels,
+  useTenantConversationLastSeen,
 } from "@/hooks/chatwoot/use-chatwoot";
-import { useBulkAction } from "@/hooks/chatwoot/use-chatwoot";
 
 type ConversationTab = "mine" | "unread" | "all";
 type ConversationLabelOption = {
@@ -184,6 +185,7 @@ import { cn } from "@/lib/utils";
 import type { TenantConversationsListMeta } from "@/services/chatwoot/interface";
 import type { ChatConversation, ChatUser } from "../utils/types";
 import { clearConversationUnreadInListCache } from "../utils/chatwoot-realtime-cache";
+import { useChatUnreadStore } from "../utils/chat-unread-store";
 import { useChat } from "../utils/use-chat";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -222,6 +224,7 @@ export function ChatConversationList({
 }: ConversationListProps) {
   const queryClient = useQueryClient();
   const { searchQuery, setSearchQuery, markAsRead } = useChat();
+  const clearUnread = useChatUnreadStore((state) => state.clearUnread);
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
 
@@ -253,6 +256,9 @@ export function ChatConversationList({
   }, [inboxData]);
   const { mutate: bulkAction, isPending: isBulkActionPending } =
     useBulkAction();
+  const { mutate: updateConversationLastSeen } =
+    useTenantConversationLastSeen();
+  const lastSeenRequestRef = useRef<string | null>(null);
   const [searchInput, setSearchInput] = useState(searchQuery);
   const [activeTab, setActiveTab] = useState<ConversationTab>("all");
   const SCROLL_BOTTOM_THRESHOLD = 100;
@@ -290,30 +296,45 @@ export function ChatConversationList({
       conversations.filter((conversation) => conversation.type === "direct"),
     [conversations],
   );
+
+  const syncConversationReadState = useCallback(
+    (conversationId: string) => {
+      if (!conversationId) return;
+
+      markAsRead(conversationId);
+      clearUnread(conversationId);
+
+      if (!tenantId) return;
+
+      clearConversationUnreadInListCache(queryClient, tenantId, conversationId);
+
+      const requestKey = `${tenantId}:${conversationId}`;
+      if (lastSeenRequestRef.current === requestKey) return;
+
+      lastSeenRequestRef.current = requestKey;
+      updateConversationLastSeen({ tenantId, conversationId });
+    },
+    [
+      clearUnread,
+      markAsRead,
+      queryClient,
+      tenantId,
+      updateConversationLastSeen,
+    ],
+  );
+
   const handleSelectConversation = useCallback(
     (conversationId: string) => {
-      markAsRead(conversationId);
-      if (tenantId) {
-        clearConversationUnreadInListCache(
-          queryClient,
-          tenantId,
-          conversationId,
-        );
-      }
+      syncConversationReadState(conversationId);
       onSelectConversation(conversationId);
     },
-    [markAsRead, onSelectConversation, queryClient, tenantId],
+    [onSelectConversation, syncConversationReadState],
   );
 
   useEffect(() => {
-    if (!selectedConversation || !tenantId) return;
-    markAsRead(selectedConversation);
-    clearConversationUnreadInListCache(
-      queryClient,
-      tenantId,
-      selectedConversation,
-    );
-  }, [markAsRead, queryClient, selectedConversation, tenantId]);
+    if (!selectedConversation) return;
+    syncConversationReadState(selectedConversation);
+  }, [selectedConversation, syncConversationReadState]);
 
   const unreadConversations = useMemo(
     () => conversations.filter((conversation) => conversation.unreadCount > 0),
@@ -413,7 +434,9 @@ export function ChatConversationList({
 
     if (conversationInData) {
       loadMoreForScrollRef.current = null;
-      if (activeTab !== "all") {
+      // Chỉ tự chuyển sang tab "Tất cả" khi *chọn* hội thoại mới từ URL/deep-link,
+      // không reset tab khi người dùng chủ động đổi tab.
+      if (selectionChanged && activeTab !== "all") {
         setActiveTab("all");
       }
       return;
@@ -674,7 +697,7 @@ export function ChatConversationList({
   );
 
   const renderConversationTabs = () => (
-    <div className="px-2 sm:px-3 pt-2 sm:pt-3 pb-2 border-b shrink-0 min-w-0">
+    <div className="px-2 sm:pt-2 pb-2 border-b shrink-0 min-w-0">
       <div className="grid w-full min-h-11 grid-cols-3 gap-1 rounded-2xl border border-primary/15 bg-primary/10 p-1 shadow-inner">
         {TAB_CYCLE.map((tab) => {
           const isActive = activeTab === tab;
@@ -926,7 +949,7 @@ export function ChatConversationList({
   if (isEmptyByMeta) {
     return (
       <div className="flex flex-col h-full min-h-0 overflow-hidden">
-        <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
+        {/* <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
           <div className="relative min-w-0">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
             <Input
@@ -938,7 +961,7 @@ export function ChatConversationList({
               aria-label="Search Conversations"
             />
           </div>
-        </div>
+        </div> */}
 
         {renderConversationTabs()}
         <div className="flex-1 p-3">
@@ -957,7 +980,7 @@ export function ChatConversationList({
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Search */}
-      <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
+      {/* <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
         <div className="relative min-w-0">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
           <Input
@@ -969,7 +992,7 @@ export function ChatConversationList({
             aria-label="Search Conversations"
           />
         </div>
-      </div>
+      </div> */}
 
       {renderConversationTabs()}
 
