@@ -12,6 +12,8 @@ import {
   ShieldAlert,
   AtSignIcon,
   Tag,
+  ListFilter,
+  Bookmark,
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -34,7 +36,13 @@ import {
 import {
   useListTenantInboxes,
   useListTenantLabels,
+  useListAccountCustomFilters,
 } from "@/hooks/chatwoot/use-chatwoot";
+import type { AccountCustomFilter } from "@/services/chatwoot/interface";
+import {
+  extractAccountCustomFilters,
+  parseCustomFilterId,
+} from "../utils/conversation-filter";
 
 /** Giá trị filter sẽ map vào query `conversation_type` */
 export type ConversationSidebarAssigneeFilter = "me" | "mention" | "unattended";
@@ -67,17 +75,17 @@ const conversationSubItems: {
   assignee: ConversationSidebarAssigneeFilter;
 }[] = [
   {
-    name: "All",
+    name: "Tất cả",
     icon: CircleDot,
     assignee: "me",
   },
   {
-    name: "Mentioned",
+    name: "Nhắc đến",
     icon: AtSignIcon,
     assignee: "mention",
   },
   {
-    name: "Unattended",
+    name: "Không giám sát",
     icon: ShieldAlert,
     assignee: "unattended",
   },
@@ -309,18 +317,101 @@ function SidebarTooltip({
   );
 }
 
+function getCustomFilterTooltip(filter: AccountCustomFilter): string {
+  return filter.name;
+}
+
+function CustomFilterSidebarItem({
+  filter,
+  isActive,
+  disabled = false,
+  onClick,
+  compact = false,
+}: {
+  filter: AccountCustomFilter;
+  isActive: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  const conditionCount = filter.query?.payload?.length ?? 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={isActive}
+      aria-label={filter.name}
+      className={cn(
+        "group relative w-full rounded-md text-left text-sm transition-colors disabled:pointer-events-none disabled:opacity-80",
+        compact ? "px-2.5 py-2" : "px-2 py-2",
+        isActive && compact && "bg-accent text-accent-foreground",
+        isActive && !compact && "text-accent-foreground",
+        !isActive &&
+          "text-foreground hover:bg-accent hover:text-accent-foreground",
+      )}
+    >
+      {isActive && !compact && (
+        <motion.span
+          layoutId="custom-filter-sidebar-active-item"
+          transition={{
+            type: "spring",
+            stiffness: 360,
+            damping: 32,
+          }}
+          className="absolute inset-0 rounded-md bg-accent"
+          aria-hidden="true"
+        />
+      )}
+
+      <div className="relative z-10 flex items-start gap-2.5">
+        <span
+          className={cn(
+            "flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
+            isActive
+              ? compact
+                ? "bg-accent-foreground/10 text-accent-foreground"
+                : "bg-primary/15 text-primary dark:bg-primary/20"
+              : "text-muted-foreground group-hover:text-accent-foreground",
+          )}
+        >
+          <Bookmark className="size-3.5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium leading-tight">{filter.name}</p>
+          {conditionCount > 0 && (
+            <p
+              className={cn(
+                "mt-1 text-[10px] leading-none transition-colors",
+                isActive
+                  ? "text-muted-foreground"
+                  : "text-muted-foreground group-hover:text-accent-foreground/80",
+              )}
+            >
+              {conditionCount} điều kiện lọc
+            </p>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 interface ChatNotificationSidebarProps {
   tenantId: string;
   isCollapsed: boolean;
   sidebarConversationAssignee: ConversationSidebarAssigneeFilter;
   sidebarInboxId: number | null;
   sidebarLabel: ConversationSidebarLabelFilter;
+  sidebarCustomFilterId: number | null;
   isSwitchingMenu?: boolean;
   onSidebarConversationAssigneeChange: (
     value: ConversationSidebarAssigneeFilter,
   ) => void;
   onSidebarInboxChange: (inboxId: number | null) => void;
   onSidebarLabelChange: (label: ConversationSidebarLabelFilter) => void;
+  onSidebarCustomFilterSelect: (filter: AccountCustomFilter) => void;
 }
 
 interface TenantInboxItem {
@@ -376,14 +467,18 @@ export function ChatNotificationSidebar({
   sidebarConversationAssignee,
   sidebarInboxId,
   sidebarLabel,
+  sidebarCustomFilterId,
   isSwitchingMenu = false,
   onSidebarConversationAssigneeChange,
   onSidebarInboxChange,
   onSidebarLabelChange,
+  onSidebarCustomFilterSelect,
 }: ChatNotificationSidebarProps) {
   const unreadByInboxId = useUnreadByInboxId();
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
+  const { data: customFiltersData, isLoading: isCustomFiltersLoading } =
+    useListAccountCustomFilters(tenantId);
   const inboxPayload = (
     inboxData?.data as { chatwoot?: { payload?: unknown } } | undefined
   )?.chatwoot?.payload;
@@ -400,18 +495,24 @@ export function ChatNotificationSidebar({
         ),
     [labelData],
   );
+  const customFilters = useMemo(
+    () => extractAccountCustomFilters(customFiltersData),
+    [customFiltersData],
+  );
   const hasInboxSelection = typeof sidebarInboxId === "number";
   const hasLabelSelection = sidebarLabel !== null;
-  const isConversationSelectionMode = !hasInboxSelection && !hasLabelSelection;
+  const hasCustomFilterSelection = sidebarCustomFilterId !== null;
+  const isConversationSelectionMode =
+    !hasInboxSelection && !hasLabelSelection && !hasCustomFilterSelection;
 
   if (isCollapsed) {
     return (
       <aside
         className={cn(
-          "relative flex h-full w-full flex-col overflow-hidden border-r border-border bg-transparent text-foreground transition-all duration-200",
+          "relative flex h-full w-full flex-col overflow-hidden bg-transparent text-foreground transition-all duration-200",
         )}
       >
-        <div className="flex-1 space-y-2 overflow-x-hidden overflow-y-auto p-2">
+        <div className="flex-1 space-y-2 overflow-x-hidden overflow-y-auto chat-sidebar-scroll p-2">
           <section className="space-y-2" aria-label="Main Chat Menu">
             <SidebarTooltip title={menuItems[0].title}>
               <a
@@ -579,6 +680,53 @@ export function ChatNotificationSidebar({
                 </span>
               )}
             </CollapsedSidebarHoverMenu>
+
+            <CollapsedSidebarHoverMenu
+              title="Bộ lọc"
+              isActive={hasCustomFilterSelection}
+              icon={
+                <ListFilter className="h-4 w-4 shrink-0" aria-hidden="true" />
+              }
+            >
+              {isCustomFiltersLoading ? (
+                <span className="block px-2 py-1 text-xs text-muted-foreground">
+                  Đang tải...
+                </span>
+              ) : customFilters.length > 0 ? (
+                <div className="space-y-1.5">
+                  {customFilters.map((filter) => {
+                    const filterId = parseCustomFilterId(filter.id);
+                    if (filterId === null) return null;
+
+                    const isActive = sidebarCustomFilterId === filterId;
+
+                    return (
+                      <SidebarTooltip
+                        key={filterId}
+                        title={getCustomFilterTooltip(filter)}
+                      >
+                        <CustomFilterSidebarItem
+                          filter={filter}
+                          isActive={isActive}
+                          disabled={isSwitchingMenu || isActive}
+                          onClick={() => onSidebarCustomFilterSelect(filter)}
+                          compact
+                        />
+                      </SidebarTooltip>
+                    );
+                  })}
+                </div>
+              ) : (
+                <span
+                  className={cn(
+                    "block px-2 py-1 text-xs text-muted-foreground",
+                    isSwitchingMenu && "opacity-80",
+                  )}
+                >
+                  Chưa có bộ lọc
+                </span>
+              )}
+            </CollapsedSidebarHoverMenu>
           </section>
         </div>
       </aside>
@@ -588,10 +736,10 @@ export function ChatNotificationSidebar({
   return (
     <aside
       className={cn(
-        "relative flex h-full w-full flex-col overflow-hidden border-r border-border bg-transparent text-foreground transition-all duration-200",
+        "relative flex h-full w-full flex-col overflow-hidden bg-transparent text-foreground transition-all duration-200",
       )}
     >
-      <div className="flex-1 space-y-3 overflow-x-hidden overflow-y-auto p-2">
+      <div className="flex-1 space-y-3 overflow-x-hidden overflow-y-auto chat-sidebar-scroll p-2">
         <section className="space-y-1" aria-label="Main Chat Menu">
           <SidebarTooltip title={menuItems[0].title}>
             <a
@@ -689,6 +837,86 @@ export function ChatNotificationSidebar({
                   </SidebarTooltip>
                 );
               })}
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible defaultOpen>
+            <SidebarTooltip title="Bộ lọc">
+              <CollapsibleTrigger
+                className={cn(
+                  "group flex h-9 w-full items-center rounded-md px-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isCollapsed ? "justify-center px-0" : "justify-between px-2",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex items-center truncate",
+                    isCollapsed ? "justify-center" : "gap-3",
+                  )}
+                >
+                  <ListFilter className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {!isCollapsed && "Bộ lọc"}
+                </span>
+                {!isCollapsed && (
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180"
+                    aria-hidden="true"
+                  />
+                )}
+              </CollapsibleTrigger>
+            </SidebarTooltip>
+            <CollapsibleContent
+              className={cn(
+                "mt-1.5 space-y-1.5",
+                !isCollapsed && "px-1",
+                isCollapsed && "hidden",
+              )}
+            >
+              {isCustomFiltersLoading && !isCollapsed && (
+                <span
+                  className={cn(
+                    "block px-2 text-xs text-muted-foreground",
+                    isSwitchingMenu && "opacity-80",
+                  )}
+                >
+                  Đang tải...
+                </span>
+              )}
+
+              {!isCustomFiltersLoading &&
+                customFilters.map((filter) => {
+                  const filterId = parseCustomFilterId(filter.id);
+                  if (filterId === null) return null;
+
+                  const isActive = sidebarCustomFilterId === filterId;
+
+                  return (
+                    <SidebarTooltip
+                      key={filterId}
+                      title={getCustomFilterTooltip(filter)}
+                    >
+                      <CustomFilterSidebarItem
+                        filter={filter}
+                        isActive={isActive}
+                        disabled={isSwitchingMenu || isActive}
+                        onClick={() => onSidebarCustomFilterSelect(filter)}
+                      />
+                    </SidebarTooltip>
+                  );
+                })}
+
+              {!isCustomFiltersLoading &&
+                customFilters.length === 0 &&
+                !isCollapsed && (
+                  <span
+                    className={cn(
+                      "block px-2 text-xs text-muted-foreground",
+                      isSwitchingMenu && "opacity-80",
+                    )}
+                  >
+                    Chưa có bộ lọc
+                  </span>
+                )}
             </CollapsibleContent>
           </Collapsible>
 
@@ -793,10 +1021,7 @@ export function ChatNotificationSidebar({
                           <ChatUnreadBadge
                             count={
                               Number.isFinite(inboxId)
-                                ? getInboxUnreadCount(
-                                    unreadByInboxId,
-                                    inboxId,
-                                  )
+                                ? getInboxUnreadCount(unreadByInboxId, inboxId)
                                 : 0
                             }
                             className="relative z-10 ml-auto"

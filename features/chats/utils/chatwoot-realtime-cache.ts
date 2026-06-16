@@ -308,7 +308,9 @@ export function applyMessageCreatedToConversationList(
         next.last_non_activity_message = rawMessage;
       }
 
-      if (!isActiveConversation) {
+      if (isActiveConversation) {
+        next.unread_count = 0;
+      } else {
         const currentUnread =
           typeof conversation.unread_count === "number"
             ? conversation.unread_count

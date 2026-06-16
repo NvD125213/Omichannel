@@ -8,6 +8,7 @@ import {
   applyConversationUpdatedToListCache,
   applyMessageCreatedToConversationList,
   appendMessageToConversationMessagesCache,
+  clearConversationUnreadInListCache,
 } from "@/features/chats/utils/chatwoot-realtime-cache";
 import { parseChatwootRealtimePayload } from "@/features/chats/utils/chatwoot-realtime-payload";
 import {
@@ -16,6 +17,9 @@ import {
 } from "@/features/chats/utils/normalize-message";
 import { useChatStore } from "@/features/chats/utils/use-chat";
 import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
+import { chatwootService } from "@/services/chatwoot/service";
+
+const LAST_SEEN_DEBOUNCE_MS = 400;
 
 interface UseChatwootRealtimeOptions {
   tenantId: string;
@@ -31,17 +35,48 @@ export function useChatwootRealtime({
   const upsertMessage = useChatStore((state) => state.upsertMessage);
   const patchConversation = useChatStore((state) => state.patchConversation);
   const removeConversation = useChatStore((state) => state.removeConversation);
+  const markAsRead = useChatStore((state) => state.markAsRead);
   const incrementUnread = useChatUnreadStore((state) => state.incrementUnread);
   const clearUnread = useChatUnreadStore((state) => state.clearUnread);
 
   const selectedConversationRef = useRef(selectedConversationId);
+  const lastSeenTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
 
   useEffect(() => {
     selectedConversationRef.current = selectedConversationId;
   }, [selectedConversationId]);
 
   useEffect(() => {
+    const timers = lastSeenTimersRef.current;
+    return () => {
+      for (const timer of timers.values()) {
+        clearTimeout(timer);
+      }
+      timers.clear();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!socket || !tenantId || !isAuthenticated) return;
+
+    const scheduleConversationLastSeen = (conversationId: string) => {
+      const timers = lastSeenTimersRef.current;
+      const existing = timers.get(conversationId);
+      if (existing) clearTimeout(existing);
+
+      const timer = setTimeout(() => {
+        timers.delete(conversationId);
+        void chatwootService
+          .updateTenantConversationLastSeen(tenantId, conversationId)
+          .catch(() => {
+            // Đã clear unread cục bộ; last_seen thất bại không chặn luồng realtime.
+          });
+      }, LAST_SEEN_DEBOUNCE_MS);
+
+      timers.set(conversationId, timer);
+    };
 
     if (process.env.NODE_ENV === "development") {
       console.log("[chatwoot-realtime] listening chatwoot_event", { tenantId });
@@ -57,7 +92,14 @@ export function useChatwootRealtime({
       if (isActiveConversation) {
         const normalized = normalizeMessage(messagePayload, conversationId);
         upsertMessage(conversationId, normalized);
+        markAsRead(conversationId);
         clearUnread(conversationId);
+        clearConversationUnreadInListCache(
+          queryClient,
+          tenantId,
+          conversationId,
+        );
+        scheduleConversationLastSeen(conversationId);
       } else {
         const rawInboxId = messagePayload.inbox_id;
         const inboxId =
@@ -120,9 +162,7 @@ export function useChatwootRealtime({
             ),
             senderId,
           },
-          unreadCount: isActiveConversation
-            ? conversation.unreadCount
-            : conversation.unreadCount + 1,
+          unreadCount: isActiveConversation ? 0 : conversation.unreadCount + 1,
         };
       });
     };
@@ -264,5 +304,6 @@ export function useChatwootRealtime({
     removeConversation,
     incrementUnread,
     clearUnread,
+    markAsRead,
   ]);
 }

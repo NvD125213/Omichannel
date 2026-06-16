@@ -332,7 +332,7 @@ export function ChatUnreadNotificationsMenu() {
             </p>
           </div>
         ) : (
-          <div className="max-h-[22rem] overflow-y-auto divide-y divide-border/60">
+          <div className="max-h-88 overflow-y-auto divide-y divide-border/60">
             {visibleNotifications.map((notification) => (
               <NotificationListItem
                 key={notification.id}

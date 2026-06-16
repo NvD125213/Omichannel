@@ -254,14 +254,9 @@ export default function SignIn() {
             </form>
           </Form>
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center flex justify-center text-underline items-center gap-1 text-sm text-muted-foreground">
             Chưa có tài khoản?{" "}
-            <Link
-              href="/sign-up"
-              className="font-medium text-primary hover:underline"
-            >
-              Đăng ký ngay
-            </Link>
+            <div className="text-blue-400">Liên hệ admin để đăng ký nhé.</div>
           </p>
         </div>
       </div>

@@ -12,7 +12,6 @@ import {
   Pin,
   Link2,
   Mail,
-  Search,
   SquareArrowOutUpRight,
   Tag,
   Trash2,
@@ -39,7 +38,6 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { EmptyData } from "@/components/empty-data";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
@@ -63,21 +61,21 @@ const formatConversationLabel = (label: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-const TAB_CYCLE: ConversationTab[] = ["mine", "unread", "all"];
+const TAB_CYCLE: ConversationTab[] = ["all", "mine", "unread"];
 const TAB_COLORS: Record<ConversationTab, string> = {
   mine: "bg-red-500",
   unread: "bg-amber-500",
   all: "bg-green-500",
 };
 const TAB_LABELS: Record<ConversationTab, string> = {
+  all: "Tất cả",
   mine: "Cho bạn",
   unread: "Chưa đọc",
-  all: "Tất cả",
 };
 const TAB_TOOLTIPS: Record<ConversationTab, string> = {
+  all: "Tất cả cuộc trò chuyện",
   mine: "Cuộc trò chuyện được giao cho bạn",
   unread: "Cuộc trò chuyện chưa đọc",
-  all: "Tất cả cuộc trò chuyện",
 };
 const LABEL_FALLBACK_COLORS = [
   "#3b82f6",
@@ -203,6 +201,10 @@ interface ConversationListProps {
   isLoading?: boolean;
   isLoadingMore?: boolean;
   hasMore?: boolean;
+  /** Ẩn tab khi đang lọc bằng filter API — chỉ hiển thị danh sách "Tất cả" */
+  hideTabs?: boolean;
+  /** Đổi khi chuyển menu sidebar — reset scroll và tab về đầu danh sách */
+  listScrollResetKey?: string;
   /** Meta từ GET conversations (mine_count, all_count, …) */
   conversationsMeta?: TenantConversationsListMeta | null;
   onLoadMore?: () => void;
@@ -218,6 +220,8 @@ export function ChatConversationList({
   isLoading = false,
   isLoadingMore = false,
   hasMore = false,
+  hideTabs = false,
+  listScrollResetKey,
   conversationsMeta = null,
   onLoadMore,
   onSelectConversation,
@@ -259,6 +263,8 @@ export function ChatConversationList({
   const { mutate: updateConversationLastSeen } =
     useTenantConversationLastSeen();
   const lastSeenRequestRef = useRef<string | null>(null);
+  const conversationListScrollRef = useRef<HTMLDivElement>(null);
+  const listScrollResetKeyRef = useRef(listScrollResetKey);
   const [searchInput, setSearchInput] = useState(searchQuery);
   const [activeTab, setActiveTab] = useState<ConversationTab>("all");
   const SCROLL_BOTTOM_THRESHOLD = 100;
@@ -276,6 +282,17 @@ export function ChatConversationList({
 
     return () => window.clearTimeout(debounceTimer);
   }, [searchInput, searchQuery, setSearchQuery]);
+
+  useEffect(() => {
+    if (!listScrollResetKey) return;
+    if (listScrollResetKeyRef.current === listScrollResetKey) return;
+
+    listScrollResetKeyRef.current = listScrollResetKey;
+    conversationListScrollRef.current?.scrollTo({ top: 0 });
+    if (!hideTabs) {
+      setActiveTab("all");
+    }
+  }, [hideTabs, listScrollResetKey]);
 
   const handleConversationScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -353,17 +370,18 @@ export function ChatConversationList({
     unread: tabUnreadCount,
     all: tabAllCount,
   };
+  const effectiveTab: ConversationTab = hideTabs ? "all" : activeTab;
   const activeTabCount =
-    activeTab === "mine"
+    effectiveTab === "mine"
       ? tabMineCount
-      : activeTab === "unread"
+      : effectiveTab === "unread"
         ? tabUnreadCount
         : tabAllCount;
 
   const sortedConversations = useMemo(() => {
     const tabFilteredConversations = conversations.filter((conversation) => {
-      if (activeTab === "mine") return conversation.type === "direct";
-      if (activeTab === "unread") return conversation.unreadCount > 0;
+      if (effectiveTab === "mine") return conversation.type === "direct";
+      if (effectiveTab === "unread") return conversation.unreadCount > 0;
       return true;
     });
 
@@ -380,7 +398,7 @@ export function ChatConversationList({
         getTime(b.lastMessage.timestamp) - getTime(a.lastMessage.timestamp)
       );
     });
-  }, [activeTab, conversations, searchQuery]);
+  }, [effectiveTab, conversations, searchQuery]);
 
   const conversationItemRefs = useRef(new Map<string, HTMLElement>());
   const loadMoreForScrollRef = useRef<string | null>(null);
@@ -784,6 +802,7 @@ export function ChatConversationList({
     return (
       <div className="flex h-full flex-col overflow-hidden">
         {/* Compact tab slider for collapsed sidebar */}
+        {!hideTabs && (
         <div className="flex items-center justify-between gap-0.5 border-b px-1 py-1.5">
           <button
             type="button"
@@ -838,6 +857,7 @@ export function ChatConversationList({
             <ChevronRight className="size-3.5" />
           </button>
         </div>
+        )}
 
         <TooltipProvider delayDuration={120}>
           <ScrollArea
@@ -963,7 +983,7 @@ export function ChatConversationList({
           </div>
         </div> */}
 
-        {renderConversationTabs()}
+        {!hideTabs && renderConversationTabs()}
         <div className="flex-1 p-3">
           <EmptyData
             icon={Inbox}
@@ -994,13 +1014,13 @@ export function ChatConversationList({
         </div>
       </div> */}
 
-      {renderConversationTabs()}
+      {!hideTabs && renderConversationTabs()}
 
       {/* Conversations */}
       <AnimatePresence mode="wait" initial={false}>
         {activeTabCount === 0 ? (
           <motion.div
-            key={`empty-${activeTab}`}
+            key={`empty-${effectiveTab}`}
             initial={{ opacity: 0, scale: 0.96, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -16 }}
@@ -1020,7 +1040,7 @@ export function ChatConversationList({
           </motion.div>
         ) : (
           <motion.div
-            key={`list-${activeTab}-${searchQuery}`}
+            key={`list-${listScrollResetKey ?? effectiveTab}-${searchQuery}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -1028,6 +1048,7 @@ export function ChatConversationList({
             className="flex-1 h-0 min-h-0"
           >
             <div
+              ref={conversationListScrollRef}
               className="h-full overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               onScroll={handleConversationScroll}
             >

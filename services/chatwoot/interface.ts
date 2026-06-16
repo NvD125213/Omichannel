@@ -302,3 +302,185 @@ export interface BulkActionRequest {
   };
 }
 export type BulkActionResponse = ApiResponse<ChatwootJsonPayload>;
+
+export interface ConversationFilter {
+  attribute_key: string;
+  filter_operator: string;
+  values: Array<string | number>;
+
+  attribute_model?: string;
+  query_operator?: string;
+  custom_attribute_type?: string;
+}
+
+export interface FilterConversationsRequest {
+  payload: ConversationFilter[];
+}
+
+/** Contact / sender trong meta hoặc message của conversation */
+export interface ChatwootContact {
+  additional_attributes?: Record<string, unknown>;
+  availability_status?: string;
+  email?: string | null;
+  id: number;
+  name: string;
+  phone_number?: string | null;
+  blocked?: boolean;
+  identifier?: string;
+  thumbnail?: string;
+  custom_attributes?: Record<string, unknown>;
+  last_activity_at?: number;
+  created_at?: number;
+  /** Có trên `message.sender` */
+  type?: string;
+}
+
+export interface ChatwootAssignee {
+  id: string;
+  availability_status?: string;
+  auto_offline?: boolean;
+  confirmed?: boolean;
+  email?: string;
+  provider?: string;
+  available_name?: string;
+  name: string;
+  role?: string;
+  thumbnail?: string;
+  custom_role_id?: string | null;
+}
+
+export interface ChatwootConversationItemMeta {
+  sender: ChatwootContact;
+  channel?: string;
+  assignee?: ChatwootAssignee;
+  assignee_type?: string;
+  hmac_verified?: boolean;
+}
+
+export interface ChatwootMessageConversationSnippet {
+  assignee_id?: number;
+  unread_count?: number;
+  last_activity_at?: number;
+  contact_inbox?: {
+    source_id?: string;
+  };
+}
+
+export interface ChatwootConversationMessage {
+  id: number;
+  content?: string | null;
+  inbox_id?: number;
+  conversation_id?: number;
+  message_type?: number;
+  created_at?: number;
+  updated_at?: string;
+  private?: boolean;
+  status?: string;
+  source_id?: string | null;
+  content_type?: string;
+  content_attributes?: Record<string, unknown>;
+  sender_type?: string | null;
+  sender_id?: number | null;
+  external_source_ids?: Record<string, unknown>;
+  additional_attributes?: Record<string, unknown>;
+  processed_message_content?: string;
+  sentiment?: Record<string, unknown>;
+  conversation?: ChatwootMessageConversationSnippet;
+  sender?: ChatwootContact;
+}
+
+/** Một conversation trong `data.chatwoot.payload` */
+export interface FilteredTenantConversation {
+  meta: ChatwootConversationItemMeta;
+  id: number;
+  messages?: ChatwootConversationMessage[];
+  uuid: string;
+  additional_attributes?: Record<string, unknown>;
+  agent_last_seen_at?: number;
+  assignee_last_seen_at?: number;
+  can_reply?: boolean;
+  contact_last_seen_at?: number;
+  custom_attributes?: Record<string, unknown>;
+  inbox_id?: number;
+  labels?: string[];
+  muted?: boolean;
+  snoozed_until?: number | null;
+  status: string;
+  created_at?: number;
+  updated_at?: number;
+  timestamp?: number;
+  first_reply_created_at?: number;
+  unread_count?: number;
+  last_non_activity_message?: ChatwootConversationMessage | null;
+  last_activity_at?: number;
+  priority?: string | null;
+  waiting_since?: number;
+  sla_policy_id?: number | null;
+}
+
+export interface FilterConversationsChatwootData {
+  meta: TenantConversationsListMeta;
+  payload: FilteredTenantConversation[];
+}
+
+/** Phần `data` trong `ApiResponse` của POST filter conversations */
+export interface FilterConversationsData {
+  tenant_id: string;
+  chatwoot: FilterConversationsChatwootData;
+}
+
+export type FilterConversationsResponse = ApiResponse<FilterConversationsData>;
+
+// —— Account custom filters ——
+
+export interface AccountCustomFilterQuery {
+  payload: ConversationFilter[];
+}
+
+export interface CreateAccountCustomFilterRequest {
+  name: string;
+  filter_type: number | string;
+  query: AccountCustomFilterQuery;
+}
+
+export interface AccountCustomFilter {
+  id: number | string;
+  name: string;
+  filter_type: number | string;
+  query: AccountCustomFilterQuery;
+  account_id?: number;
+  created_at?: string | number;
+  updated_at?: string | number;
+  [key: string]: unknown;
+}
+
+export interface ListAccountCustomFiltersData {
+  tenant_id?: string;
+  chatwoot_account_id?: number;
+  custom_filters?: AccountCustomFilter[];
+  payload?: AccountCustomFilter[];
+  data?: {
+    payload?: AccountCustomFilter[];
+    custom_filters?: AccountCustomFilter[];
+  };
+  chatwoot?: {
+    payload?: AccountCustomFilter[];
+    custom_filters?: AccountCustomFilter[];
+  };
+}
+
+export type ListAccountCustomFiltersResponse = ApiResponse<
+  ListAccountCustomFiltersData | AccountCustomFilter[]
+>;
+export type CreateAccountCustomFilterResponse = ApiResponse<
+  AccountCustomFilter | ChatwootJsonPayload
+>;
+
+export type UpdateAccountCustomFilterRequest =
+  Partial<CreateAccountCustomFilterRequest>;
+
+export type UpdateAccountCustomFilterResponse = ApiResponse<
+  AccountCustomFilter | ChatwootJsonPayload
+>;
+
+export type DeleteAccountCustomFilterResponse = ApiResponse<void>;

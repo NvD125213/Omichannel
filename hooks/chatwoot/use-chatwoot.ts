@@ -31,6 +31,9 @@ import type {
   UpdateChatwootUserRequest,
   UpdateTenantChatwootAccountRequest,
   BulkActionRequest,
+  FilterConversationsRequest,
+  CreateAccountCustomFilterRequest,
+  UpdateAccountCustomFilterRequest,
 } from "@/services/chatwoot/interface";
 import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 import {
@@ -38,6 +41,7 @@ import {
   clearConversationUnreadInListCache,
 } from "@/features/chats/utils/chatwoot-realtime-cache";
 import { chatwootService } from "@/services/chatwoot/service";
+import { extractFilterConversationsPayload } from "@/features/chats/utils/conversation-filter";
 
 /** Query keys — Đa kênh `/api/v1/chatwoot` (tách biệt hooks `chatwoots` gọi trực tiếp Chatwoot) */
 export const chatwootOmniKeys = {
@@ -65,6 +69,8 @@ export const chatwootOmniKeys = {
     [...chatwootOmniKeys.tenant(tenantId), "teams"] as const,
   tenantLabels: (tenantId: string) =>
     [...chatwootOmniKeys.tenant(tenantId), "labels"] as const,
+  tenantCustomFilters: (tenantId: string) =>
+    [...chatwootOmniKeys.tenant(tenantId), "custom-filters"] as const,
   tenantConversationsBase: (tenantId: string) =>
     [...chatwootOmniKeys.tenant(tenantId), "conversations"] as const,
   tenantConversations: (
@@ -74,6 +80,15 @@ export const chatwootOmniKeys = {
     [
       ...chatwootOmniKeys.tenantConversationsBase(tenantId),
       params ?? {},
+    ] as const,
+  tenantConversationsFilter: (
+    tenantId: string,
+    data?: FilterConversationsRequest,
+  ) =>
+    [
+      ...chatwootOmniKeys.tenantConversationsBase(tenantId),
+      "filter",
+      data ?? { payload: [] },
     ] as const,
   tenantConversation: (tenantId: string, conversationId: string) =>
     [
@@ -193,6 +208,14 @@ export const useListTenantLabels = (tenantId: string) => {
   return useQuery({
     queryKey: chatwootOmniKeys.tenantLabels(tenantId),
     queryFn: () => chatwootService.listTenantLabels(tenantId),
+    enabled: !!tenantId,
+  });
+};
+
+export const useListAccountCustomFilters = (tenantId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantCustomFilters(tenantId),
+    queryFn: () => chatwootService.listAccountCustomFilters(tenantId),
     enabled: !!tenantId,
   });
 };
@@ -348,6 +371,34 @@ export const useListTenantConversations = (
       return typeof lastPageParam === "number" ? lastPageParam + 1 : 2;
     },
     enabled: !!tenantId,
+  });
+};
+
+export const useInfiniteFilterConversations = (
+  tenantId: string,
+  data: FilterConversationsRequest | null,
+  enabled = false,
+) => {
+  return useInfiniteQuery({
+    queryKey: chatwootOmniKeys.tenantConversationsFilter(
+      tenantId,
+      data ?? { payload: [] },
+    ),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      chatwootService.filterConversations(
+        tenantId,
+        data as FilterConversationsRequest,
+        typeof pageParam === "number" && Number.isFinite(pageParam)
+          ? pageParam
+          : 1,
+      ),
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      const payload = extractFilterConversationsPayload(lastPage);
+      if (!payload || payload.length === 0) return undefined;
+      return typeof lastPageParam === "number" ? lastPageParam + 1 : 2;
+    },
+    enabled: !!tenantId && enabled && Boolean(data?.payload?.length),
   });
 };
 
@@ -1455,5 +1506,114 @@ export const useTenantConversationLastSeen = () => {
         tenantId,
         conversationId,
       ),
+  });
+};
+
+export const useFilterConversations = () => {
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+      page,
+    }: {
+      tenantId: string;
+      data: FilterConversationsRequest;
+      page?: number;
+    }) => chatwootService.filterConversations(tenantId, data, page),
+  });
+};
+
+export const useCreateAccountCustomFilter = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: CreateAccountCustomFilterRequest;
+    }) => chatwootService.createAccountCustomFilter(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Lưu bộ lọc thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantCustomFilters(variables.tenantId),
+        });
+        return;
+      }
+
+      toast.error(res.message || "Lưu bộ lọc thất bại");
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi lưu bộ lọc";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateAccountCustomFilter = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      filterId,
+      data,
+    }: {
+      tenantId: string;
+      filterId: number;
+      data: UpdateAccountCustomFilterRequest;
+    }) => chatwootService.updateAccountCustomFilter(tenantId, filterId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Cập nhật bộ lọc thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantCustomFilters(variables.tenantId),
+        });
+        return;
+      }
+
+      toast.error(res.message || "Cập nhật bộ lọc thất bại");
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật bộ lọc";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useDeleteAccountCustomFilter = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      filterId,
+    }: {
+      tenantId: string;
+      filterId: number;
+    }) => chatwootService.deleteAccountCustomFilter(tenantId, filterId),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Xóa bộ lọc thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantCustomFilters(variables.tenantId),
+        });
+        return;
+      }
+
+      toast.error(res.message || "Xóa bộ lọc thất bại");
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi xóa bộ lọc";
+      toast.error(msg);
+    },
   });
 };

@@ -13,6 +13,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { sidebarData } from "@/constants/sidebar-data";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { filterNavGroupsByPermissions } from "@/lib/filter-nav-items";
 import { flattenNavGroupsForSearch } from "@/lib/flatten-nav-for-search";
@@ -69,12 +70,21 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   );
 }
 
-export function SearchTrigger({ onClick }: { onClick: () => void }) {
+export function SearchTrigger({
+  onClick,
+  className,
+}: {
+  onClick: () => void;
+  className?: string;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="relative inline-flex h-8 items-center justify-start gap-2 rounded-md border border-input bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-sm hover:bg-accent hover:text-accent-foreground sm:pr-12 md:w-36 lg:w-56"
+      className={cn(
+        "relative inline-flex h-9 w-full min-w-56 items-center justify-start gap-2 rounded-md border border-input bg-transparent px-3 text-sm font-medium text-muted-foreground shadow-sm hover:bg-accent hover:text-accent-foreground sm:pr-12 md:min-w-72 lg:min-w-96",
+        className,
+      )}
     >
       <Search className="size-4" />
       <span>Tìm kiếm...</span>

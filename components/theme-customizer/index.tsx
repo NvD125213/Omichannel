@@ -42,7 +42,7 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
   // Mặc định dùng preset "violet-bloom" (tweakcn) thay vì theme "default"
   const [selectedTheme, setSelectedTheme] = React.useState("");
   const [selectedTweakcnTheme, setSelectedTweakcnTheme] =
-    React.useState("twitter");
+    React.useState("modern-minimal");
   const [selectedRadius, setSelectedRadius] = React.useState("0.5rem");
   const [importModalOpen, setImportModalOpen] = React.useState(false);
   const [importedTheme, setImportedTheme] =
@@ -54,7 +54,7 @@ export function ThemeCustomizer({ open, onOpenChange }: ThemeCustomizerProps) {
     // 1. Reset all state variables to initial values
     // Đưa về preset "violet-bloom" làm mặc định
     setSelectedTheme("");
-    setSelectedTweakcnTheme("twitter");
+    setSelectedTweakcnTheme("modern-minimal");
     setSelectedRadius("0.5rem");
     setImportedTheme(null); // Clear imported theme
     setBrandColorsValues({}); // Clear brand colors state

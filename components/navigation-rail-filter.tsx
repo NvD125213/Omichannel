@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import {
@@ -365,11 +365,37 @@ export type NavigationRailFilterProps = {
   onKanbanPageSizeChange?: (pageSize: number) => void;
   /** Báo parent khi rail đang animate width (để tối ưu vùn nội dung nặng như Kanban) */
   onLayoutTransitionChange?: (isAnimating: boolean) => void;
+  /** `inline` (mặc định) hoặc `overlay` — panel nổi trong parent `relative` */
+  displayMode?: "inline" | "overlay";
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Ẩn dock, mở panel qua `open` / trigger ngoài */
+  hideDock?: boolean;
+  overlayZIndexClassName?: string;
+  /** Nội dung tùy chỉnh thay cho form tìm kiếm mặc định (overlay + hideDock) */
+  overlayContent?: ReactNode;
+  /** Footer tùy chỉnh thay cho nút Đặt lại mặc định */
+  overlayFooter?: ReactNode;
+  /** Chiều rộng panel overlay, mặc định 350 */
+  overlayPanelWidth?: number;
+  /** Class tùy chỉnh cho nền panel/header/body/footer overlay (vd. `dark:bg-background/80 dark:backdrop-blur-md`) */
+  overlaySurfaceClassName?: string;
+  /** Class bổ sung chỉ cho khung panel overlay (shadow, border, …) */
+  overlayPanelClassName?: string;
 };
 
 const RAIL_COLLAPSED_WIDTH = 56;
 const RAIL_EXPANDED_WIDTH = 350;
 const RAIL_WIDTH_TRANSITION = {
+  duration: 0.28,
+  ease: [0.32, 0.72, 0, 1] as const,
+};
+
+const RAIL_PANEL_FADE_TRANSITION = {
+  duration: 0.14,
+} as const;
+
+const RAIL_OVERLAY_BACKDROP_TRANSITION = {
   duration: 0.28,
   ease: [0.32, 0.72, 0, 1] as const,
 };
@@ -443,9 +469,34 @@ export function NavigationRailFilter({
   onKanbanPageChange,
   onKanbanPageSizeChange,
   onLayoutTransitionChange,
+  displayMode = "inline",
+  open,
+  onOpenChange,
+  hideDock = false,
+  overlayZIndexClassName = "z-[60]",
+  overlayContent,
+  overlayFooter,
+  overlayPanelWidth = RAIL_EXPANDED_WIDTH,
+  overlaySurfaceClassName,
+  overlayPanelClassName,
 }: NavigationRailFilterProps) {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [panelEverOpened, setPanelEverOpened] = useState(defaultExpanded);
+  const isOverlay = displayMode === "overlay";
+  const isControlled = open !== undefined;
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const isExpanded = isControlled ? Boolean(open) : internalExpanded;
+  const [panelEverOpened, setPanelEverOpened] = useState(
+    defaultExpanded || Boolean(open),
+  );
+
+  const setExpanded = useCallback(
+    (next: boolean) => {
+      if (!isControlled) {
+        setInternalExpanded(next);
+      }
+      onOpenChange?.(next);
+    },
+    [isControlled, onOpenChange],
+  );
   const [searchValue, setSearchValue] = useState("");
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -538,12 +589,21 @@ export function NavigationRailFilter({
 
   const openPanel = useCallback(() => {
     setPanelEverOpened(true);
-    setIsExpanded(true);
-  }, []);
+    setExpanded(true);
+  }, [setExpanded]);
 
   useEffect(() => {
     if (isExpanded) setPanelEverOpened(true);
   }, [isExpanded]);
+
+  useEffect(() => {
+    if (!isOverlay || !hideDock || !isExpanded) return;
+    const timer = setTimeout(
+      () => searchInputRef.current?.focus(),
+      RAIL_WIDTH_TRANSITION.duration * 1000 + 40,
+    );
+    return () => clearTimeout(timer);
+  }, [isOverlay, hideDock, isExpanded]);
 
   const handleRailAnimationStart = useCallback(() => {
     onLayoutTransitionChange?.(true);
@@ -687,6 +747,153 @@ export function NavigationRailFilter({
 
   const isVertical = orientation === "vertical";
   const railWidth = isExpanded ? RAIL_EXPANDED_WIDTH : RAIL_COLLAPSED_WIDTH;
+
+  if (isOverlay && hideDock) {
+    return (
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            key="nav-rail-overlay"
+            className={cn(
+              "absolute inset-0",
+              overlayZIndexClassName,
+              className,
+            )}
+          >
+            <motion.div
+              className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={RAIL_OVERLAY_BACKDROP_TRANSITION}
+              onClick={() => setExpanded(false)}
+              aria-hidden
+            />
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Bộ lọc"
+              className={cn(
+                "absolute inset-y-0 left-0 flex h-full flex-col overflow-hidden bg-background shadow-[4px_0_24px_rgba(0,0,0,0.12)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.35)]",
+                overlaySurfaceClassName,
+                overlayPanelClassName,
+              )}
+              style={{ maxWidth: "100%" }}
+              initial={{ width: 0 }}
+              animate={{ width: overlayPanelWidth }}
+              exit={{ width: 0 }}
+              transition={RAIL_WIDTH_TRANSITION}
+              onClick={(event) => event.stopPropagation()}
+              onAnimationStart={handleRailAnimationStart}
+              onAnimationComplete={handleRailAnimationComplete}
+            >
+              <motion.div
+                className="flex h-full flex-col"
+                style={{ width: overlayPanelWidth }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={RAIL_PANEL_FADE_TRANSITION}
+              >
+                <div
+                  className={cn(
+                    "shrink-0 border-b border-border bg-background p-4",
+                    overlaySurfaceClassName,
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                        {searchIcon && isValidElement(searchIcon) ? (
+                          cloneElement(
+                            searchIcon as ReactElement<{ className?: string }>,
+                            { className: "size-5 text-primary" },
+                          )
+                        ) : (
+                          <Filter className="size-5 text-primary" />
+                        )}
+                      </div>
+                      <h2 className="text-base font-semibold">Bộ lọc</h2>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setExpanded(false)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="size-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                <ScrollArea
+                  className={cn("flex-1 bg-background", overlaySurfaceClassName)}
+                >
+                  <div
+                    className={cn(
+                      "space-y-5 bg-background p-4",
+                      overlaySurfaceClassName,
+                    )}
+                  >
+                    {overlayContent ?? (
+                      <>
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            {renderLabelIcon(searchIcon, "search")}
+                            Tìm kiếm
+                          </label>
+                          <div className="relative">
+                            <Input
+                              ref={searchInputRef}
+                              placeholder={searchPlaceholder}
+                              value={searchValue}
+                              onChange={handleSearchChange}
+                              className="h-10 border-input bg-background pr-8 focus-visible:ring-2 focus-visible:ring-primary/20"
+                            />
+                            {searchValue && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSearchValue("");
+                                  onSearchChange?.("");
+                                }}
+                                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0 hover:bg-muted"
+                              >
+                                <X className="size-3" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                <div
+                  className={cn(
+                    "shrink-0 border-t border-border bg-background p-4",
+                    overlaySurfaceClassName,
+                  )}
+                >
+                  {overlayFooter ?? (
+                    <Button
+                      variant="outline"
+                      className="h-9 w-full"
+                      onClick={handleClearAll}
+                      disabled={!hasActiveFilters}
+                    >
+                      Đặt lại
+                    </Button>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <motion.div
@@ -896,7 +1103,7 @@ export function NavigationRailFilter({
           )}
           initial={false}
           animate={{ opacity: isExpanded ? 1 : 0 }}
-          transition={{ duration: 0.14 }}
+          transition={RAIL_PANEL_FADE_TRANSITION}
           aria-hidden={!isExpanded}
           style={{ pointerEvents: isExpanded ? "auto" : "none" }}
         >
@@ -934,7 +1141,7 @@ export function NavigationRailFilter({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsExpanded(false)}
+                  onClick={() => setExpanded(false)}
                   className="h-8 w-8 p-0"
                 >
                   <ChevronLeft className="size-4" />
@@ -1438,7 +1645,7 @@ export function NavigationRailFilterDemo() {
       onTagSelect={handleTagSelect}
       onTagRemove={handleTagRemove}
       onClearAll={handleClearAll}
-      onApplyFilters={() => console.log("Apply filters")}
+      onApplyFilters={() => console.log("Áp dụng bộ lọc")}
     />
   );
 }

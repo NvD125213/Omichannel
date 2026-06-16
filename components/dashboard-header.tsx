@@ -5,13 +5,11 @@ import { ProfileDropdown } from "@/components/profile-dropdown";
 import { ThemeCustomizer } from "@/components/theme-customizer";
 import { ToggleTheme } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Settings } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as React from "react";
 import { toast } from "sonner";
-import { TelesipSDK } from "@/components/softphone/telesip-sdk";
 import { ChatUnreadNotificationsMenu } from "@/components/chat-unread-notifications-menu";
 
 export function DashboardHeader() {
@@ -54,23 +52,24 @@ export function DashboardHeader() {
     return (
       <header className="sticky bg-transparent top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 px-4 backdrop-blur-xl ml-2">
         <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
-        <div className="ml-auto flex items-center gap-1">
-          <Separator orientation="vertical" className="mx-2 h-6" />
-        </div>
       </header>
     );
   }
 
   return (
-    <header className="sticky bg-transparent top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b border-border/50 px-4 backdrop-blur-xl ml-2">
-      <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
-      <Separator orientation="vertical" className="mx-2 h-6" />
-      <SearchTrigger onClick={() => setCommandSearchOpen(true)} />
-      <CommandSearch
-        open={commandSearchOpen}
-        onOpenChange={setCommandSearchOpen}
-      />
-      <div className="ml-auto flex items-center gap-1">
+    <header className="sticky top-0 z-50 ml-2 grid h-16 shrink-0 grid-cols-[1fr_minmax(0,42rem)_1fr] items-center gap-2 border-b border-border/50 bg-transparent px-4 backdrop-blur-xl">
+      <div className="flex items-center">
+        <SidebarTrigger className="-ml-1 text-muted-foreground transition-colors hover:text-foreground" />
+      </div>
+
+      <div className="w-full px-2">
+        <SearchTrigger
+          onClick={() => setCommandSearchOpen(true)}
+          className="w-full"
+        />
+      </div>
+
+      <div className="flex items-center justify-end gap-1">
         <ChatUnreadNotificationsMenu />
         <ToggleTheme />
 
@@ -88,10 +87,14 @@ export function DashboardHeader() {
           open={themeCustomizerOpen}
           onOpenChange={setThemeCustomizerOpen}
         />
-        {/* <Separator orientation="vertical" className="mx-2 h-6" /> */}
-        <div className="h-6 w-px bg-border mx-2" />
+        <div className="mx-2 h-6 w-px bg-border" />
         <ProfileDropdown />
       </div>
+
+      <CommandSearch
+        open={commandSearchOpen}
+        onOpenChange={setCommandSearchOpen}
+      />
     </header>
   );
 }

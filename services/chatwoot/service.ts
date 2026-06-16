@@ -72,6 +72,14 @@ import type {
   UpdateChatwootUserResponse,
   UpdateTenantChatwootAccountRequest,
   UpdateTenantChatwootAccountResponse,
+  FilterConversationsRequest,
+  FilterConversationsResponse,
+  CreateAccountCustomFilterRequest,
+  CreateAccountCustomFilterResponse,
+  UpdateAccountCustomFilterRequest,
+  UpdateAccountCustomFilterResponse,
+  DeleteAccountCustomFilterResponse,
+  ListAccountCustomFiltersResponse,
 } from "./interface";
 
 /** Prefix khớp Postman collection "Đa kênh có chatwoot" */
@@ -520,6 +528,24 @@ export const chatwootService = {
     return response.data;
   },
 
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/conversations/filter */
+  filterConversations: async (
+    tenantId: string,
+    data: FilterConversationsRequest,
+    page?: number,
+  ): Promise<FilterConversationsResponse> => {
+    const response = await apiClient.post<FilterConversationsResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/filter`,
+      data,
+      {
+        params: {
+          page: typeof page === "number" && Number.isFinite(page) ? page : 1,
+        },
+      },
+    );
+    return response.data;
+  },
+
   /** GET /api/v1/chatwoot/tenants/:tenant_id/conversations */
   listTenantConversations: async (
     tenantId: string,
@@ -636,7 +662,7 @@ export const chatwootService = {
       return response.data;
     },
 
-  /** POST /api/v1/chatwoot/bulk-actions */
+  /** POST /api/v1/chatwoot/accounts/:tenant_id/bulk_actions */
   bulkAction: async (
     tenantId: string,
     data: BulkActionRequest,
@@ -648,7 +674,53 @@ export const chatwootService = {
     return response.data;
   },
 
-  /** GET /api/v1/chatwoot/tenants/{tenant_id}/conversations/{conversation_id}/update_last_seen */
+  /** GET /api/v1/chatwoot/accounts/:tenant_id/custom_filters */
+  listAccountCustomFilters: async (
+    tenantId: string,
+  ): Promise<ListAccountCustomFiltersResponse> => {
+    const response = await apiClient.get<ListAccountCustomFiltersResponse>(
+      `${CHATWOOT_BASE}/accounts/${tenantId}/custom_filters`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/accounts/:tenant_id/custom_filters */
+  createAccountCustomFilter: async (
+    tenantId: string,
+    data: CreateAccountCustomFilterRequest,
+  ): Promise<CreateAccountCustomFilterResponse> => {
+    const response = await apiClient.post<CreateAccountCustomFilterResponse>(
+      `${CHATWOOT_BASE}/accounts/${tenantId}/custom_filters`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** PATCH /api/v1/chatwoot/accounts/:tenant_id/custom_filters/:filter_id */
+  updateAccountCustomFilter: async (
+    tenantId: string,
+    filterId: number,
+    data: UpdateAccountCustomFilterRequest,
+  ): Promise<UpdateAccountCustomFilterResponse> => {
+    const response = await apiClient.patch<UpdateAccountCustomFilterResponse>(
+      `${CHATWOOT_BASE}/accounts/${tenantId}/custom_filters/${filterId}`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** DELETE /api/v1/chatwoot/accounts/:tenant_id/custom_filters/:filter_id */
+  deleteAccountCustomFilter: async (
+    tenantId: string,
+    filterId: number,
+  ): Promise<DeleteAccountCustomFilterResponse> => {
+    const response = await apiClient.delete<DeleteAccountCustomFilterResponse>(
+      `${CHATWOOT_BASE}/accounts/${tenantId}/custom_filters/${filterId}`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/{tenant_id}/conversations/{conversation_id}/update_last_seen */
   updateTenantConversationLastSeen: async (
     tenantId: string,
     conversationId: string,
