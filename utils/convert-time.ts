@@ -1,5 +1,11 @@
 type DisplayFormat = "text" | "short";
 
+/** Chuẩn hóa ISO từ API (có thể có >3 chữ số phần thập phân giây). */
+export function parseApiDateTime(isoString: string): Date {
+  const normalized = isoString.replace(/(\.\d{3})\d+(?=[Z+-])/, "$1");
+  return new Date(normalized);
+}
+
 export function convertDateTime(
   isoString: string,
   format: DisplayFormat = "text",
@@ -8,7 +14,7 @@ export function convertDateTime(
   time: string;
   datetime: string;
 } {
-  const date = new Date(isoString);
+  const date = parseApiDateTime(isoString);
 
   const day = date.getDate().toString().padStart(2, "0");
   const month = (date.getMonth() + 1).toString().padStart(2, "0");

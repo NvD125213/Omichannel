@@ -2,8 +2,7 @@
 
 import { Bot, Check, ChevronsUpDown } from "lucide-react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { useRouter } from "nextjs-toploader/app";
+import { usePathname, useRouter } from "next/navigation";
 import { useMemo } from "react";
 import {
   DropdownMenu,
@@ -34,7 +33,7 @@ const CHATBOT_WORKSPACE = {
   id: "chatbot",
   name: "Hệ thống A.I Agent",
   plan: "A.I Agent",
-  href: "/ai-dashboard",
+  href: "/ai/dashboard",
 } as const;
 
 const WORKSPACES = [DASHBOARD_WORKSPACE, CHATBOT_WORKSPACE] as const;
@@ -60,7 +59,7 @@ export function TeamSwitcher() {
   const activeWorkspace = useMemo(() => resolveWorkspace(pathname), [pathname]);
 
   const handleWorkspaceSelect = (workspace: Workspace) => {
-    if (pathname === workspace.href) return;
+    if (isWorkspaceActive(pathname, workspace)) return;
     router.push(workspace.href);
   };
 
