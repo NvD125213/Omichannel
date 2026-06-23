@@ -1,7 +1,5 @@
+import { WebDataListTable } from "@/features/chatbot-kg-core/web-data/components/web-data-list-table";
+
 export default function WebDataPage() {
-  return (
-    <div>
-      <h1>Web Data Page</h1>
-    </div>
-  );
+  return <WebDataListTable />;
 }

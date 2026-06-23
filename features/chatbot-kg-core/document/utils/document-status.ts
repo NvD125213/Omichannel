@@ -7,7 +7,8 @@ export function getStatusTone(status: string): StatusTone {
     normalized.includes("done") ||
     normalized.includes("complete") ||
     normalized.includes("success") ||
-    normalized.includes("ready")
+    normalized.includes("ready") ||
+    normalized.includes("accepted")
   ) {
     return "success";
   }
@@ -61,6 +62,7 @@ const statusLabelMap: Record<string, string> = {
   failed: "Lỗi",
   error: "Lỗi",
   reject: "Từ chối",
+  accepted: "Chấp nhận",
 };
 
 export function getStatusLabel(status: string) {

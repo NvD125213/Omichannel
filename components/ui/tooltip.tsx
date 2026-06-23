@@ -54,4 +54,32 @@ function TooltipContent({
   );
 }
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider };
+function HintTooltipContent({
+  className,
+  children,
+  side = "top",
+  align = "center",
+  sideOffset = 5,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        data-slot="tooltip-content"
+        side={side}
+        align={align}
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 w-max max-w-[240px] origin-(--radix-tooltip-content-transform-origin) rounded-md bg-foreground px-2.5 py-1.5 text-center text-xs leading-relaxed text-pretty text-background animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+        <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground" />
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>
+  );
+}
+
+export { Tooltip, TooltipTrigger, TooltipContent, HintTooltipContent, TooltipProvider };

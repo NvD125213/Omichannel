@@ -188,12 +188,14 @@ export function FaqDataListTable() {
                   Array.from({ length: 5 }).map((_, index) => (
                     <div
                       key={index}
-                      className={`space-y-2 px-4 py-4 sm:px-5 ${
-                        index % 2 === 0 ? "bg-muted/30" : "bg-background"
+                      className={`space-y-2.5 px-4 py-4 sm:px-5 ${
+                        index % 2 === 0
+                          ? "bg-muted/15 dark:bg-white/[0.02]"
+                          : "bg-transparent"
                       }`}
                     >
-                      <Skeleton className="h-4 w-2/3 rounded-lg bg-muted/50" />
-                      <Skeleton className="h-3 w-full rounded-lg bg-muted/40" />
+                      <Skeleton className="h-4 w-2/3 rounded-lg bg-zinc-200/90 shadow-sm ring-1 ring-zinc-300/40 dark:bg-white/10 dark:shadow-none dark:ring-white/10" />
+                      <Skeleton className="h-3 w-full rounded-lg bg-zinc-200/75 shadow-sm ring-1 ring-zinc-300/30 dark:bg-white/[0.06] dark:shadow-none dark:ring-white/5" />
                     </div>
                   ))
                 ) : faqs.length > 0 ? (
@@ -207,7 +209,7 @@ export function FaqDataListTable() {
                     />
                   ))
                 ) : (
-                  <div className="bg-transparent py-14">
+                  <div className="bg-transparent">
                     <EmptyData
                       icon={IconMoodEmpty}
                       title="Chưa có FAQ"

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -27,6 +28,7 @@ interface FaqDataPaginationProps {
   };
   currentPage?: number;
   currentPageSize?: number;
+  selectedCount?: number;
   onPageChange?: (page: number | null | undefined) => void;
   onPageSizeChange?: (pageSize: number | null | undefined) => void;
 }
@@ -57,6 +59,7 @@ export function FaqDataPagination({
   pagination,
   currentPage = 1,
   currentPageSize = 10,
+  selectedCount = 0,
   onPageChange,
   onPageSizeChange,
 }: FaqDataPaginationProps) {
@@ -68,7 +71,9 @@ export function FaqDataPagination({
     const newSize = Number(value);
 
     queueMicrotask(() => {
-      onPageSizeChange?.(newSize);
+      if (onPageSizeChange) {
+        onPageSizeChange(newSize);
+      }
     });
   };
 
@@ -91,7 +96,16 @@ export function FaqDataPagination({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <p className={paginationSummaryClass}>
-        {pagination.total > 0 ? (
+        {selectedCount > 0 ? (
+          <>
+            <CheckSquare className="size-4 text-primary/70" />
+            <span>
+              Đã chọn{" "}
+              <span className={cn(paginationCountClass)}>{selectedCount}</span>{" "}
+              mục
+            </span>
+          </>
+        ) : pagination.total != null ? (
           <>
             <MessageCircleQuestion className="size-4 text-primary/60 dark:text-primary/70" />
             <span>
@@ -128,7 +142,7 @@ export function FaqDataPagination({
           </Select>
         </div>
 
-        <span className="px-1 text-sm font-medium tabular-nums text-foreground">
+        <span className="px-1 text-sm tabular-nums font-medium text-foreground">
           {currentPage}
           <span className="mx-1 text-muted-foreground/50">/</span>
           {totalPages}

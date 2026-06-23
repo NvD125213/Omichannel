@@ -204,11 +204,22 @@ export const useListWebCrawls = (
   });
 };
 
-export const useGetWebCrawl = (graphId: string, crawlJobId: string) => {
+export const useGetWebCrawl = (
+  graphId: string,
+  crawlJobId: string,
+  options?: {
+    enabled?: boolean;
+    refetchInterval?:
+      | number
+      | false
+      | ((query: Query<KgCore.WebCrawlJob>) => number | false | undefined);
+  },
+) => {
   return useQuery({
     queryKey: chatbotKgCoreKeys.webCrawl(graphId, crawlJobId),
     queryFn: () => chatbotKgCoreService.getWebCrawl(graphId, crawlJobId),
-    enabled: !!graphId && !!crawlJobId,
+    enabled: options?.enabled ?? (!!graphId && !!crawlJobId),
+    refetchInterval: options?.refetchInterval,
   });
 };
 

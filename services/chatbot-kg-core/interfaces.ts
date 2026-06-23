@@ -234,12 +234,37 @@ export interface WebCrawlDryRunResponse {
   config?: Record<string, unknown>;
 }
 
+export interface WebCrawlJobConfig {
+  seed_urls?: string[];
+  allowed_domains?: string[];
+  include_paths?: string[] | null;
+  block_paths?: string[] | null;
+  approved_urls?: string[] | null;
+  max_pages?: number;
+  max_depth?: number;
+  respect_robots_txt?: boolean;
+  force_recrawl?: boolean;
+  request_timeout_seconds?: number | null;
+  min_quality_score?: number;
+  chunk_max_tokens?: number;
+  chunk_overlap_tokens?: number;
+}
+
+export interface WebCrawlJobStats {
+  failed?: number;
+  skipped?: number;
+  accepted?: number;
+  rejected?: number;
+  discovered?: number;
+  discovery_rejected?: number;
+}
+
 export interface WebCrawlJob {
   id: string;
   graph_id: string;
   state: string;
-  config?: Record<string, unknown>;
-  stats?: Record<string, unknown>;
+  config?: WebCrawlJobConfig;
+  stats?: WebCrawlJobStats;
   created_at: string;
   updated_at: string;
   error_message?: string | null;
@@ -262,12 +287,35 @@ export interface ListWebCrawlsResponse {
   [key: string]: unknown;
 }
 
+export interface WebCrawlPage {
+  id?: string;
+  crawl_job_id?: string;
+  graph_id?: string;
+  document_id?: string | null;
+  url: string;
+  canonical_url?: string | null;
+  title?: string | null;
+  domain?: string | null;
+  status?: string;
+  state?: string;
+  reason?: string | null;
+  quality_score?: number | null;
+  content_hash?: string | null;
+  detail?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  crawled_at?: string | null;
+  error_message?: string | null;
+  source?: string | null;
+  [key: string]: unknown;
+}
+
 export interface ListWebCrawlPagesParams extends PaginationParams {
   status?: string;
 }
 
 export interface ListWebCrawlPagesResponse {
-  items?: Record<string, unknown>[];
+  items?: WebCrawlPage[];
   total?: number;
   [key: string]: unknown;
 }
