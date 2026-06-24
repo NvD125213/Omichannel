@@ -20,6 +20,7 @@ import { WebDataListItem } from "./web-data-list-item";
 import { WebDataPagination } from "./web-data-pagination";
 import { WebDataPagesPanel } from "./web-data-pages-panel";
 import { WebDataToolbar } from "./web-data-toolbar";
+import { getCrawlJobStatItems } from "../utils/web-crawl-page-meta";
 
 function getCrawlTitle(crawl: WebCrawlJob) {
   const seedUrl = crawl.config?.seed_urls?.[0];
@@ -125,7 +126,9 @@ export function WebDataListTable() {
     ? getCrawlTitle(selectedCrawl)
     : "Trang đã crawl";
   const panelDescription = selectedCrawl
-    ? `${selectedCrawl.stats?.accepted ?? 0} trang chấp nhận · ${selectedCrawl.stats?.discovered ?? 0} phát hiện`
+    ? getCrawlJobStatItems(selectedCrawl.stats)
+        .map((item) => `${item.label} ${item.value}`)
+        .join(" · ")
     : "Danh sách trang thu thập từ job crawl";
 
   return (
@@ -204,28 +207,34 @@ export function WebDataListTable() {
                       buttonText=""
                     />
                     <div className="flex justify-center px-4 pb-2">
-                      <Button variant="outline" size="sm" className="rounded-lg" asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-lg"
+                        asChild
+                      >
                         <Link href="/ai/web-data/actions">Crawl mới</Link>
                       </Button>
                     </div>
                   </div>
                 )}
-                <div className="shrink-0 border-border/50 px-0 py-4 backdrop-blur-sm">
-                  <WebDataPagination
-                    pagination={pagination}
-                    currentPage={page}
-                    currentPageSize={pageSize}
-                    onPageChange={handlePageChange}
-                    onPageSizeChange={handlePageSizeChange}
-                    itemLabel="job crawl"
-                  />
-                </div>
+              </div>
+              <div className="shrink-0 border-border/50 px-0 py-4 backdrop-blur-sm">
+                <WebDataPagination
+                  pagination={pagination}
+                  currentPage={page}
+                  currentPageSize={pageSize}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                  itemLabel="job crawl"
+                />
               </div>
             </div>
           </div>
         </SidebarDetailMain>
 
         <SidebarDetailPanel
+          contentKey={selectedCrawl?.id ?? "empty"}
           eyebrow="Trang đã crawl"
           title={panelTitle}
           description={panelDescription}

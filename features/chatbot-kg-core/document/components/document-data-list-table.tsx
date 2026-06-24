@@ -58,9 +58,7 @@ import {
   SidebarDetailMain,
   SidebarDetailPanel,
 } from "@/components/sidebar-detail";
-import {
-  useListDocuments,
-} from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useListDocuments } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
 
 import {
   DocumentDeleteDialog,
@@ -89,7 +87,7 @@ const headerButtonClass =
   "-ml-3 h-8 rounded-lg px-2 font-medium text-accent-foreground/80 transition-colors hover:bg-primary/10 hover:text-primary dark:text-sidebar-foreground/75 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground";
 
 const tableHeadClass =
-  "h-11 bg-accent/60 text-xs font-semibold tracking-wide text-accent-foreground dark:bg-primary/15 dark:text-sidebar-primary-foreground";
+  "h-11 bg-accent text-xs font-semibold tracking-wide text-accent-foreground dark:bg-card dark:text-sidebar-primary-foreground";
 
 const tableHeaderRowClass =
   "border-b border-primary/10 hover:bg-transparent dark:border-sidebar-border/40";
@@ -108,7 +106,10 @@ const tableTextPrimaryClass = "text-foreground";
 const tableTextSecondaryClass = "text-muted-foreground";
 
 const tableShellClass =
-  "overflow-hidden rounded-lg border border-primary/15 bg-background shadow-sm dark:border-sidebar-border/45";
+  "flex max-h-full flex-col overflow-hidden rounded-l-lg border border-primary/15 bg-background shadow-sm dark:border-sidebar-border/45";
+
+const tableScrollClass =
+  "max-h-full overflow-x-auto overflow-y-auto overscroll-contain thin-scroll";
 
 const tableActionButtonClass =
   "size-8 rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-primary dark:hover:bg-primary/15 dark:hover:text-primary";
@@ -575,10 +576,7 @@ export function DocumentDataListTable() {
       enableSorting: false,
       header: () => (
         <span
-          className={cn(
-            "rounded-lg px-2 text-sm font-medium",
-            tableHeaderLabelClass,
-          )}
+          className={cn(" px-2 text-sm font-medium", tableHeaderLabelClass)}
         >
           Thao tác
         </span>
@@ -721,79 +719,83 @@ export function DocumentDataListTable() {
               </div>
             )}
 
-            <div className="h-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain thin-scroll">
-              <div className={tableShellClass}>
-                <Table containerClassName="thin-scroll">
-                  <TableHeader className="sticky top-0 z-10 [&_th:first-child]:rounded-tl-md [&_th:last-child]:rounded-tr-md">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <TableRow
-                        key={headerGroup.id}
-                        className={tableHeaderRowClass}
-                      >
-                        {headerGroup.headers.map((header) => (
-                          <TableHead
-                            key={header.id}
-                            colSpan={header.colSpan}
-                            className={tableHeadClass}
-                          >
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext(),
-                                )}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableHeader>
-                  <TableBody className="[&_tr:last-child]:border-b [&_tr:last-child_td:first-child]:rounded-bl-md [&_tr:last-child_td:last-child]:rounded-br-md">
-                    {isLoading && !data ? (
-                      Array.from({ length: 5 }).map((_, index) => (
-                        <TableRow key={index} className={tableRowStaticClass}>
-                          {columns.map((_, cellIndex) => (
-                            <TableCell key={cellIndex} className="py-4">
-                              <Skeleton className="h-5 w-full rounded-lg bg-muted/60" />
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))
-                    ) : table.getRowModel().rows?.length ? (
-                      table.getRowModel().rows.map((row) => (
+            <div className="flex h-0 min-h-0 flex-1 flex-col overflow-hidden">
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <div className={cn(tableShellClass, "w-full")}>
+                  <div className={tableScrollClass}>
+                  <Table containerClassName="overflow-visible">
+                    <TableHeader className="[&_th:first-child]:overflow-hidden [&_th:first-child]:rounded-tl-lg [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:shadow-[0_1px_0_0_hsl(var(--primary)/0.12)] dark:[&_th]:shadow-[0_1px_0_0_hsl(var(--sidebar-border)/0.45)]">
+                      {table.getHeaderGroups().map((headerGroup) => (
                         <TableRow
-                          key={row.id}
-                          data-state={row.getIsSelected() && "selected"}
-                          className={tableRowClass}
+                          key={headerGroup.id}
+                          className={tableHeaderRowClass}
                         >
-                          {row.getVisibleCells().map((cell) => (
-                            <TableCell key={cell.id} className="py-3.5">
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
-                            </TableCell>
+                          {headerGroup.headers.map((header) => (
+                            <TableHead
+                              key={header.id}
+                              colSpan={header.colSpan}
+                              className={tableHeadClass}
+                            >
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext(),
+                                  )}
+                            </TableHead>
                           ))}
                         </TableRow>
-                      ))
-                    ) : (
-                      <TableRow className={tableRowStaticClass}>
-                        <TableCell colSpan={columns.length}>
-                          <EmptyData
-                            icon={IconMoodEmpty}
-                            title="Chưa có tài liệu"
-                            description="Tải lên tệp đầu tiên để agent bắt đầu học"
-                            showButton={false}
-                            buttonText=""
-                            onButtonClick={() => {}}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      ))}
+                    </TableHeader>
+                    <TableBody className="[&_tr:last-child]:border-b [&_tr:last-child_td:first-child]:overflow-hidden [&_tr:last-child_td:first-child]:rounded-bl-lg">
+                      {isLoading && !data ? (
+                        Array.from({ length: 5 }).map((_, index) => (
+                          <TableRow key={index} className={tableRowStaticClass}>
+                            {columns.map((_, cellIndex) => (
+                              <TableCell key={cellIndex} className="py-4">
+                                <Skeleton className="h-5 w-full rounded-lg bg-muted/60" />
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : table.getRowModel().rows?.length ? (
+                        table.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            data-state={row.getIsSelected() && "selected"}
+                            className={tableRowClass}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell key={cell.id} className="py-3.5">
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext(),
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow className={tableRowStaticClass}>
+                          <TableCell colSpan={columns.length}>
+                            <EmptyData
+                              icon={IconMoodEmpty}
+                              title="Chưa có tài liệu"
+                              description="Tải lên tệp đầu tiên để agent bắt đầu học"
+                              showButton={false}
+                              buttonText=""
+                              onButtonClick={() => {}}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
+            </div>
 
-              <div className="sticky bottom-0 z-10 pt-3">
+              <div className="shrink-0 border-primary/10 pt-3 dark:border-sidebar-border/40">
                 <DataTablePagination
                   table={table}
                   pagination={pagination}
@@ -809,6 +811,7 @@ export function DocumentDataListTable() {
         </SidebarDetailMain>
 
         <SidebarDetailPanel
+          contentKey={detailDocument?.id ?? "empty"}
           eyebrow={
             detailDocument && !isTerminalStatus(detailDocument.status)
               ? "Tiến trình"

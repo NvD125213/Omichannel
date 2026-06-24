@@ -1,13 +1,8 @@
 "use client";
 
-import { DotIcon, ExternalLink, Globe, Sparkles } from "lucide-react";
+import { DotIcon, ExternalLink, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  getStatusLabel,
-  getStatusTone,
-  statusToneClass,
-} from "@/features/chatbot-kg-core/document/utils/document-status";
 import { cn } from "@/lib/utils";
 import type { WebCrawlPage } from "@/services/chatbot-kg-core/interfaces";
 import { convertDateTime, parseApiDateTime } from "@/utils/convert-time";
@@ -15,16 +10,14 @@ import {
   getPageDetailEntries,
   getPageQualityScore,
   getPageReason,
+  getPageStatusCategory,
+  getPageStatusLabel,
+  getPageStatusPillClass,
   hasPageInsightInfo,
 } from "../utils/web-crawl-page-meta";
-
 interface WebDataPageItemProps {
   page: WebCrawlPage;
   index: number;
-}
-
-function getPageStatus(page: WebCrawlPage) {
-  return page.status ?? page.state ?? "unknown";
 }
 
 function getPageTitle(page: WebCrawlPage) {
@@ -46,49 +39,33 @@ function getPageTimestamp(page: WebCrawlPage) {
 function PageInsights({
   reason,
   detailEntries,
-  isError,
 }: {
   reason: string | null;
   detailEntries: { label: string; value: string }[];
-  isError: boolean;
 }) {
   const detailLine = detailEntries
     .map((entry) => `${entry.label}: ${entry.value}`)
     .join(" · ");
 
   return (
-    <div
-      className={cn(
-        "rounded-md border px-2.5 py-1.5 text-[11px] leading-snug shadow-sm",
-        isError
-          ? "border-rose-300/90 bg-rose-50 text-rose-950 ring-1 ring-rose-200/70 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-50 dark:ring-rose-900/50"
-          : "border-amber-300/80 bg-amber-50 text-amber-950 ring-1 ring-amber-200/60 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-50 dark:ring-amber-900/40",
-      )}
-    >
+    <div className="space-y-2">
       {reason ? (
-        <p
-          className={cn(
-            "line-clamp-2 break-all font-semibold",
-            isError
-              ? "text-rose-700 dark:text-rose-300"
-              : "text-amber-800 dark:text-amber-300",
-          )}
-        >
-          {reason}
+        <p className="flex flex-wrap items-baseline gap-x-2 text-xs leading-relaxed text-muted-foreground/75">
+          <span className="shrink-0 font-medium text-foreground">
+            Lý do lỗi:
+          </span>
+          <span className="min-w-0 flex-1 break-all font-bold text-xs text-red-500">
+            {reason}
+          </span>
         </p>
       ) : null}
 
       {detailLine ? (
-        <p
-          className={cn(
-            "line-clamp-2 break-all",
-            reason ? "mt-0.5" : undefined,
-            isError
-              ? "text-rose-600/95 dark:text-rose-200/90"
-              : "text-amber-700/95 dark:text-amber-200/90",
-          )}
-        >
-          {detailLine}
+        <p className="flex flex-wrap items-baseline gap-x-2 text-xs leading-relaxed text-muted-foreground/75">
+          <span className="shrink-0 font-medium text-foreground">
+            Chi tiết:
+          </span>
+          <span className="min-w-0 flex-1 break-all">{detailLine}</span>
         </p>
       ) : null}
     </div>
@@ -96,8 +73,7 @@ function PageInsights({
 }
 
 export function WebDataPageItem({ page, index }: WebDataPageItemProps) {
-  const status = getPageStatus(page);
-  const statusTone = getStatusTone(status);
+  const statusCategory = getPageStatusCategory(page);
   const timestamp = getPageTimestamp(page);
   const displayTime =
     timestamp && !Number.isNaN(parseApiDateTime(timestamp).getTime())
@@ -109,7 +85,6 @@ export function WebDataPageItem({ page, index }: WebDataPageItemProps) {
   const reason = getPageReason(page);
   const detailEntries = getPageDetailEntries(page);
   const showInsights = hasPageInsightInfo(page);
-  const isErrorInsight = statusTone === "error" || Boolean(reason);
 
   return (
     <article
@@ -138,16 +113,9 @@ export function WebDataPageItem({ page, index }: WebDataPageItemProps) {
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5">
-            <Badge
-              variant="outline"
-              className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium",
-                statusToneClass[statusTone],
-              )}
-            >
-              <Globe className="size-2.5" />
-              {getStatusLabel(status)}
-            </Badge>
+            <span className={getPageStatusPillClass(statusCategory)}>
+              {getPageStatusLabel(statusCategory)}
+            </span>
             {page.domain ? (
               <Badge
                 variant="outline"
@@ -173,11 +141,7 @@ export function WebDataPageItem({ page, index }: WebDataPageItemProps) {
           </p>
 
           {showInsights ? (
-            <PageInsights
-              reason={reason}
-              detailEntries={detailEntries}
-              isError={isErrorInsight}
-            />
+            <PageInsights reason={reason} detailEntries={detailEntries} />
           ) : null}
         </div>
 

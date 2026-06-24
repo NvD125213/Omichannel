@@ -1,18 +1,8 @@
 "use client";
 
-import {
-  CheckCircle2,
-  DotIcon,
-  Eye,
-  Globe,
-  Layers,
-  Loader2,
-  RefreshCw,
-  XCircle,
-} from "lucide-react";
+import { DotIcon, Eye, Globe, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import {
   getStatusLabel,
   getStatusTone,
@@ -22,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { WebCrawlJob } from "@/services/chatbot-kg-core/interfaces";
 import { convertDateTime, parseApiDateTime } from "@/utils/convert-time";
 import { useWebCrawlJobMonitor } from "../hooks/use-web-crawl-job-monitor";
+import { getCrawlJobStatItems } from "../utils/web-crawl-page-meta";
 
 interface WebDataListItemProps {
   graphId: string;
@@ -30,6 +21,23 @@ interface WebDataListItemProps {
   isActive?: boolean;
   onView?: (crawl: WebCrawlJob) => void;
   onCrawlUpdate?: (crawl: WebCrawlJob) => void;
+}
+
+const actionButtonClass =
+  "h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground/70 transition-colors hover:bg-background/60 hover:text-foreground/80";
+
+const waveProgressTrackClass =
+  "relative h-1.5 w-full overflow-hidden rounded-full bg-zinc-400/30 shadow-[inset_0_1px_2px_rgba(15,23,42,0.14)] ring-1 ring-zinc-500/25 dark:bg-zinc-600/35 dark:ring-zinc-500/35";
+
+const waveProgressIndicatorClass =
+  "absolute inset-y-0 left-0 w-[38%] animate-dry-run-wave rounded-full bg-linear-to-r from-white/0 via-white/85 to-white/0 dark:via-white/35";
+
+function WebCrawlWaveProgress() {
+  return (
+    <div className={waveProgressTrackClass} aria-hidden>
+      <div className={waveProgressIndicatorClass} />
+    </div>
+  );
 }
 
 function getCrawlTitle(crawl: WebCrawlJob) {
@@ -47,10 +55,6 @@ function getCrawlTimestamp(crawl: WebCrawlJob) {
   return crawl.completed_at ?? crawl.updated_at ?? crawl.created_at;
 }
 
-function formatStat(value: number | undefined) {
-  return value ?? 0;
-}
-
 export function WebDataListItem({
   graphId,
   crawl,
@@ -59,12 +63,17 @@ export function WebDataListItem({
   onView,
   onCrawlUpdate,
 }: WebDataListItemProps) {
-  const { handleRefresh, isRefreshing, showProgress, progress, progressLabel } =
+  const { handleRefresh, isRefreshing, showProgress, progressLabel } =
     useWebCrawlJobMonitor({
       graphId,
       crawl,
       onCrawlUpdate,
     });
+
+  const isTrackingJob = showProgress || isRefreshing;
+  const trackingLabel = isRefreshing
+    ? "Đang cập nhật tiến độ..."
+    : progressLabel;
 
   const status = crawl.state;
   const statusTone = getStatusTone(status);
@@ -74,11 +83,7 @@ export function WebDataListItem({
       ? convertDateTime(timestamp, "short")
       : null;
   const isMutedRow = index % 2 === 0;
-  const stats = crawl.stats;
-  const accepted = formatStat(stats?.accepted);
-  const discovered = formatStat(stats?.discovered);
-  const failed = formatStat(stats?.failed);
-  const rejected = formatStat(stats?.rejected);
+  const statItems = getCrawlJobStatItems(crawl.stats);
   const maxPages = crawl.config?.max_pages;
   const domains = crawl.config?.allowed_domains ?? [];
 
@@ -115,57 +120,23 @@ export function WebDataListItem({
         <Badge
           variant="outline"
           className={cn(
-            "rounded-full px-2 py-0.5 text-[11px] font-medium",
+            "rounded-full px-3 py-1 text-[11px] font-medium",
             statusToneClass[statusTone],
           )}
         >
           <Globe className="size-3" />
           {getStatusLabel(status)}
         </Badge>
-        <Badge
-          variant="outline"
-          className="rounded-full border-border/70 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground dark:border-border/60 dark:bg-muted/20"
-        >
-          <Layers className="size-3" />
-          Phát hiện {discovered} URL
-        </Badge>
-        <Badge
-          variant="outline"
-          className="rounded-full border-emerald-200/70 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/35 dark:text-emerald-400"
-        >
-          <CheckCircle2 className="size-3" />
-          {accepted} chấp nhận
-        </Badge>
 
-        {failed > 0 ? (
-          <Badge
-            variant="outline"
-            className="rounded-full border-rose-200/70 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700 dark:border-rose-800/50 dark:bg-rose-950/35 dark:text-rose-400"
-          >
-            <XCircle className="size-3" />
-            {failed} lỗi
-          </Badge>
-        ) : null}
-        {rejected > 0 ? (
-          <Badge
-            variant="outline"
-            className="rounded-full border-amber-200/70 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/35 dark:text-amber-400"
-          >
-            {rejected} từ chối
-          </Badge>
-        ) : null}
-        {domains.length > 0 ? (
-          <Badge
-            variant="outline"
-            className="rounded-full border-border/70 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
-          >
-            {domains.join(", ")}
-          </Badge>
-        ) : null}
+        {statItems.map((item) => (
+          <span key={item.key} className={item.pillClass}>
+            {item.label} {item.value}
+          </span>
+        ))}
       </div>
 
-      <div className="mt-2 flex items-start justify-between gap-4">
-        <div className="min-w-0 flex-1 space-y-1">
+      <div className="mt-2 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0 flex-1 space-y-2">
           <p className="text-xs leading-relaxed text-muted-foreground/65">
             {maxPages != null ? <span>Giới hạn {maxPages} trang</span> : null}
             {maxPages != null && crawl.config?.max_depth != null ? (
@@ -178,52 +149,46 @@ export function WebDataListItem({
               <span> · {crawl.config!.approved_urls!.length} URL duyệt</span>
             ) : null}
           </p>
+
+          {isTrackingJob ? (
+            <div className="space-y-1.5 pr-1">
+              <p className="text-[11px] leading-relaxed text-muted-foreground/75">
+                {trackingLabel}
+              </p>
+              <WebCrawlWaveProgress />
+            </div>
+          ) : null}
         </div>
 
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex shrink-0 items-center gap-1 self-end sm:pt-0.5">
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="size-8 rounded-lg text-muted-foreground/70 transition-colors hover:bg-background/60 hover:text-foreground/80"
+            size="sm"
+            className={actionButtonClass}
             onClick={handleRefresh}
             disabled={isRefreshing}
-            aria-label="Làm mới tiến độ job"
           >
             {isRefreshing ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
               <RefreshCw className="size-3.5" />
             )}
+            Làm mới
           </Button>
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="size-8 rounded-lg text-muted-foreground/70 transition-colors hover:bg-background/60 hover:text-foreground/80"
+            size="sm"
+            className={actionButtonClass}
             onClick={() => onView?.(crawl)}
-            aria-label="Xem trang"
+            disabled={isRefreshing}
           >
             <Eye className="size-3.5" />
+            Xem trang
           </Button>
         </div>
       </div>
-
-      {showProgress ? (
-        <div className="mt-3 space-y-1.5 rounded-xl border border-primary/10 bg-accent/20 px-3 py-2.5 dark:border-sidebar-border/40 dark:bg-primary/10">
-          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-            <span className="min-w-0 truncate">{progressLabel}</span>
-            <span className="shrink-0 tabular-nums">{progress}%</span>
-          </div>
-          <Progress
-            value={progress}
-            className="h-1.5 **:data-[slot=progress-indicator]:animate-pulse"
-          />
-          <p className="text-[11px] text-muted-foreground/80">
-            Tự động cập nhật mỗi phút khi job đang chạy
-          </p>
-        </div>
-      ) : null}
 
       {crawl.error_message ? (
         <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-rose-600/80 dark:text-rose-400/80">

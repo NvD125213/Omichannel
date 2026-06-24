@@ -235,6 +235,7 @@ export function FaqDataListTable() {
         </SidebarDetailMain>
 
         <SidebarDetailPanel
+          contentKey={editingFaq?.id ?? "new"}
           eyebrow={isEditMode ? "Chỉnh sửa" : "Thêm mới"}
           title={
             isEditMode

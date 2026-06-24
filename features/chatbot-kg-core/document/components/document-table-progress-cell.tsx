@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, SkipForward, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DocumentTableEmptyValue } from "./document-table-empty-value";
 import {
   getStatusProgress,
+  getStatusLabel,
   getStatusTone,
   isTerminalStatus,
   type StatusTone,
@@ -18,6 +19,7 @@ const toneBarClass: Record<StatusTone, string> = {
     "bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-400 shadow-[0_0_10px_-2px_rgba(16,185,129,0.45)]",
   error:
     "bg-gradient-to-r from-rose-400 via-rose-500 to-red-400 shadow-[0_0_10px_-2px_rgba(244,63,94,0.45)]",
+  skip: "bg-gradient-to-r from-sky-400 via-sky-500 to-cyan-400 shadow-[0_0_10px_-2px_rgba(14,165,233,0.45)]",
   neutral: "bg-gradient-to-r from-primary/70 to-primary",
 };
 
@@ -26,6 +28,7 @@ const toneTrackClass: Record<StatusTone, string> = {
   success:
     "bg-emerald-100/70 ring-emerald-200/50 dark:bg-emerald-950/25 dark:ring-emerald-800/35",
   error: "bg-rose-100/70 ring-rose-200/50 dark:bg-rose-950/25 dark:ring-rose-800/35",
+  skip: "bg-sky-100/70 ring-sky-200/50 dark:bg-sky-950/25 dark:ring-sky-800/35",
   neutral: "bg-muted/50 ring-border/50",
 };
 
@@ -45,7 +48,8 @@ export function DocumentTableProgressCell({
   const tone = getStatusTone(status);
   const processing = highlighted || !isTerminalStatus(status);
   const isSuccess = tone === "success" && !processing;
-  const barWidth = processing ? "42%" : isSuccess ? "100%" : `${getStatusProgress(status)}%`;
+  const isSkip = tone === "skip" && !processing;
+  const barWidth = processing ? "42%" : isSuccess || isSkip ? "100%" : `${getStatusProgress(status)}%`;
 
   if (!processing && tone === "neutral") {
     return <DocumentTableEmptyValue className={className} />;
@@ -55,9 +59,11 @@ export function DocumentTableProgressCell({
     ? CheckCircle2
     : tone === "error"
       ? XCircle
-      : processing
-        ? Loader2
-        : null;
+      : isSkip
+        ? SkipForward
+        : processing
+          ? Loader2
+          : null;
 
   return (
     <div
@@ -74,6 +80,7 @@ export function DocumentTableProgressCell({
               "size-3.5 shrink-0",
               isSuccess && "text-emerald-500",
               tone === "error" && "text-rose-500",
+              isSkip && "text-sky-500",
               processing && "animate-spin text-amber-500",
             )}
           />
@@ -84,9 +91,16 @@ export function DocumentTableProgressCell({
             processing && "text-amber-700 dark:text-amber-400",
             isSuccess && "tabular-nums text-emerald-700 dark:text-emerald-400",
             tone === "error" && "text-rose-700 dark:text-rose-400",
+            isSkip && "text-sky-700 dark:text-sky-400",
           )}
         >
-          {processing ? "Đang chạy" : isSuccess ? "100%" : "Lỗi"}
+          {processing
+            ? "Đang chạy"
+            : isSuccess
+              ? "100%"
+              : isSkip
+                ? getStatusLabel(status)
+                : "Lỗi"}
         </span>
       </div>
 

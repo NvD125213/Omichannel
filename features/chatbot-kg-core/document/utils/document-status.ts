@@ -1,4 +1,4 @@
-export type StatusTone = "success" | "error" | "pending" | "neutral";
+export type StatusTone = "success" | "error" | "pending" | "skip" | "neutral";
 
 export function getStatusTone(status: string): StatusTone {
   const normalized = status.toLowerCase();
@@ -21,6 +21,10 @@ export function getStatusTone(status: string): StatusTone {
     return "error";
   }
 
+  if (normalized.includes("skip")) {
+    return "skip";
+  }
+
   if (
     normalized.includes("pending") ||
     normalized.includes("process") ||
@@ -37,13 +41,14 @@ export function getStatusTone(status: string): StatusTone {
 
 export const statusToneClass: Record<StatusTone, string> = {
   success:
-    "border-emerald-200/70 bg-emerald-50 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/35 dark:text-emerald-400",
+    "border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/35 dark:text-emerald-400",
   error:
-    "border-rose-200/70 bg-rose-50 text-rose-700 dark:border-rose-800/50 dark:bg-rose-950/35 dark:text-rose-400",
+    "border border-rose-200/80 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/35 dark:text-rose-400",
   pending:
-    "border-amber-200/70 bg-amber-50 text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/35 dark:text-amber-400",
+    "border border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-700/50 dark:bg-amber-950/35 dark:text-amber-400",
+  skip: "border border-sky-200/80 bg-sky-50 text-sky-700 dark:border-sky-700/50 dark:bg-sky-950/35 dark:text-sky-400",
   neutral:
-    "border-primary/15 bg-accent/40 text-accent-foreground/80 dark:border-sidebar-border/40 dark:bg-primary/10 dark:text-sidebar-foreground/80",
+    "border border-border/70 bg-accent/40 text-accent-foreground/80 dark:border-sidebar-border/50 dark:bg-primary/10 dark:text-sidebar-foreground/80",
 };
 
 const statusLabelMap: Record<string, string> = {
@@ -62,6 +67,8 @@ const statusLabelMap: Record<string, string> = {
   failed: "Lỗi",
   error: "Lỗi",
   reject: "Từ chối",
+  skip: "Bỏ qua",
+  skipped: "Bỏ qua",
   accepted: "Chấp nhận",
 };
 
@@ -72,7 +79,7 @@ export function getStatusLabel(status: string) {
 
 export function isTerminalStatus(status: string) {
   const tone = getStatusTone(status);
-  return tone === "success" || tone === "error";
+  return tone === "success" || tone === "error" || tone === "skip";
 }
 
 export function getStatusProgress(status: string) {
@@ -90,7 +97,8 @@ export function getStatusProgress(status: string) {
   if (
     normalized.includes("fail") ||
     normalized.includes("error") ||
-    normalized.includes("reject")
+    normalized.includes("reject") ||
+    normalized.includes("skip")
   ) {
     return 100;
   }

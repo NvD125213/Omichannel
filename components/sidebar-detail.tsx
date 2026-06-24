@@ -35,8 +35,18 @@ const OVERLAY_EXIT = {
   ease: CLOSE_EASE,
 };
 
+const PANEL_DATA_SWITCH_ENTER = {
+  duration: 0.3,
+  ease: OPEN_EASE,
+};
+
+const PANEL_DATA_SWITCH_EXIT = {
+  duration: 0.22,
+  ease: CLOSE_EASE,
+};
+
 const panelHeaderClass =
-  "relative shrink-0 overflow-hidden border-b border-primary/10 bg-accent/60 px-5 pb-5 pt-5 text-accent-foreground shadow-sm backdrop-blur-sm dark:border-sidebar-border/40 dark:bg-primary/15 dark:text-sidebar-primary-foreground";
+  "relative shrink-0 overflow-hidden border-b border-primary/10 bg-accent/60 px-5 pb-5 pt-5 text-accent-foreground shadow-sm backdrop-blur-sm dark:border-sidebar-border/40 dark:bg-transparent dark:text-sidebar-primary-foreground";
 
 interface SidebarDetailContextValue {
   open: boolean;
@@ -234,10 +244,10 @@ function SidebarDetail({
             className={cn(
               "flex h-full min-h-0 flex-col overflow-hidden rounded-2xl",
               "bg-card text-card-foreground border border-border/80 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)]",
-              "dark:bg-zinc-900/95 dark:border-zinc-800 dark:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]",
+              "dark:border-zinc-800 dark:bg-transparent dark:shadow-none",
             )}
           >
-            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[calc(1rem-0.125rem)] bg-background dark:bg-zinc-950">
+            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-[calc(1rem-0.125rem)] bg-background dark:bg-transparent">
               {panel}
             </div>
           </div>
@@ -307,6 +317,22 @@ interface SidebarDetailPanelProps {
   children: React.ReactNode;
   className?: string;
   footer?: React.ReactNode;
+  contentKey?: React.Key;
+}
+
+function resolvePanelContentKey(
+  contentKey: React.Key | undefined,
+  title?: React.ReactNode,
+  eyebrow?: React.ReactNode,
+  description?: React.ReactNode,
+) {
+  if (contentKey != null) return String(contentKey);
+
+  const parts = [eyebrow, title, description]
+    .filter((value) => typeof value === "string" || typeof value === "number")
+    .map(String);
+
+  return parts.join("::") || "panel-content";
 }
 
 function SidebarDetailPanel({
@@ -316,8 +342,66 @@ function SidebarDetailPanel({
   children,
   className,
   footer,
+  contentKey,
 }: SidebarDetailPanelProps) {
   const { open, onOpenChange } = useSidebarDetail();
+  const resolvedContentKey = resolvePanelContentKey(
+    contentKey,
+    title,
+    eyebrow,
+    description,
+  );
+  const [prevPanelState, setPrevPanelState] = React.useState({
+    open: false,
+    contentKey: "",
+  });
+
+  const isFirstOpen = open && !prevPanelState.open;
+  const isContentSwitch =
+    open &&
+    prevPanelState.open &&
+    prevPanelState.contentKey !== resolvedContentKey;
+
+  const panelMotionTransition = isContentSwitch
+    ? {
+        enter: PANEL_DATA_SWITCH_ENTER,
+        exit: PANEL_DATA_SWITCH_EXIT,
+      }
+    : {
+        enter: {
+          duration: PANEL_CONTENT_ENTER.duration,
+          delay: isFirstOpen ? 0.38 : 0,
+          ease: OPEN_EASE,
+        },
+        exit: {
+          duration: PANEL_CONTENT_EXIT.duration,
+          ease: CLOSE_EASE,
+        },
+      };
+
+  React.useEffect(() => {
+    setPrevPanelState({ open, contentKey: resolvedContentKey });
+  }, [open, resolvedContentKey]);
+
+  const panelHeaderContent = (
+    <div className="min-w-0 space-y-2">
+      {eyebrow && (
+        <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-primary ring-1 ring-primary/15 dark:bg-primary/20 dark:text-primary-foreground">
+          {eyebrow}
+        </span>
+      )}
+      {title && (
+        <h3 className="truncate text-[15px] font-semibold tracking-tight text-accent-foreground dark:text-sidebar-primary-foreground">
+          {title}
+        </h3>
+      )}
+      {description && (
+        <p className="text-[13px] leading-relaxed text-accent-foreground/75 dark:text-sidebar-primary-foreground/75">
+          {description}
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -325,44 +409,37 @@ function SidebarDetailPanel({
     >
       <div className={panelHeaderClass}>
         <div className="relative flex items-start justify-between gap-3">
-          <motion.div
-            key={open ? "panel-open" : "panel-closed"}
-            initial={{ opacity: 0, y: 10 }}
-            animate={open ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-            transition={{
-              delay: open ? 0.38 : 0,
-              duration: open
-                ? PANEL_CONTENT_ENTER.duration
-                : PANEL_CONTENT_EXIT.duration,
-              ease: open ? OPEN_EASE : CLOSE_EASE,
-            }}
-            className="min-w-0 space-y-2"
-          >
-            {eyebrow && (
-              <span className="inline-flex rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-[0.16em] text-primary ring-1 ring-primary/15 dark:bg-primary/20 dark:text-primary-foreground">
-                {eyebrow}
-              </span>
-            )}
-            {title && (
-              <h3 className="truncate text-[15px] font-semibold tracking-tight text-accent-foreground dark:text-sidebar-primary-foreground">
-                {title}
-              </h3>
-            )}
-            {description && (
-              <p className="text-[13px] leading-relaxed text-accent-foreground/75 dark:text-sidebar-primary-foreground/75">
-                {description}
-              </p>
-            )}
-          </motion.div>
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              {open ? (
+                <motion.div
+                  key={resolvedContentKey}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    transition: panelMotionTransition.enter,
+                  }}
+                  exit={{
+                    opacity: 0,
+                    y: -6,
+                    transition: panelMotionTransition.exit,
+                  }}
+                >
+                  {panelHeaderContent}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
 
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            className="group size-9 shrink-0 rounded-full border border-primary/15 bg-background/80 text-muted-foreground shadow-sm backdrop-blur-sm transition-all duration-300 hover:bg-accent hover:text-primary active:scale-[0.96] dark:border-sidebar-border/40 dark:bg-background/70 dark:hover:bg-primary/15 dark:hover:text-primary"
+            className="group size-9 shrink-0 rounded-full border border-primary/15 bg-background/80 text-muted-foreground shadow-sm backdrop-blur-sm transition-all duration-300 hover:bg-accent hover:text-primary active:scale-[0.96] dark:border-sidebar-border/40 dark:bg-transparent dark:hover:bg-primary/15 dark:hover:text-primary"
             onClick={() => onOpenChange(false)}
           >
-            <span className="flex size-6 items-center justify-center rounded-full border border-primary/10 bg-background/90 transition-transform duration-300 group-hover:scale-105 dark:border-sidebar-border/30">
+            <span className="flex size-6 items-center justify-center rounded-full border border-primary/10 bg-background/90 transition-transform duration-300 group-hover:scale-105 dark:border-sidebar-border/30 dark:bg-transparent">
               <X className="size-3.5" />
             </span>
             <span className="sr-only">Đóng</span>
@@ -371,14 +448,53 @@ function SidebarDetailPanel({
       </div>
 
       <div className="h-0 min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 pb-5 pt-5 thin-scroll">
-        <div className="space-y-4">{children}</div>
+        <AnimatePresence mode="wait" initial={false}>
+          {open ? (
+            <motion.div
+              key={resolvedContentKey}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                transition: panelMotionTransition.enter,
+              }}
+              exit={{
+                opacity: 0,
+                y: -8,
+                transition: panelMotionTransition.exit,
+              }}
+              className="space-y-4"
+            >
+              {children}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </div>
 
-      {footer && (
+      {footer ? (
         <div className="shrink-0 border-t border-border px-5 py-4">
-          {footer}
+          <AnimatePresence mode="wait" initial={false}>
+            {open ? (
+              <motion.div
+                key={resolvedContentKey}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  transition: panelMotionTransition.enter,
+                }}
+                exit={{
+                  opacity: 0,
+                  y: -6,
+                  transition: panelMotionTransition.exit,
+                }}
+              >
+                {footer}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -410,7 +526,7 @@ function SidebarDetailField({
       </div>
 
       <div className="rounded-xl p-1 border border-border/60">
-        <div className="rounded-[calc(0.75rem-0.125rem)] bg-background">
+        <div className="rounded-[calc(0.75rem-0.125rem)] bg-background dark:bg-transparent">
           {children}
         </div>
       </div>

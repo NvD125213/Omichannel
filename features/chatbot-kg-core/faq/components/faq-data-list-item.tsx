@@ -14,6 +14,12 @@ interface FaqDataListItemProps {
   onDelete?: (faq: KgFaq) => void;
 }
 
+const editButtonClass =
+  "h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground/70 transition-colors hover:bg-background/60 hover:text-foreground/80";
+
+const deleteButtonClass =
+  "h-8 gap-1.5 rounded-lg px-2.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive";
+
 export function FaqDataListItem({
   faq,
   index,
@@ -85,26 +91,26 @@ export function FaqDataListItem({
           <span className="font-medium text-foreground/80">Câu trả lời: </span>
           {faq.answer}
         </p>
-        <div className="flex shrink-0 items-center gap-0.5">
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="size-8 rounded-lg text-muted-foreground/70 transition-colors hover:bg-background/60 hover:text-foreground/80"
+            size="sm"
+            className={editButtonClass}
             onClick={() => onEdit?.(faq)}
-            aria-label="Chỉnh sửa"
           >
             <Pencil className="size-3.5" />
+            Sửa
           </Button>
           <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="size-8 rounded-lg text-amber-600/75 transition-colors hover:bg-amber-500/8 hover:text-amber-600"
+            size="sm"
+            className={deleteButtonClass}
             onClick={() => onDelete?.(faq)}
-            aria-label="Xóa"
           >
             <Trash2 className="size-3.5" />
+            Xóa
           </Button>
         </div>
       </div>

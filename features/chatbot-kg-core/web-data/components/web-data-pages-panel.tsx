@@ -11,6 +11,9 @@ import type {
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { WebDataPageItem } from "./web-data-page-item";
 import { WebDataPagination } from "./web-data-pagination";
+import {
+  getCrawlJobStatItems,
+} from "../utils/web-crawl-page-meta";
 
 interface WebDataPagesPanelProps {
   graphId: string;
@@ -128,6 +131,14 @@ export function WebDataPagesPanel({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap gap-1.5">
+        {getCrawlJobStatItems(crawlJob.stats).map((item) => (
+          <span key={item.key} className={item.pillClass}>
+            {item.label} {item.value}
+          </span>
+        ))}
+      </div>
+
       <div className="space-y-2">
         {pages.map((webPage, index) => (
           <WebDataPageItem
