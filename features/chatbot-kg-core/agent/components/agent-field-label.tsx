@@ -47,11 +47,13 @@ export const AGENT_FIELD_HINTS = {
   lightragMode: "Chế độ truy vấn LightRAG, ví dụ hybrid, local hoặc global.",
   chunkTopK: "Số chunk tối đa lấy từ đồ thị tri thức mỗi lần truy vấn.",
   systemPrompt: "Hướng dẫn hệ thống định nghĩa vai trò và quy tắc trả lời.",
-  responseLanguage: "Ngôn ngữ phản hồi, auto để tự nhận diện.",
+  ragUserTemplate:
+    "Một lượt user gửi cho LLM sau khi retrieval. Dùng {context} và {question}.",
   stylePreset: "Preset phong cách hội thoại, ví dụ consultative.",
   customInstructions: "Hướng dẫn bổ sung cho phong cách trả lời.",
   regulationPrompt: "Mô tả phạm vi nghiệp vụ agent được phép hỗ trợ.",
   refusalMessage: "Thông báo khi câu hỏi nằm ngoài phạm vi.",
-  requiredContactFields: "Các trường liên hệ bắt buộc, phân tách bằng dấu phẩy.",
+  requiredContactFields:
+    "Các trường thông tin liên hệ agent cần thu thập trước khi chuyển người.",
   serviceSuggestions: "Gợi ý dịch vụ, mỗi mục phân tách bằng dấu phẩy.",
 } as const;

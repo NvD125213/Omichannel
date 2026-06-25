@@ -21,7 +21,6 @@ import {
   EllipsisVertical,
   FileText,
   Home,
-  KeyRound,
   Pencil,
   Trash2,
 } from "lucide-react";
@@ -69,43 +68,43 @@ import { AgentDeleteDialog } from "./agent-data-action-dialog";
 import { AgentDataTableToolbar } from "./agent-data-table-toolbar";
 
 const headerButtonClass =
-  "-ml-3 h-8 rounded-lg px-2 font-medium text-accent-foreground/80 transition-colors hover:bg-primary/10 hover:text-primary dark:text-sidebar-foreground/75 dark:hover:bg-sidebar-accent dark:hover:text-sidebar-foreground";
+  "-ml-3 h-8 rounded-lg px-2 font-medium text-primary/80 transition-colors hover:bg-primary/10 hover:text-primary dark:text-primary/75 dark:hover:bg-primary/15 dark:hover:text-primary";
 
 const tableHeadClass =
-  "h-11 bg-accent text-xs font-semibold tracking-wide text-accent-foreground dark:bg-transparent dark:text-sidebar-primary-foreground";
+  "h-10 bg-primary/8 text-xs font-semibold tracking-wide text-primary/90 dark:bg-primary/10 dark:text-primary";
 
 const tableHeaderRowClass =
-  "border-b border-primary/10 hover:bg-transparent dark:border-sidebar-border/40";
-
-const tableHeaderLabelClass =
-  "text-accent-foreground dark:text-sidebar-primary-foreground";
+  "border-b border-primary/15 bg-primary/5 hover:bg-transparent dark:border-primary/20 dark:bg-primary/8";
 
 const tableRowClass =
-  "border-b border-primary/8 bg-background transition-colors hover:bg-accent/45 data-[state=selected]:bg-primary/8 dark:border-sidebar-border/25 dark:bg-transparent dark:hover:bg-primary/10 dark:data-[state=selected]:bg-primary/15";
+  "border-b border-primary/8 bg-background transition-colors hover:bg-primary/[0.04] data-[state=selected]:bg-primary/10 dark:border-sidebar-border/25 dark:bg-transparent dark:hover:bg-primary/10 dark:data-[state=selected]:bg-primary/15";
+
+const tableShellClass =
+  "flex max-h-full flex-col overflow-hidden rounded-tl-lg border border-primary/20 bg-background shadow-sm ring-1 ring-primary/5 dark:border-primary/15 dark:bg-transparent dark:ring-primary/10";
+
+const keyChipClass =
+  "inline-flex max-w-full items-center rounded-md border border-violet-200/80 bg-violet-50 px-1.5 py-0.5 font-mono text-[11px] text-violet-700 dark:border-violet-800/40 dark:bg-violet-950/30 dark:text-violet-300";
+
+const enabledBadgeClass = {
+  on: "border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/35 dark:text-emerald-400",
+  off: "border border-slate-200/80 bg-slate-50 text-slate-600 dark:border-slate-700/50 dark:bg-slate-950/30 dark:text-slate-400",
+};
+
+const tableHeaderLabelClass = "text-primary/90 dark:text-primary";
 
 const tableRowStaticClass =
   "border-b border-primary/8 bg-background hover:bg-background dark:border-sidebar-border/25 dark:bg-transparent dark:hover:bg-transparent";
 
 const tableTextPrimaryClass = "text-foreground";
 
-const tableTextSecondaryClass = "text-muted-foreground";
-
-const tableShellClass =
-  "flex max-h-full flex-col overflow-hidden rounded-tl-lg border border-primary/15 bg-background shadow-sm dark:border-sidebar-border/45 dark:bg-transparent";
-
 const tableScrollClass =
   "max-h-full overflow-x-auto overflow-y-auto overscroll-contain thin-scroll";
 
 const tableActionButtonClass =
-  "size-8 rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-primary dark:hover:bg-primary/15 dark:hover:text-primary";
+  "size-8 rounded-lg text-primary/70 transition-colors hover:bg-primary/10 hover:text-primary dark:hover:bg-primary/15 dark:hover:text-primary";
 
 const tableDeleteButtonClass =
   "size-8 rounded-lg text-destructive transition-colors hover:bg-destructive/10 hover:text-destructive";
-
-const enabledBadgeClass = {
-  on: "border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/35 dark:text-emerald-400",
-  off: "border border-border/70 bg-accent/40 text-accent-foreground/80 dark:border-sidebar-border/50 dark:bg-primary/10 dark:text-sidebar-foreground/80",
-};
 
 function StatusPulseDot({ active }: { active: boolean }) {
   if (!active) {
@@ -129,7 +128,7 @@ function AgentEnabledCell({ enabled }: { enabled: boolean }) {
     <Badge
       variant="outline"
       className={cn(
-        "w-fit gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium tracking-wide",
+        "w-fit gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium tracking-wide",
         enabled ? enabledBadgeClass.on : enabledBadgeClass.off,
       )}
     >
@@ -328,46 +327,34 @@ export function AgentDataListTable() {
     },
     {
       accessorKey: "name",
-      header: ({ column }) => (
-        <SortableHeader label="Tên agent" column={column} />
-      ),
+      header: ({ column }) => <SortableHeader label="Agent" column={column} />,
       cell: ({ row }) => {
         const agent = row.original;
-        if (!agent.name) {
-          return <DocumentTableEmptyValue />;
-        }
 
         return (
-          <div className="flex min-w-0 items-center gap-2 py-0.5">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-primary/10 bg-primary/5 text-primary/75 dark:border-primary/20 dark:bg-primary/10">
-              <Bot className="size-3.5" />
+          <div className="flex min-w-0 items-center gap-2.5 py-0.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-primary dark:border-primary/25 dark:bg-primary/15">
+              <Bot className="size-4" />
             </span>
-            <span className={cn("truncate font-medium", tableTextPrimaryClass)}>
-              {agent.name}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      accessorKey: "key",
-      header: ({ column }) => <SortableHeader label="Key" column={column} />,
-      cell: ({ row }) => {
-        const key = row.original.key;
-        if (!key) return <DocumentTableEmptyValue />;
-        return (
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/30 text-muted-foreground/80">
-              <KeyRound className="size-3.5" />
-            </span>
-            <span
-              className={cn(
-                "truncate font-mono text-sm",
-                tableTextSecondaryClass,
+            <div className="min-w-0 space-y-1">
+              {agent.name ? (
+                <span
+                  className={cn(
+                    "block truncate text-sm font-medium",
+                    tableTextPrimaryClass,
+                  )}
+                >
+                  {agent.name}
+                </span>
+              ) : (
+                <DocumentTableEmptyValue />
               )}
-            >
-              {key}
-            </span>
+              {agent.key ? (
+                <span className={cn("truncate", keyChipClass)}>
+                  {agent.key}
+                </span>
+              ) : null}
+            </div>
           </div>
         );
       },
@@ -378,6 +365,7 @@ export function AgentDataListTable() {
         <SortableHeader label="Trạng thái" column={column} />
       ),
       cell: ({ row }) => <AgentEnabledCell enabled={row.original.enabled} />,
+      size: 132,
     },
 
     {
@@ -423,7 +411,7 @@ export function AgentDataListTable() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer rounded-lg">
                   <Link
-                    href={`/ai/agent/actions?id=${agent.id}`}
+                    href={`/ai/agent/actions?agent_id=${agent.id}`}
                     className="flex items-center gap-2"
                   >
                     <Pencil className="size-4" />
@@ -491,7 +479,7 @@ export function AgentDataListTable() {
         className="h-full max-h-full min-h-0 flex-1 overflow-hidden dark:bg-transparent"
       >
         <SidebarDetailMain className="h-full max-h-full min-h-0 overflow-hidden px-2 pb-4 lg:pb-4 dark:bg-transparent">
-          <div className="flex h-full max-h-full min-h-0 flex-col gap-4 overflow-hidden">
+          <div className="flex h-full max-h-full min-h-0 flex-col gap-3 overflow-hidden">
             <div className="shrink-0">
               <AgentDataTableToolbar
                 title="Agent"
@@ -537,7 +525,7 @@ export function AgentDataListTable() {
                               className={tableRowStaticClass}
                             >
                               {columns.map((_, cellIndex) => (
-                                <TableCell key={cellIndex} className="py-4">
+                                <TableCell key={cellIndex} className="py-2.5">
                                   <Skeleton className="h-5 w-full rounded-lg bg-muted/60" />
                                 </TableCell>
                               ))}
@@ -548,10 +536,10 @@ export function AgentDataListTable() {
                             <TableRow
                               key={row.id}
                               data-state={row.getIsSelected() && "selected"}
-                              className={tableRowClass}
+                              className={cn(tableRowClass)}
                             >
                               {row.getVisibleCells().map((cell) => (
-                                <TableCell key={cell.id} className="py-3.5">
+                                <TableCell key={cell.id} className="py-2.5">
                                   {flexRender(
                                     cell.column.columnDef.cell,
                                     cell.getContext(),
@@ -580,7 +568,7 @@ export function AgentDataListTable() {
                 </div>
               </div>
 
-              <div className="shrink-0 border-primary/10 pt-3 dark:border-sidebar-border/40">
+              <div className="shrink-0 border-primary/15 pt-2 dark:border-primary/20">
                 <DataTablePagination
                   table={table}
                   pagination={pagination}

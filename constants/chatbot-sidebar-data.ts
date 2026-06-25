@@ -55,14 +55,14 @@ export const chatbotSidebarData: SidebarData = {
         //   url: "/ai/lead",
         //   icon: IconUser,
         // },
+        // {
+        //   title: "Lịch sử hệ thống",
+        //   url: "/ai/system-history",
+        //   icon: IconAlertCircle,
+        // },
         {
-          title: "Lịch sử hệ thống",
-          url: "/ai/system-history",
-          icon: IconAlertCircle,
-        },
-        {
-          title: "Khung chat người dùng",
-          url: "/ai/chat-frame",
+          title: "Thử nghiệm Agent",
+          url: "/ai/chat-preview",
           icon: IconMessageCircle,
         },
       ],

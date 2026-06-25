@@ -1,20 +1,23 @@
 "use client";
 
 import {
-  Activity,
   Bot,
+  Braces,
+  CirclePlus,
   Home,
   Loader2,
+  Pencil,
+  Plus,
   RefreshCw,
   Save,
   Sparkles,
   Trash2,
 } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { StringParam, useQueryParams } from "use-query-params";
+import { ComboboxMultiple } from "@/components/ui/combobox-multiple";
 import { AppBreadcrumb } from "@/components/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
@@ -28,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useCreateGraphAgent,
@@ -38,11 +42,14 @@ import { cn } from "@/lib/utils";
 import { AgentDeleteDialog } from "./agent-data-action-dialog";
 import { AGENT_FIELD_HINTS, AgentFieldLabel } from "./agent-field-label";
 import {
+  normalizeKgAgent,
   agentFormDefaultValues,
   agentToFormState,
   buildAgentPreviewPayload,
   buildCreateAgentRequest,
   buildPatchAgentRequest,
+  DEFAULT_RAG_USER_TEMPLATE,
+  DEFAULT_REQUIRED_CONTACT_FIELD_OPTIONS,
   LIGHTRAG_MODE_OPTIONS,
   STYLE_PRESET_OPTIONS,
   type AgentFormState,
@@ -108,9 +115,202 @@ function AgentConfigJsonPreview({ form }: { form: AgentFormState }) {
 
   return (
     <div className={cn(sectionShellClass, "p-3")}>
-      <pre className="max-h-full overflow-auto font-mono text-[11px] leading-relaxed whitespace-pre-wrap text-foreground/85 thin-scroll">
+      <pre className="max-h-full overflow-auto text-[12px] leading-relaxed whitespace-pre-wrap text-foreground/85 thin-scroll">
         {json}
       </pre>
+    </div>
+  );
+}
+
+const RAG_TEMPLATE_PLACEHOLDERS = [
+  { token: "{context}", label: "{context}" },
+  { token: "{question}", label: "{question}" },
+] as const;
+
+const RAG_TEMPLATE_PREVIEW_SAMPLES = {
+  context: "[đoạn context trích từ tài liệu...]",
+  question: "Gói voice brandname giá bao nhiêu?",
+} as const;
+
+function RagTemplatePreview({ template }: { template: string }) {
+  const segments = useMemo(() => {
+    const parts: Array<{ type: "text" | "sample"; content: string }> = [];
+    const pattern = /(\{context\}|\{question\})/g;
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+
+    while ((match = pattern.exec(template)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({
+          type: "text",
+          content: template.slice(lastIndex, match.index),
+        });
+      }
+
+      parts.push({
+        type: "sample",
+        content:
+          match[1] === "{context}"
+            ? RAG_TEMPLATE_PREVIEW_SAMPLES.context
+            : RAG_TEMPLATE_PREVIEW_SAMPLES.question,
+      });
+      lastIndex = pattern.lastIndex;
+    }
+
+    if (lastIndex < template.length) {
+      parts.push({ type: "text", content: template.slice(lastIndex) });
+    }
+
+    return parts;
+  }, [template]);
+
+  return (
+    <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/88">
+      {segments.map((segment, index) =>
+        segment.type === "sample" ? (
+          <span
+            key={`${segment.content}-${index}`}
+            className="rounded-md bg-primary/8 px-1.5 py-0.5 text-foreground/92"
+          >
+            {segment.content}
+          </span>
+        ) : (
+          <span key={`text-${index}`}>{segment.content}</span>
+        ),
+      )}
+    </p>
+  );
+}
+
+function RagUserTemplateField({
+  enabled,
+  value,
+  onEnabledChange,
+  onValueChange,
+}: {
+  enabled: boolean;
+  value: string;
+  onEnabledChange: (enabled: boolean) => void;
+  onValueChange: (value: string) => void;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertPlaceholder = (token: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      onValueChange(`${value}${token}`);
+      return;
+    }
+
+    const start = textarea.selectionStart ?? value.length;
+    const end = textarea.selectionEnd ?? value.length;
+    const nextValue = `${value.slice(0, start)}${token}${value.slice(end)}`;
+    onValueChange(nextValue);
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = start + token.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-4 rounded-xl border px-4 py-3.5 transition-colors",
+          enabled
+            ? "border-primary/20 bg-primary/3 dark:bg-transparent"
+            : "border-border/60 bg-muted/15 dark:bg-transparent",
+        )}
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          <div
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center rounded-xl border transition-colors",
+              enabled
+                ? "border-primary/20 bg-primary/10"
+                : "border-border/60 bg-background/80 dark:bg-transparent",
+            )}
+          >
+            <Braces
+              className={cn(
+                "size-4",
+                enabled ? "text-primary" : "text-muted-foreground",
+              )}
+            />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-sm font-medium text-foreground/90">
+              Tùy chỉnh RAG user template
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground/80">
+              Một lượt user gửi cho LLM sau khi retrieval
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={enabled}
+          onCheckedChange={(checked) => {
+            onEnabledChange(checked);
+            if (checked && !value.trim()) {
+              onValueChange(DEFAULT_RAG_USER_TEMPLATE);
+            }
+          }}
+          aria-label="Bật tùy chỉnh RAG user template"
+        />
+      </div>
+
+      {enabled ? (
+        <div className="space-y-3">
+          <div className="overflow-hidden rounded-xl border border-border/60 dark:bg-transparent">
+            <Textarea
+              ref={textareaRef}
+              id="rag-user-template"
+              value={value}
+              onChange={(event) => onValueChange(event.target.value)}
+              spellCheck={false}
+              className={cn(
+                textareaClass,
+                "min-h-44 resize-y rounded-none border-0 bg-background/70 px-4 py-3.5 text-sm leading-relaxed shadow-none focus-visible:ring-0 dark:bg-transparent",
+              )}
+            />
+
+            <div className="space-y-3 border-t border-border/50 bg-muted/10 px-4 py-3 dark:bg-transparent">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground/85">
+                  Chèn placeholder
+                </span>
+                {RAG_TEMPLATE_PLACEHOLDERS.map((placeholder) => (
+                  <button
+                    key={placeholder.token}
+                    type="button"
+                    onClick={() => insertPlaceholder(placeholder.token)}
+                    className="inline-flex h-7 items-center rounded-md bg-primary/8 px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/12"
+                  >
+                    {placeholder.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-xs leading-relaxed text-amber-800/90 dark:text-amber-300/90">
+                Không dùng {"{query}"} hay {"{{context}}"}
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border border-border/60">
+            <div className="border-b border-border/50 bg-muted/10 px-4 py-2.5 dark:bg-transparent">
+              <p className="text-[10px] font-semibold tracking-[0.14em] text-muted-foreground/85 uppercase">
+                Xem trước (ví dụ)
+              </p>
+            </div>
+            <div className="bg-muted/10 px-4 py-3.5 dark:bg-transparent">
+              <RagTemplatePreview template={value} />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -137,32 +337,78 @@ function FormSection({
   );
 }
 
+type AgentFormMode = "create" | "patch";
+
 export function AgentDataAction() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const graphId = process.env.NEXT_PUBLIC_TEST_GRAPH_ID ?? "";
 
-  const [query] = useQueryParams({ id: StringParam });
-  const agentId = query.id ?? "";
-  const isEditMode = Boolean(agentId);
+  const agentId = searchParams.get("agent_id") ?? "";
+  const mode: AgentFormMode = agentId ? "patch" : "create";
+  const isEditMode = mode === "patch";
 
   const [form, setForm] = useState<AgentFormState>(agentFormDefaultValues);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [hydratedAgentId, setHydratedAgentId] = useState<string | null>(null);
+  const hydratedAgentIdRef = useRef<string | null>(null);
 
-  const { data: agent, isLoading: isLoadingAgent } = useGetAgentById(agentId);
+  const {
+    data: agentResponse,
+    isLoading: isLoadingAgent,
+    isError: isAgentError,
+  } = useGetAgentById(agentId);
+
+  const agent = useMemo(
+    () => normalizeKgAgent(agentResponse) ?? agentResponse ?? null,
+    [agentResponse],
+  );
+
   const { mutateAsync: createAgent, isPending: isCreating } =
     useCreateGraphAgent();
-  const { mutateAsync: patchAgent, isPending: isUpdating } =
+  const { mutateAsync: patchAgent, isPending: isPatching } =
     usePatchAgentById();
 
-  const isSubmitting = isCreating || isUpdating;
+  const isSubmitting = isCreating || isPatching;
   const pageTitle = isEditMode ? "Cập nhật agent" : "Agent mới";
 
+  const breadcrumbActionLabel = useMemo(() => {
+    if (mode === "create") return "Tạo mới agent";
+
+    const displayName =
+      agent?.name?.trim() ||
+      agent?.key?.trim() ||
+      form.name.trim() ||
+      form.key.trim();
+
+    return displayName ? (
+      <>
+        <span className="font-medium text-primary">{displayName}</span>
+      </>
+    ) : (
+      "Cập nhật agent"
+    );
+  }, [mode, agent, form.name, form.key]);
+
   useEffect(() => {
-    if (!isEditMode || !agent || hydratedAgentId === agent.id) return;
+    hydratedAgentIdRef.current = null;
+
+    if (mode === "create") {
+      setForm(agentFormDefaultValues);
+    }
+  }, [mode, agentId]);
+
+  useEffect(() => {
+    if (mode !== "patch" || !agent) return;
+    if (hydratedAgentIdRef.current === agent.id) return;
+
     setForm(agentToFormState(agent));
-    setHydratedAgentId(agent.id);
-  }, [agent, hydratedAgentId, isEditMode]);
+    hydratedAgentIdRef.current = agent.id;
+  }, [mode, agent]);
+
+  useEffect(() => {
+    if (mode !== "patch" || agent || isLoadingAgent || !isAgentError) return;
+    toast.error("Không tải được thông tin agent để chỉnh sửa");
+  }, [mode, agent, isLoadingAgent, isAgentError]);
 
   const updateForm = <K extends keyof AgentFormState>(
     key: K,
@@ -180,7 +426,7 @@ export function AgentDataAction() {
   };
 
   const handleSubmit = async () => {
-    if (isEditMode) {
+    if (mode === "patch") {
       if (!agentId) return;
       const payload = buildPatchAgentRequest(form);
       await patchAgent({ agentId, data: payload });
@@ -200,7 +446,7 @@ export function AgentDataAction() {
     router.push("/ai/agent");
   };
 
-  const showLoading = isEditMode && isLoadingAgent && !agent;
+  const showLoading = mode === "patch" && isLoadingAgent && !agent;
 
   return (
     <div className="flex h-full max-h-full min-h-0 flex-col overflow-hidden">
@@ -218,11 +464,16 @@ export function AgentDataAction() {
               icon: <Bot className="size-4" />,
             },
             {
-              label: isEditMode ? "Cập nhật" : "Hành động",
+              label: breadcrumbActionLabel as string,
               href: isEditMode
-                ? `/ai/agent/actions?id=${agentId}`
+                ? `/ai/agent/actions?agent_id=${agentId}`
                 : "/ai/agent/actions",
-              icon: <Activity className="size-4" />,
+              icon:
+                mode === "create" ? (
+                  <CirclePlus className="size-4" />
+                ) : (
+                  <Pencil className="size-4" />
+                ),
             },
           ]}
         />
@@ -232,7 +483,12 @@ export function AgentDataAction() {
         <Card className={cardClass}>
           <div className="grid h-full min-h-0 grid-cols-1 xl:grid-cols-2">
             <div className="flex min-h-0 flex-col border-border/60 xl:border-r">
-              <div className={cn("shrink-0 border-b border-border/60 px-5 py-4", panelShellClass)}>
+              <div
+                className={cn(
+                  "shrink-0 border-b border-border/60 px-5 py-4",
+                  panelShellClass,
+                )}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-base font-semibold">
                     <Bot className="size-4 text-primary/70" />
@@ -251,7 +507,12 @@ export function AgentDataAction() {
                 </div>
               </div>
 
-              <div className={cn("flex h-0 min-h-0 flex-1 flex-col overflow-hidden", panelShellClass)}>
+              <div
+                className={cn(
+                  "flex h-0 min-h-0 flex-1 flex-col overflow-hidden",
+                  panelShellClass,
+                )}
+              >
                 <div className="flex h-0 min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-5 py-4 thin-scroll">
                   {showLoading ? (
                     <div className="space-y-3">
@@ -481,41 +742,31 @@ export function AgentDataAction() {
                             className={textareaClass}
                           />
                         </div>
-                        <div className="grid gap-4 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <AgentFieldLabel
-                              htmlFor="response-language"
-                              label="Ngôn ngữ phản hồi"
-                              hint={AGENT_FIELD_HINTS.responseLanguage}
-                            />
-                            <Input
-                              id="response-language"
-                              value={form.responseLanguage}
-                              onChange={(event) =>
-                                updateForm(
-                                  "responseLanguage",
-                                  event.target.value,
-                                )
-                              }
-                              className={fieldClass}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <AgentFieldLabel
-                              htmlFor="style-preset"
-                              label="Style preset"
-                              hint={AGENT_FIELD_HINTS.stylePreset}
-                            />
-                            <AgentFormSelect
-                              id="style-preset"
-                              value={form.stylePreset}
-                              options={STYLE_PRESET_OPTIONS}
-                              onChange={(value) =>
-                                updateForm("stylePreset", value)
-                              }
-                            />
-                          </div>
+                        <div className="space-y-2">
+                          <AgentFieldLabel
+                            htmlFor="style-preset"
+                            label="Style preset"
+                            hint={AGENT_FIELD_HINTS.stylePreset}
+                          />
+                          <AgentFormSelect
+                            id="style-preset"
+                            value={form.stylePreset}
+                            options={STYLE_PRESET_OPTIONS}
+                            onChange={(value) =>
+                              updateForm("stylePreset", value)
+                            }
+                          />
                         </div>
+                        <RagUserTemplateField
+                          enabled={form.ragUserTemplateEnabled}
+                          value={form.ragUserTemplate}
+                          onEnabledChange={(enabled) =>
+                            updateForm("ragUserTemplateEnabled", enabled)
+                          }
+                          onValueChange={(value) =>
+                            updateForm("ragUserTemplate", value)
+                          }
+                        />
                         <div className="space-y-2">
                           <AgentFieldLabel
                             htmlFor="custom-instructions"
@@ -719,25 +970,18 @@ export function AgentDataAction() {
                             Tư vấn bán hàng
                           </label>
                         </div>
-                        <div className="space-y-2">
-                          <AgentFieldLabel
-                            htmlFor="required-contact-fields"
-                            label="Trường liên hệ bắt buộc"
-                            hint={AGENT_FIELD_HINTS.requiredContactFields}
-                          />
-                          <Input
-                            id="required-contact-fields"
-                            value={form.requiredContactFields}
-                            onChange={(event) =>
-                              updateForm(
-                                "requiredContactFields",
-                                event.target.value,
-                              )
-                            }
-                            placeholder="name, phone, email"
-                            className={fieldClass}
-                          />
-                        </div>
+                        <ComboboxMultiple
+                          id="required-contact-fields"
+                          label="Trường liên hệ bắt buộc"
+                          hint={AGENT_FIELD_HINTS.requiredContactFields}
+                          value={form.requiredContactFields}
+                          onValueChange={(value) =>
+                            updateForm("requiredContactFields", value)
+                          }
+                          options={[...DEFAULT_REQUIRED_CONTACT_FIELD_OPTIONS]}
+                          placeholder="Nhập trường rồi nhấn Enter, ví dụ phone"
+                          chipsClassName="dark:bg-transparent"
+                        />
                         <div className="space-y-2">
                           <AgentFieldLabel
                             htmlFor="service-suggestions"
@@ -761,7 +1005,12 @@ export function AgentDataAction() {
                   )}
                 </div>
 
-                <div className={cn("shrink-0 flex flex-wrap items-center gap-2 border-t border-border/60 px-5 py-4", panelShellClass)}>
+                <div
+                  className={cn(
+                    "shrink-0 flex flex-wrap items-center gap-2 border-t border-border/60 px-5 py-4",
+                    panelShellClass,
+                  )}
+                >
                   <Button
                     type="button"
                     className={cn(actionButtonClass, "min-w-[120px]")}
@@ -800,7 +1049,12 @@ export function AgentDataAction() {
             </div>
 
             <div className="flex min-h-0 flex-col">
-              <div className={cn("shrink-0 border-b border-border/60 px-5 py-4", panelShellClass)}>
+              <div
+                className={cn(
+                  "shrink-0 border-b border-border/60 px-5 py-4",
+                  panelShellClass,
+                )}
+              >
                 <CardTitle className="flex items-center gap-2 text-base font-semibold">
                   <Sparkles className="size-4 text-primary/70" />
                   Xem trước cấu hình

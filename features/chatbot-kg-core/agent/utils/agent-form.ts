@@ -5,6 +5,30 @@ import type {
   PatchAgentRequest,
 } from "@/services/chatbot-kg-core/interfaces";
 
+export function normalizeKgAgent(raw: unknown): KgAgent | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const record = raw as Record<string, unknown>;
+  const nested =
+    record.agent && typeof record.agent === "object"
+      ? (record.agent as Record<string, unknown>)
+      : record.data && typeof record.data === "object"
+        ? (record.data as Record<string, unknown>)
+        : record;
+
+  const id = nested.id ?? nested.agent_id;
+  if (typeof id !== "string" || !id.trim()) return null;
+
+  return {
+    id,
+    graph_id: String(nested.graph_id ?? ""),
+    key: String(nested.key ?? ""),
+    name: (nested.name as string | null | undefined) ?? null,
+    enabled: Boolean(nested.enabled),
+    config: (nested.config as AgentConfig | undefined) ?? {},
+  };
+}
+
 export interface AgentFormState {
   key: string;
   name: string;
@@ -14,7 +38,8 @@ export interface AgentFormState {
   lightragMode: string;
   chunkTopK: number;
   systemPrompt: string;
-  responseLanguage: string;
+  ragUserTemplateEnabled: boolean;
+  ragUserTemplate: string;
   stylePreset: string;
   customInstructions: string;
   queryRewriteEnabled: boolean;
@@ -42,9 +67,23 @@ export interface AgentFormState {
   salesConsultingEnabled: boolean;
   maxConsultingTurns: number;
   handoffAfterClarifications: number;
-  requiredContactFields: string;
+  requiredContactFields: string[];
   serviceSuggestions: string;
 }
+
+export const DEFAULT_RAG_USER_TEMPLATE = `Thông tin nội bộ:
+{context}
+
+Câu hỏi của khách:
+{question}`;
+
+export const DEFAULT_REQUIRED_CONTACT_FIELD_OPTIONS = [
+  "name",
+  "phone",
+  "email",
+  "company",
+  "address",
+] as const;
 
 export const agentFormDefaultValues: AgentFormState = {
   key: "",
@@ -55,7 +94,8 @@ export const agentFormDefaultValues: AgentFormState = {
   lightragMode: "hybrid",
   chunkTopK: 20,
   systemPrompt: "",
-  responseLanguage: "auto",
+  ragUserTemplateEnabled: false,
+  ragUserTemplate: DEFAULT_RAG_USER_TEMPLATE,
   stylePreset: "consultative",
   customInstructions: "",
   queryRewriteEnabled: true,
@@ -83,7 +123,7 @@ export const agentFormDefaultValues: AgentFormState = {
   salesConsultingEnabled: true,
   maxConsultingTurns: 8,
   handoffAfterClarifications: 2,
-  requiredContactFields: "name, phone, email",
+  requiredContactFields: ["name", "phone", "email"],
   serviceSuggestions: "",
 };
 
@@ -129,7 +169,10 @@ function buildAgentConfig(form: AgentFormState): AgentConfig {
     },
     prompts: {
       system: form.systemPrompt,
-      response_language: form.responseLanguage,
+      response_language: "auto",
+      ...(form.ragUserTemplateEnabled && form.ragUserTemplate.trim()
+        ? { rag_user_template: form.ragUserTemplate.trim() }
+        : {}),
     },
     style: {
       preset: form.stylePreset,
@@ -171,7 +214,7 @@ function buildAgentConfig(form: AgentFormState): AgentConfig {
       sales_consulting_enabled: form.salesConsultingEnabled,
       max_consulting_turns: form.maxConsultingTurns,
       handoff_after_clarifications: form.handoffAfterClarifications,
-      required_contact_fields: parseListInput(form.requiredContactFields),
+      required_contact_fields: form.requiredContactFields,
       service_suggestions: parseListInput(form.serviceSuggestions),
     },
     chatwoot: {},
@@ -224,9 +267,9 @@ export function agentToFormState(agent: KgAgent): AgentFormState {
     lightragMode: config.lightrag?.mode ?? agentFormDefaultValues.lightragMode,
     chunkTopK: config.lightrag?.chunk_top_k ?? agentFormDefaultValues.chunkTopK,
     systemPrompt: config.prompts?.system ?? "",
-    responseLanguage:
-      config.prompts?.response_language ??
-      agentFormDefaultValues.responseLanguage,
+    ragUserTemplateEnabled: Boolean(config.prompts?.rag_user_template?.trim()),
+    ragUserTemplate:
+      config.prompts?.rag_user_template ?? DEFAULT_RAG_USER_TEMPLATE,
     stylePreset: config.style?.preset ?? agentFormDefaultValues.stylePreset,
     customInstructions: config.style?.custom_instructions ?? "",
     queryRewriteEnabled:
@@ -292,9 +335,9 @@ export function agentToFormState(agent: KgAgent): AgentFormState {
     handoffAfterClarifications:
       config.memory?.handoff_after_clarifications ??
       agentFormDefaultValues.handoffAfterClarifications,
-    requiredContactFields: joinListInput(
-      config.memory?.required_contact_fields,
-    ),
+    requiredContactFields: config.memory?.required_contact_fields?.length
+      ? [...config.memory.required_contact_fields]
+      : [...agentFormDefaultValues.requiredContactFields],
     serviceSuggestions: joinListInput(config.memory?.service_suggestions),
   };
 }
