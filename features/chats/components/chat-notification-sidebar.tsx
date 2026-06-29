@@ -739,7 +739,7 @@ export function ChatNotificationSidebar({
         "relative flex h-full w-full flex-col overflow-hidden bg-transparent text-foreground transition-all duration-200",
       )}
     >
-      <div className="flex-1 space-y-3 overflow-x-hidden overflow-y-auto chat-sidebar-scroll p-2">
+      <div className="flex-1 space-y-3 overflow-x-hidden overflow-y-auto chat-sidebar-scroll p-2 border-r">
         <section className="space-y-1" aria-label="Main Chat Menu">
           <SidebarTooltip title={menuItems[0].title}>
             <a

@@ -59,6 +59,7 @@ import {
   SidebarDetailPanel,
 } from "@/components/sidebar-detail";
 import { useListDocuments } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 
 import {
   DocumentDeleteDialog,
@@ -185,7 +186,7 @@ function SortableHeader({
 }
 
 export function DocumentDataListTable() {
-  const graphId = process.env.NEXT_PUBLIC_TEST_GRAPH_ID ?? "";
+  const graphId = useGraphId();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingDocument, setDeletingDocument] = useState<KgDocument | null>(

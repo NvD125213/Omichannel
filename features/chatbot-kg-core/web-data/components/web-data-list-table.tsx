@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useListWebCrawls } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 import type { WebCrawlJob } from "@/services/chatbot-kg-core/interfaces";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { WebDataListItem } from "./web-data-list-item";
@@ -34,7 +35,7 @@ function getCrawlTitle(crawl: WebCrawlJob) {
 }
 
 export function WebDataListTable() {
-  const graphId = process.env.NEXT_PUBLIC_TEST_GRAPH_ID ?? "";
+  const graphId = useGraphId();
   const [panelOpen, setPanelOpen] = useState(false);
   const [selectedCrawl, setSelectedCrawl] = useState<WebCrawlJob | null>(null);
   const [crawlOverrides, setCrawlOverrides] = useState<

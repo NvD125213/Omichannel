@@ -3,6 +3,7 @@ import { DashboardHeader } from "@/components/dashboard-header";
 import { ProtectedRoute } from "@/components/protected-route";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { SidebarConfigProvider } from "@/contexts/sidebar-context";
+import { ChatbotGraphGuard } from "@/components/chatbot-graph-guard";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -14,19 +15,21 @@ export default function ChatbotLayout({
 }) {
   return (
     <ProtectedRoute>
-      <SidebarConfigProvider>
-        <SidebarProvider>
-          <AppChatbotSidebar />
-          <SidebarInset className="flex h-svh min-h-0 flex-col overflow-hidden">
-            <Suspense>
-              <DashboardHeader />
-            </Suspense>
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 has-data-dashboard-inset-flush:p-0">
-              {children}
-            </div>
-          </SidebarInset>
-        </SidebarProvider>
-      </SidebarConfigProvider>
+      <ChatbotGraphGuard>
+        <SidebarConfigProvider>
+          <SidebarProvider>
+            <AppChatbotSidebar />
+            <SidebarInset className="flex h-svh min-h-0 flex-col overflow-hidden">
+              <Suspense>
+                <DashboardHeader />
+              </Suspense>
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 has-data-dashboard-inset-flush:p-0">
+                {children}
+              </div>
+            </SidebarInset>
+          </SidebarProvider>
+        </SidebarConfigProvider>
+      </ChatbotGraphGuard>
     </ProtectedRoute>
   );
 }

@@ -15,26 +15,28 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
-  useState,
+  useLayoutEffect,
+  useMemo,
+  useRef,
 } from "react";
-import { Permission, PERMISSIONS } from "@/constants/permission";
+import { Permission } from "@/constants/permission";
 import { useNavigationEvents } from "@/hooks/use-navigation-events";
 import { useMe } from "@/hooks/user/use-me";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { getCurrentUserApi } from "@/services/user/user-current";
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isAuthPending: boolean;
   login: (
     name_tenant: string,
     username: string,
     password: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
-  // Permission management
   permissions: Permission[];
   hasPermission: (permission: Permission) => boolean;
   hasAnyPermission: (permissions: Permission[]) => boolean;
@@ -43,56 +45,68 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to decode JWT and extract user info
-function decodeToken(token: string): Partial<User> | null {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return {
-      id: payload.sub || payload.user_id || payload.id || "",
-      username: payload.username || "User",
-      fullname: payload.fullname || "User",
-      email: payload.email || "",
-      role: payload.role || "user",
-      level: payload.level || "user",
-      tenant_id: payload.tenant_id || "",
-      is_active: payload.is_active || 1,
-    };
-  } catch {
-    return null;
-  }
+function createUserFromMe(meData: {
+  id: string;
+  username: string;
+  fullname: string;
+  email: string;
+  role: string;
+  level: string;
+  tenant_id: string;
+  graph_id: string;
+  graph_activated: number;
+  is_active: number;
+  permissions: string[];
+}): User {
+  return {
+    id: meData.id,
+    username: meData.username,
+    fullname: meData.fullname,
+    email: meData.email,
+    role: meData.role,
+    level: meData.level,
+    tenant_id: meData.tenant_id,
+    graph_id: meData.graph_id,
+    graph_activated: meData.graph_activated,
+    is_active: meData.is_active,
+    permissions: meData.permissions || [],
+  };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const router = useRouter();
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const isLoggingOutRef = useRef(false);
 
-  // Listen for navigation events (e.g., from api-client interceptors)
   useNavigationEvents();
 
-  // useMe hook để kiểm tra session từ server
+  const hasToken = Boolean(getAccessToken());
   const {
     data: meData,
-    isLoading: isMeLoading,
-    isSuccess: isMeSuccess,
-    isError: isMeError,
+    isPending,
+    isFetching,
+    isError,
   } = useMe();
 
-  // Permission helper functions
+  const user = meData ? createUserFromMe(meData) : null;
+  const permissions = useMemo(
+    () => (meData?.permissions ?? []) as Permission[],
+    [meData?.permissions],
+  );
+
+  // Một nguồn sự thật: đang chờ /user/current khi còn token
+  const isLoading = hasToken && (isPending || (isFetching && !meData));
+  const isAuthPending = isLoading;
+  const isAuthenticated = !!user && checkAuthenticated();
+
   const hasPermission = useCallback(
-    (permission: Permission): boolean => {
-      return permissions.includes(permission);
-    },
+    (permission: Permission): boolean => permissions.includes(permission),
     [permissions],
   );
 
   const hasAnyPermission = useCallback(
     (requiredPermissions: Permission[]): boolean => {
-      if (!requiredPermissions || requiredPermissions.length === 0) {
-        return true; // No permissions required
-      }
+      if (!requiredPermissions?.length) return true;
       return requiredPermissions.some((permission) =>
         permissions.includes(permission),
       );
@@ -102,9 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasAllPermissions = useCallback(
     (requiredPermissions: Permission[]): boolean => {
-      if (!requiredPermissions || requiredPermissions.length === 0) {
-        return true; // No permissions required
-      }
+      if (!requiredPermissions?.length) return true;
       return requiredPermissions.every((permission) =>
         permissions.includes(permission),
       );
@@ -112,106 +124,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [permissions],
   );
 
-  const login = useCallback(
-    async (name_tenant: string, username: string, password: string) => {
-      const response = await loginApi({ name_tenant, username, password });
-
-      // Save tokens
-      setTokens(response.data.access_token, response.data.refresh_token);
-
-      // Decode and set user from token
-      const userData = decodeToken(response.data.access_token);
-      if (userData) {
-        setUser({
-          id: userData.id || "",
-          username: userData.username || username,
-          fullname: userData.fullname || "User",
-          email: userData.email || "",
-          role: userData.role || "user",
-          level: userData.level || "user",
-          tenant_id: userData.tenant_id || "",
-          is_active: userData.is_active || 1,
-        });
-      }
-    },
-    [],
-  );
-
   const logout = useCallback(async () => {
+    if (isLoggingOutRef.current) return;
+    isLoggingOutRef.current = true;
+
     try {
       await logoutApi();
     } catch (error) {
-      // Still clear tokens even if API fails to avoid stuck state
       console.error("Logout API failed:", error);
     } finally {
-      // Clear tokens
       clearTokens();
-
-      // Reset state
-      setUser(null);
-      setPermissions([]);
-
-      // CRITICAL: Clear React Query cache to prevent stale data
-      queryClient.clear();
-
-      // Navigate to sign-in
-      // NOTE: Không cần router.refresh() vì có thể gây race condition
-      // với việc xóa cookie, đặc biệt trên production
+      await queryClient.cancelQueries({ queryKey: ["me"] });
+      queryClient.removeQueries({ queryKey: ["me"] });
       router.push("/sign-in");
     }
   }, [router, queryClient]);
 
-  // Effect để sync state với kết quả của useMe
-  useEffect(() => {
-    // Nếu đang load useMe thì chưa làm gì cả (trừ khi không có token)
-    const token = getAccessToken();
+  const login = useCallback(
+    async (name_tenant: string, username: string, password: string) => {
+      isLoggingOutRef.current = false;
+      const response = await loginApi({ name_tenant, username, password });
+      setTokens(response.data.access_token, response.data.refresh_token);
+      await queryClient.fetchQuery({
+        queryKey: ["me"],
+        queryFn: getCurrentUserApi,
+      });
+    },
+    [queryClient],
+  );
 
-    if (!token) {
-      setUser(null);
-      setPermissions([]);
-      setIsLoading(false);
-      return;
-    }
+  useLayoutEffect(() => {
+    if (!isError || !getAccessToken() || isLoggingOutRef.current) return;
 
-    if (isMeLoading) {
-      return;
-    }
-
-    if (isMeSuccess && meData) {
-      // Backend trả về thông tin user hợp lệ -> Update state
-      const userData: User = {
-        id: meData.id,
-        username: meData.username,
-        fullname: meData.fullname,
-        email: meData.email,
-        role: meData.role,
-        level: meData.level,
-        tenant_id: meData.tenant_id,
-        is_active: meData.is_active,
-        permissions: meData.permissions || [],
-      };
-
-      setUser(userData);
-
-      // Lưu permissions vào state riêng để dễ access
-      setPermissions((meData.permissions || []) as Permission[]);
-
-      setIsLoading(false);
-    } else if (isMeError) {
-      // Backend trả về lỗi (401, etc) mặc dù có token -> Logout
-      console.error("Session validation failed");
-      toast.error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn");
-      logout();
-      setIsLoading(false);
-    }
-  }, [isMeLoading, isMeSuccess, isMeError, meData, logout]);
+    console.error("Session validation failed");
+    toast.error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn");
+    void logout();
+  }, [isError, logout]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        isAuthenticated: !!user && checkAuthenticated(),
+        isAuthenticated,
         isLoading,
+        isAuthPending,
         login,
         logout,
         permissions,

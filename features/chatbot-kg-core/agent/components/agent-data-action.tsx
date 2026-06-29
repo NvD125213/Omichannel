@@ -38,6 +38,7 @@ import {
   useGetAgentById,
   usePatchAgentById,
 } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 import { cn } from "@/lib/utils";
 import { AgentDeleteDialog } from "./agent-data-action-dialog";
 import { AGENT_FIELD_HINTS, AgentFieldLabel } from "./agent-field-label";
@@ -342,7 +343,7 @@ type AgentFormMode = "create" | "patch";
 export function AgentDataAction() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const graphId = process.env.NEXT_PUBLIC_TEST_GRAPH_ID ?? "";
+  const graphId = useGraphId();
 
   const agentId = searchParams.get("agent_id") ?? "";
   const mode: AgentFormMode = agentId ? "patch" : "create";

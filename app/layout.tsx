@@ -3,6 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/auth-context";
+import { AUTH_NAV_RECOVERY_INLINE_SCRIPT } from "@/constants/auth-navigation";
 import { FontProvider } from "@/contexts/font-context";
 import { SocketProvider } from "@/contexts/socket-context";
 import type { Metadata } from "next";
@@ -48,6 +49,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="font-inter" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: AUTH_NAV_RECOVERY_INLINE_SCRIPT,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

@@ -32,6 +32,7 @@ import {
   useCreateWebCrawl,
   useWebCrawlDryRun,
 } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 import type { WebCrawlDryRunItem } from "@/services/chatbot-kg-core/interfaces";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
@@ -73,7 +74,7 @@ function WebDataDryRunLoadingPanel() {
 
 export function WebDataAction() {
   const router = useRouter();
-  const graphId = process.env.NEXT_PUBLIC_TEST_GRAPH_ID ?? "";
+  const graphId = useGraphId();
 
   const [form, setForm] = useState<WebCrawlFormState>(
     webCrawlFormDefaultValues,

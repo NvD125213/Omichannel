@@ -294,6 +294,8 @@ type ChatSidebarFilterToolbarProps = {
 
 const FILTER_TOOLBAR_ICON_BUTTON_CLASS = "size-8";
 const FILTER_TOOLBAR_ICON_CLASS = "size-3.5";
+const CHAT_SPLIT_HEADER_CLASS =
+  "flex h-16 shrink-0 items-center border-b border-border";
 
 type FilterActionsMenuProps = Pick<
   ChatSidebarFilterToolbarProps,
@@ -477,7 +479,7 @@ function ChatSidebarCollapsedHeader({
   filterToolbar,
 }: ChatSidebarCollapsedHeaderProps) {
   return (
-    <div className="flex w-full min-h-16">
+    <div className="flex h-full w-full">
       <div className="flex w-16 shrink-0 items-center justify-center border-r px-1 py-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1360,14 +1362,14 @@ export function Chat() {
             sidebarDesktopWidthClass,
           )}
         >
-          <div className="shrink-0 border-b">
+          <div className={CHAT_SPLIT_HEADER_CLASS}>
             {isSidebarContentCollapsed ? (
               <ChatSidebarCollapsedHeader
                 onExpand={handleExpandSidebar}
                 filterToolbar={sidebarFilterToolbarProps}
               />
             ) : (
-              <div className="flex h-16 items-center justify-between gap-2 overflow-hidden px-4">
+              <div className="flex h-full w-full items-center justify-between gap-2 overflow-hidden px-4">
                 <h2 className="flex min-w-0 flex-1 items-center gap-2 text-lg font-semibold leading-none">
                   <MessagesSquare className="size-4 shrink-0" />
                   <span className="min-w-0 truncate whitespace-nowrap transition-opacity duration-300">
@@ -1586,7 +1588,7 @@ export function Chat() {
         </div>
 
         <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
-          <div className="flex items-center h-16 px-4 border-b">
+          <div className={cn(CHAT_SPLIT_HEADER_CLASS, "gap-2 px-4")}>
             <Button
               variant="ghost"
               size="sm"

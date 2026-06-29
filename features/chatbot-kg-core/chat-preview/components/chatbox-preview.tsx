@@ -43,6 +43,7 @@ import {
   useGetAgentById,
   useListAgents,
 } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 import { cn } from "@/lib/utils";
 import type { ChatMessageRole } from "@/services/chatbot-kg-core/interfaces";
 import { AiRobotAvatar } from "./ai-robot-avatar";
@@ -165,7 +166,7 @@ function AgentSelect({
       <SelectTrigger
         id="preview-agent-select"
         className={cn(
-          "h-8 rounded-lg border-primary/15 bg-transparent text-sm text-foreground shadow-none transition-colors duration-200 ease-out hover:bg-accent focus:ring-primary/20 dark:border-sidebar-border/45 dark:bg-background dark:hover:bg-sidebar-accent",
+          "h-8 rounded-lg border-primary/15 dark:bg-transparent  text-sm text-foreground shadow-none transition-colors duration-200 ease-out hover:bg-accent focus:ring-primary/20 dark:border-sidebar-border/45 dark:hover:bg-sidebar-accent bg-white",
           triggerClassName,
         )}
       >
@@ -282,7 +283,7 @@ function createMessageId() {
 }
 
 export function ChatboxPreview() {
-  const graphId = process.env.NEXT_PUBLIC_TEST_GRAPH_ID ?? "";
+  const graphId = useGraphId();
 
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [sessionId, setSessionId] = useState(() => createMessageId());

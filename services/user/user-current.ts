@@ -12,6 +12,8 @@ export interface UserCurrentResponse {
     role: string;
     level: string;
     tenant_id: string;
+    graph_id: string;
+    graph_activated: number;
     permissions: string[];
   };
 }

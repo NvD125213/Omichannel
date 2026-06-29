@@ -16,6 +16,7 @@ import {
   useDeleteFaq,
   useListFaqs,
 } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 import type { KgFaq } from "@/services/chatbot-kg-core/interfaces";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { FaqDataListItem } from "./faq-data-list-item";
@@ -29,7 +30,7 @@ import {
 } from "./faq-form-data-panel";
 
 export function FaqDataListTable() {
-  const graphId = process.env.NEXT_PUBLIC_TEST_GRAPH_ID ?? "";
+  const graphId = useGraphId();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingFaq, setDeletingFaq] = useState<KgFaq | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);

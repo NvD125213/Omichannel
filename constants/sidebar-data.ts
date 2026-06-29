@@ -32,6 +32,7 @@ import {
   Command,
   GalleryVerticalEnd,
   Workflow,
+  UserStar,
 } from "lucide-react";
 import { PERMISSIONS } from "@/constants/permission";
 
@@ -149,6 +150,11 @@ export const sidebarData: SidebarData = {
               permissions: [PERMISSIONS.VIEW_CUSTOMERS],
             },
             {
+              title: "Khách hàng tiềm năng",
+              url: "/customers/leads",
+              icon: UserStar,
+            },
+            {
               title: "Quản lý tag",
               url: "/customers/tags",
               icon: IconTag,
@@ -182,6 +188,7 @@ export const sidebarData: SidebarData = {
           icon: IconBuilding,
           permissions: [PERMISSIONS.VIEW_DEPARTMENTS],
         },
+
         {
           title: "Trò chuyện",
           url: "/chats",
