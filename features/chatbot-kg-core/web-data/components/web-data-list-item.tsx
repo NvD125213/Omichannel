@@ -137,7 +137,7 @@ export function WebDataListItem({
 
       <div className="mt-2 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0 flex-1 space-y-2">
-          <p className="text-xs leading-relaxed text-muted-foreground/65">
+          <p className="text-xs leading-relaxed text-muted-foreground/85">
             {maxPages != null ? <span>Giới hạn {maxPages} trang</span> : null}
             {maxPages != null && crawl.config?.max_depth != null ? (
               <span> · </span>
@@ -196,13 +196,6 @@ export function WebDataListItem({
           {crawl.error_message}
         </p>
       ) : null}
-
-      <p
-        className="truncate font-mono text-[10px] text-muted-foreground/55"
-        title={crawl.id}
-      >
-        Job ID: {crawl.id}
-      </p>
     </article>
   );
 }

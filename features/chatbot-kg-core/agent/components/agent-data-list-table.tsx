@@ -453,7 +453,7 @@ export function AgentDataListTable() {
   const detailAgent = selectedAgent;
 
   return (
-    <div className="flex h-full max-h-full min-h-0 flex-col overflow-hidden">
+    <div className="flex h-full max-h-full min-h-0 flex-col overflow-hidden p-4">
       <div className="shrink-0 px-4 pt-2 pb-3">
         <AppBreadcrumb
           items={[

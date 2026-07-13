@@ -23,7 +23,7 @@ export default function ChatbotLayout({
               <Suspense>
                 <DashboardHeader />
               </Suspense>
-              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 has-data-dashboard-inset-flush:p-0">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden has-data-dashboard-inset-flush:p-0">
                 {children}
               </div>
             </SidebarInset>

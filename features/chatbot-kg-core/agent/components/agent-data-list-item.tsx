@@ -64,7 +64,9 @@ export function AgentDataListItem({
       }}
       className={cn(
         "group cursor-pointer px-4 py-4 transition-colors sm:px-5",
-        isMutedRow ? "bg-muted/35 dark:bg-transparent" : "bg-background dark:bg-transparent",
+        isMutedRow
+          ? "bg-muted/35 dark:bg-transparent"
+          : "bg-background dark:bg-transparent",
         isActive
           ? "bg-primary/5 ring-1 ring-inset ring-primary/15"
           : "hover:bg-muted/45",
@@ -102,7 +104,7 @@ export function AgentDataListItem({
               <div className="flex flex-wrap items-center gap-1.5">
                 <span
                   className={cn(
-                    "inline-flex max-w-full items-center gap-1 rounded-md border border-border/60 bg-muted/25 px-2 py-0.5 font-mono text-[11px] text-muted-foreground/90",
+                    "inline-flex max-w-full items-center gap-1 rounded-md border border-border/60 bg-muted/25 px-2 py-0.5 text-[11px] text-muted-foreground/90",
                   )}
                   title={agent.key}
                 >

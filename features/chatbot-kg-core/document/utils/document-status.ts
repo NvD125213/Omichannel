@@ -41,14 +41,14 @@ export function getStatusTone(status: string): StatusTone {
 
 export const statusToneClass: Record<StatusTone, string> = {
   success:
-    "border border-emerald-200/80 bg-emerald-50 text-emerald-700 dark:border-emerald-700/50 dark:bg-emerald-950/35 dark:text-emerald-400",
+    "border-emerald-300/60 bg-gradient-to-br from-emerald-50 via-emerald-100 to-green-200 text-emerald-700 shadow-sm shadow-emerald-500/15 dark:border-emerald-500/40 dark:from-emerald-800/60 dark:via-emerald-900/50 dark:to-green-800/50 dark:text-emerald-200 dark:shadow-none",
   error:
-    "border border-rose-200/80 bg-rose-50 text-rose-700 dark:border-rose-700/50 dark:bg-rose-950/35 dark:text-rose-400",
+    "border-rose-300/60 bg-gradient-to-br from-rose-50 via-rose-100 to-red-200 text-rose-700 shadow-sm shadow-rose-500/15 dark:border-rose-500/40 dark:from-rose-800/60 dark:via-rose-900/50 dark:to-red-800/50 dark:text-rose-200 dark:shadow-none",
   pending:
-    "border border-amber-200/80 bg-amber-50 text-amber-700 dark:border-amber-700/50 dark:bg-amber-950/35 dark:text-amber-400",
-  skip: "border border-sky-200/80 bg-sky-50 text-sky-700 dark:border-sky-700/50 dark:bg-sky-950/35 dark:text-sky-400",
+    "border-amber-300/60 bg-gradient-to-br from-amber-50 via-amber-100 to-orange-200 text-amber-700 shadow-sm shadow-amber-500/15 dark:border-amber-500/40 dark:from-amber-800/60 dark:via-amber-900/50 dark:to-orange-800/50 dark:text-amber-200 dark:shadow-none",
+  skip: "border-sky-300/60 bg-gradient-to-br from-sky-50 via-sky-100 to-blue-200 text-sky-700 shadow-sm shadow-sky-500/15 dark:border-sky-500/40 dark:from-sky-800/60 dark:via-sky-900/50 dark:to-blue-800/50 dark:text-sky-200 dark:shadow-none",
   neutral:
-    "border border-border/70 bg-accent/40 text-accent-foreground/80 dark:border-sidebar-border/50 dark:bg-primary/10 dark:text-sidebar-foreground/80",
+    "border-border/60 bg-gradient-to-br from-background via-muted/60 to-accent/40 text-accent-foreground/80 dark:border-sidebar-border/50 dark:from-primary/18 dark:via-primary/10 dark:to-primary/5 dark:text-sidebar-foreground/80",
 };
 
 const statusLabelMap: Record<string, string> = {

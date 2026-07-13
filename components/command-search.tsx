@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import * as React from "react";
 
 import {
@@ -13,6 +14,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { sidebarData } from "@/constants/sidebar-data";
+import { chatbotSidebarData } from "@/constants/chatbot-sidebar-data";
+import { isChatbotPath } from "@/constants/chatbot-routes";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { filterNavGroupsByPermissions } from "@/lib/filter-nav-items";
@@ -25,12 +28,15 @@ interface CommandSearchProps {
 
 export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
   const { permissions } = useAuth();
+  const pathname = usePathname();
+  const isChatbot = isChatbotPath(pathname ?? "");
 
   const groupedItems = React.useMemo(() => {
-    const filteredGroups = filterNavGroupsByPermissions(
-      sidebarData.navGroups,
-      permissions,
-    );
+    const navGroups = isChatbot
+      ? chatbotSidebarData.navGroups
+      : sidebarData.navGroups;
+
+    const filteredGroups = filterNavGroupsByPermissions(navGroups, permissions);
     const searchItems = flattenNavGroupsForSearch(filteredGroups);
 
     return searchItems.reduce(
@@ -43,7 +49,7 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
       },
       {} as Record<string, typeof searchItems>,
     );
-  }, [permissions]);
+  }, [permissions, isChatbot]);
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
@@ -88,9 +94,6 @@ export function SearchTrigger({
     >
       <Search className="size-4" />
       <span>Tìm kiếm...</span>
-      <kbd className="pointer-events-none absolute top-1/2 right-1.5 hidden h-5 -translate-y-1/2 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium sm:flex">
-        <span className="text-xs">⌘</span>K
-      </kbd>
     </button>
   );
 }

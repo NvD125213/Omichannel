@@ -107,7 +107,7 @@ const tableTextPrimaryClass = "text-foreground";
 const tableTextSecondaryClass = "text-muted-foreground";
 
 const tableShellClass =
-  "flex max-h-full flex-col overflow-hidden rounded-l-lg border border-primary/15 bg-background shadow-sm dark:border-sidebar-border/45";
+  "flex max-h-full flex-col overflow-hidden rounded-tl-lg border border-primary/15 bg-background shadow-sm dark:border-sidebar-border/45";
 
 const tableScrollClass =
   "max-h-full overflow-x-auto overflow-y-auto overscroll-contain thin-scroll";
@@ -646,7 +646,7 @@ export function DocumentDataListTable() {
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
 
   return (
-    <div className="flex h-full max-h-full min-h-0 flex-col overflow-hidden">
+    <div className="flex h-full max-h-full min-h-0 flex-col overflow-hidden p-4">
       <div className="shrink-0 px-4 pt-2 pb-3">
         <AppBreadcrumb
           items={[
@@ -724,77 +724,80 @@ export function DocumentDataListTable() {
               <div className="min-h-0 flex-1 overflow-hidden">
                 <div className={cn(tableShellClass, "w-full")}>
                   <div className={tableScrollClass}>
-                  <Table containerClassName="overflow-visible">
-                    <TableHeader className="[&_th:first-child]:overflow-hidden [&_th:first-child]:rounded-tl-lg [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:shadow-[0_1px_0_0_hsl(var(--primary)/0.12)] dark:[&_th]:shadow-[0_1px_0_0_hsl(var(--sidebar-border)/0.45)]">
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <TableRow
-                          key={headerGroup.id}
-                          className={tableHeaderRowClass}
-                        >
-                          {headerGroup.headers.map((header) => (
-                            <TableHead
-                              key={header.id}
-                              colSpan={header.colSpan}
-                              className={tableHeadClass}
-                            >
-                              {header.isPlaceholder
-                                ? null
-                                : flexRender(
-                                    header.column.columnDef.header,
-                                    header.getContext(),
-                                  )}
-                            </TableHead>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableHeader>
-                    <TableBody className="[&_tr:last-child]:border-b [&_tr:last-child_td:first-child]:overflow-hidden [&_tr:last-child_td:first-child]:rounded-bl-lg">
-                      {isLoading && !data ? (
-                        Array.from({ length: 5 }).map((_, index) => (
-                          <TableRow key={index} className={tableRowStaticClass}>
-                            {columns.map((_, cellIndex) => (
-                              <TableCell key={cellIndex} className="py-4">
-                                <Skeleton className="h-5 w-full rounded-lg bg-muted/60" />
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        ))
-                      ) : table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row) => (
+                    <Table containerClassName="overflow-visible">
+                      <TableHeader className="[&_th:first-child]:overflow-hidden [&_th:first-child]:rounded-tl-lg [&_th]:sticky [&_th]:top-0 [&_th]:z-20 [&_th]:shadow-[0_1px_0_0_hsl(var(--primary)/0.12)] dark:[&_th]:shadow-[0_1px_0_0_hsl(var(--sidebar-border)/0.45)]">
+                        {table.getHeaderGroups().map((headerGroup) => (
                           <TableRow
-                            key={row.id}
-                            data-state={row.getIsSelected() && "selected"}
-                            className={tableRowClass}
+                            key={headerGroup.id}
+                            className={tableHeaderRowClass}
                           >
-                            {row.getVisibleCells().map((cell) => (
-                              <TableCell key={cell.id} className="py-3.5">
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext(),
-                                )}
-                              </TableCell>
+                            {headerGroup.headers.map((header) => (
+                              <TableHead
+                                key={header.id}
+                                colSpan={header.colSpan}
+                                className={tableHeadClass}
+                              >
+                                {header.isPlaceholder
+                                  ? null
+                                  : flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext(),
+                                    )}
+                              </TableHead>
                             ))}
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow className={tableRowStaticClass}>
-                          <TableCell colSpan={columns.length}>
-                            <EmptyData
-                              icon={IconMoodEmpty}
-                              title="Chưa có tài liệu"
-                              description="Tải lên tệp đầu tiên để agent bắt đầu học"
-                              showButton={false}
-                              buttonText=""
-                              onButtonClick={() => {}}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                        ))}
+                      </TableHeader>
+                      <TableBody className="[&_tr:last-child]:border-b [&_tr:last-child_td:first-child]:overflow-hidden [&_tr:last-child_td:first-child]:rounded-bl-lg">
+                        {isLoading && !data ? (
+                          Array.from({ length: 5 }).map((_, index) => (
+                            <TableRow
+                              key={index}
+                              className={tableRowStaticClass}
+                            >
+                              {columns.map((_, cellIndex) => (
+                                <TableCell key={cellIndex} className="py-4">
+                                  <Skeleton className="h-5 w-full rounded-lg bg-muted/60" />
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))
+                        ) : table.getRowModel().rows?.length ? (
+                          table.getRowModel().rows.map((row) => (
+                            <TableRow
+                              key={row.id}
+                              data-state={row.getIsSelected() && "selected"}
+                              className={tableRowClass}
+                            >
+                              {row.getVisibleCells().map((cell) => (
+                                <TableCell key={cell.id} className="py-3.5">
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext(),
+                                  )}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow className={tableRowStaticClass}>
+                            <TableCell colSpan={columns.length}>
+                              <EmptyData
+                                icon={IconMoodEmpty}
+                                title="Chưa có tài liệu"
+                                description="Tải lên tệp đầu tiên để agent bắt đầu học"
+                                showButton={false}
+                                buttonText=""
+                                onButtonClick={() => {}}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
-            </div>
 
               <div className="shrink-0 border-primary/10 pt-3 dark:border-sidebar-border/40">
                 <DataTablePagination

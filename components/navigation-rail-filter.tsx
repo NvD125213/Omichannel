@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   List,
   ListOrdered,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -316,6 +317,13 @@ export type NavigationRailFilterProps = {
   searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
   searchDebounceMs?: number;
+  /** Ẩn ô tìm kiếm (dock + panel). Mặc định hiển thị. */
+  showSearch?: boolean;
+  /** Hiển thị nút làm mới khi được truyền. */
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
+  refreshIcon?: ReactNode;
+  refreshLabel?: string;
   selectLabel?: string;
   selectPlaceholder?: string;
   selectOptions?: FilterOption[];
@@ -426,6 +434,11 @@ export function NavigationRailFilter({
   searchPlaceholder = "Tìm kiếm...",
   onSearchChange,
   searchDebounceMs = 500,
+  showSearch = true,
+  onRefresh,
+  isRefreshing = false,
+  refreshIcon,
+  refreshLabel = "Làm mới",
   selectLabel = "Trạng thái",
   selectPlaceholder = "Chọn giá trị bất kỳ",
   selectOptions = [],
@@ -978,16 +991,32 @@ export function NavigationRailFilter({
           />
 
           {/* Search */}
-          <DockItem
-            onClick={() => handleClickFocus("search")}
-            isActive={!!searchValue}
-            badge={searchValue ? 1 : undefined}
-          >
-            <DockLabel>Tìm kiếm</DockLabel>
-            <DockIcon>
-              {searchIcon || <Search className="size-full" />}
-            </DockIcon>
-          </DockItem>
+          {showSearch && (
+            <DockItem
+              onClick={() => handleClickFocus("search")}
+              isActive={!!searchValue}
+              badge={searchValue ? 1 : undefined}
+            >
+              <DockLabel>Tìm kiếm</DockLabel>
+              <DockIcon>
+                {searchIcon || <Search className="size-full" />}
+              </DockIcon>
+            </DockItem>
+          )}
+
+          {/* Refresh */}
+          {onRefresh && (
+            <DockItem onClick={onRefresh}>
+              <DockLabel>{refreshLabel}</DockLabel>
+              <DockIcon>
+                {refreshIcon || (
+                  <RefreshCw
+                    className={cn("size-full", isRefreshing && "animate-spin")}
+                  />
+                )}
+              </DockIcon>
+            </DockItem>
+          )}
 
           {/* Select */}
           {selectOptions.length > 0 && (
@@ -1154,39 +1183,41 @@ export function NavigationRailFilter({
           <ScrollArea className="flex-1">
             <motion.div className="space-y-5 p-4">
               {/* Search Input */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  {renderLabelIcon(searchIcon, "search")}
-                  Tìm kiếm
-                </label>
-                <div className="relative">
-                  <Input
-                    ref={searchInputRef}
-                    placeholder={searchPlaceholder}
-                    value={searchValue}
-                    onChange={handleSearchChange}
-                    className="h-10 bg-transparent border-input focus-visible:ring-2 focus-visible:ring-primary/20 pr-8"
-                  />
-                  {searchValue && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSearchValue("");
-                        onSearchChange?.("");
-                      }}
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-muted"
-                    >
-                      <X className="size-3" />
-                    </Button>
-                  )}
+              {showSearch && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                    {renderLabelIcon(searchIcon, "search")}
+                    Tìm kiếm
+                  </label>
+                  <div className="relative">
+                    <Input
+                      ref={searchInputRef}
+                      placeholder={searchPlaceholder}
+                      value={searchValue}
+                      onChange={handleSearchChange}
+                      className="h-10 bg-transparent border-input focus-visible:ring-2 focus-visible:ring-primary/20 pr-8"
+                    />
+                    {searchValue && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchValue("");
+                          onSearchChange?.("");
+                        }}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 hover:bg-muted"
+                      >
+                        <X className="size-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Select Option */}
               {selectOptions.length > 0 && (
                 <>
-                  <Separator />
+                  {showSearch && <Separator />}
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground flex items-center gap-2">
                       {renderLabelIcon(selectIcon, "select")}
@@ -1563,6 +1594,19 @@ export function NavigationRailFilter({
               </div>
             )}
             <div className="flex gap-2">
+              {onRefresh && (
+                <Button
+                  variant="outline"
+                  className="h-9 gap-2"
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw
+                    className={cn("size-4", isRefreshing && "animate-spin")}
+                  />
+                  {refreshLabel}
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="flex-1 h-9"
