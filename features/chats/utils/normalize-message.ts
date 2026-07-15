@@ -116,4 +116,56 @@ export const getConversationIdFromPayload = (
 };
 
 export const isActivityMessage = (payload: Record<string, unknown>) =>
-  payload.message_type === 2;
+  payload.message_type === 2 || payload.message_type === "activity";
+
+/** Lấy bản ghi message thô từ response tạo tin nhắn (nhiều lớp envelope). */
+export const extractCreatedMessageFromResponse = (
+  response: unknown,
+): Record<string, unknown> | null => {
+  if (!response || typeof response !== "object") return null;
+  const root = response as Record<string, unknown>;
+  const data = root.data;
+
+  const candidates: unknown[] = [data, root];
+
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const record = data as Record<string, unknown>;
+    candidates.push(
+      record.payload,
+      record.message,
+      record.data,
+      record.chatwoot,
+    );
+
+    const chatwoot = record.chatwoot;
+    if (chatwoot && typeof chatwoot === "object" && !Array.isArray(chatwoot)) {
+      const box = chatwoot as Record<string, unknown>;
+      candidates.push(box.payload, box.message, box.data);
+      if (
+        box.data &&
+        typeof box.data === "object" &&
+        !Array.isArray(box.data)
+      ) {
+        const nested = box.data as Record<string, unknown>;
+        candidates.push(nested.payload, nested.message);
+      }
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      !Array.isArray(candidate) &&
+      ((candidate as Record<string, unknown>).id !== undefined ||
+        (candidate as Record<string, unknown>).content !== undefined)
+    ) {
+      const message = candidate as Record<string, unknown>;
+      if (message.id !== undefined || typeof message.content === "string") {
+        return message;
+      }
+    }
+  }
+
+  return null;
+};

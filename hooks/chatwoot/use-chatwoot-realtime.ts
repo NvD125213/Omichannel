@@ -101,7 +101,14 @@ export function useChatwootRealtime({
         );
         scheduleConversationLastSeen(conversationId);
       } else {
-        const rawInboxId = messagePayload.inbox_id;
+        const conversation = messagePayload.conversation as
+          | Record<string, unknown>
+          | undefined;
+        const inbox = messagePayload.inbox as
+          | Record<string, unknown>
+          | undefined;
+        const rawInboxId =
+          messagePayload.inbox_id ?? conversation?.inbox_id ?? inbox?.id;
         const inboxId =
           typeof rawInboxId === "number"
             ? rawInboxId

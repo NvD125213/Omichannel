@@ -231,6 +231,7 @@ export interface UpdateTenantConversationCustomAttributesRequest {
 
 export type CreateTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
 export type UpdateTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
+export type DeleteTenantConversationResponse = ApiResponse<void>;
 export type CreateTenantConversationMessageResponse =
   ApiResponse<ChatwootJsonPayload>;
 export type DeleteTenantConversationMessageResponse = ApiResponse<void>;

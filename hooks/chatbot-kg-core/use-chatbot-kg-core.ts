@@ -276,6 +276,7 @@ export const useListAgentLeads = (
     queryKey: chatbotKgCoreKeys.agentLeads(agentId, params),
     queryFn: () => chatbotKgCoreService.listAgentLeads(agentId, params),
     enabled: !!agentId,
+    placeholderData: keepPreviousData,
   });
 };
 

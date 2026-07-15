@@ -23,6 +23,7 @@ import type {
   DeleteChatwootAgentBotResponse,
   DeleteChatwootAgentResponse,
   DeleteTenantConversationMessageResponse,
+  DeleteTenantConversationResponse,
   DeleteTenantLabelResponse,
   DeleteChatwootUserResponse,
   DeleteTenantChatwootAccountResponse,
@@ -597,6 +598,17 @@ export const chatwootService = {
     const response = await apiClient.patch<UpdateTenantConversationResponse>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}`,
       data,
+    );
+    return response.data;
+  },
+
+  /** DELETE /api/v1/chatwoot/tenants/:tenant_id/conversations/:conversation_id */
+  deleteTenantConversation: async (
+    tenantId: string,
+    conversationId: string,
+  ): Promise<DeleteTenantConversationResponse> => {
+    const response = await apiClient.delete<DeleteTenantConversationResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}`,
     );
     return response.data;
   },

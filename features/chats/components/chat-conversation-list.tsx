@@ -20,9 +20,10 @@ import {
   VolumeX,
   Inbox,
   User,
-  Reply,
   Cast,
-  Clock,
+  CircleHelp,
+  Dot,
+  MessageSquareReply,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,12 +43,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
   useBulkAction,
+  useDeleteTenantConversation,
   useListTenantInboxes,
   useListTenantLabels,
   useTenantConversationLastSeen,
 } from "@/hooks/chatwoot/use-chatwoot";
 
-type ConversationTab = "mine" | "unread" | "all";
+type ConversationTab = "all" | "me" | "unassigned";
+
+export type ConversationAssigneeType = ConversationTab;
+
 type ConversationLabelOption = {
   id: string;
   title: string;
@@ -61,22 +66,20 @@ const formatConversationLabel = (label: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-const TAB_CYCLE: ConversationTab[] = ["all", "mine", "unread"];
+const TAB_CYCLE: ConversationTab[] = ["all", "me", "unassigned"];
 const TAB_COLORS: Record<ConversationTab, string> = {
-  mine: "bg-red-500",
-  unread: "bg-amber-500",
   all: "bg-green-500",
+  me: "bg-red-500",
+  unassigned: "bg-amber-500",
 };
 const TAB_LABELS: Record<ConversationTab, string> = {
   all: "Tất cả",
-  mine: "Cho bạn",
-  unread: "Chưa đọc",
+  me: "Của tôi",
+  unassigned: "Chưa phân công",
 };
-const TAB_TOOLTIPS: Record<ConversationTab, string> = {
-  all: "Tất cả cuộc trò chuyện",
-  mine: "Cuộc trò chuyện được giao cho bạn",
-  unread: "Cuộc trò chuyện chưa đọc",
-};
+const ASSIGNEE_TABS_HELP =
+  "Các tab lọc theo nhân sự được phân công xử lý cuộc trò chuyện: Tất cả (mọi người), Của tôi (bạn phụ trách), Chưa phân công (chưa gán cho ai xử lý).";
+
 const LABEL_FALLBACK_COLORS = [
   "#3b82f6",
   "#10b981",
@@ -207,8 +210,12 @@ interface ConversationListProps {
   listScrollResetKey?: string;
   /** Meta từ GET conversations (mine_count, all_count, …) */
   conversationsMeta?: TenantConversationsListMeta | null;
+  /** assignee_type đang gửi lên API: all | me | unassigned */
+  assigneeType?: ConversationAssigneeType;
+  onAssigneeTypeChange?: (assigneeType: ConversationAssigneeType) => void;
   onLoadMore?: () => void;
   onSelectConversation: (conversationId: string) => void;
+  onConversationDeleted?: (conversationId: string) => void;
 }
 
 export function ChatConversationList({
@@ -223,14 +230,19 @@ export function ChatConversationList({
   hideTabs = false,
   listScrollResetKey,
   conversationsMeta = null,
+  assigneeType = "all",
+  onAssigneeTypeChange,
   onLoadMore,
   onSelectConversation,
+  onConversationDeleted,
 }: ConversationListProps) {
   const queryClient = useQueryClient();
   const { searchQuery, setSearchQuery, markAsRead } = useChat();
   const clearUnread = useChatUnreadStore((state) => state.clearUnread);
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
+  const { mutate: deleteConversation, isPending: isDeletingConversation } =
+    useDeleteTenantConversation();
 
   const inboxNameById = useMemo(() => {
     const inboxPayload = (
@@ -266,8 +278,25 @@ export function ChatConversationList({
   const conversationListScrollRef = useRef<HTMLDivElement>(null);
   const listScrollResetKeyRef = useRef(listScrollResetKey);
   const [searchInput, setSearchInput] = useState(searchQuery);
-  const [activeTab, setActiveTab] = useState<ConversationTab>("all");
+  const [activeTab, setActiveTabLocal] =
+    useState<ConversationTab>(assigneeType);
   const SCROLL_BOTTOM_THRESHOLD = 100;
+
+  const setActiveTab = useCallback(
+    (tab: ConversationTab) => {
+      setActiveTabLocal(tab);
+      onAssigneeTypeChange?.(tab);
+    },
+    [onAssigneeTypeChange],
+  );
+
+  useEffect(() => {
+    setActiveTabLocal(assigneeType);
+  }, [assigneeType]);
+
+  useEffect(() => {
+    conversationListScrollRef.current?.scrollTo({ top: 0 });
+  }, [assigneeType]);
 
   useEffect(() => {
     setSearchInput(searchQuery);
@@ -290,9 +319,10 @@ export function ChatConversationList({
     listScrollResetKeyRef.current = listScrollResetKey;
     conversationListScrollRef.current?.scrollTo({ top: 0 });
     if (!hideTabs) {
-      setActiveTab("all");
+      setActiveTabLocal("all");
+      onAssigneeTypeChange?.("all");
     }
-  }, [hideTabs, listScrollResetKey]);
+  }, [hideTabs, listScrollResetKey, onAssigneeTypeChange]);
 
   const handleConversationScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -310,7 +340,16 @@ export function ChatConversationList({
 
   const mineConversations = useMemo(
     () =>
-      conversations.filter((conversation) => conversation.type === "direct"),
+      conversations.filter((conversation) => {
+        const assigneeId = conversation.meta?.assignee?.id;
+        return Boolean(assigneeId);
+      }),
+    [conversations],
+  );
+
+  const unassignedConversations = useMemo(
+    () =>
+      conversations.filter((conversation) => !conversation.meta?.assignee?.id),
     [conversations],
   );
 
@@ -353,41 +392,30 @@ export function ChatConversationList({
     syncConversationReadState(selectedConversation);
   }, [selectedConversation, syncConversationReadState]);
 
-  const unreadConversations = useMemo(
-    () => conversations.filter((conversation) => conversation.unreadCount > 0),
-    [conversations],
-  );
-
-  const tabMineCount =
-    conversationsMeta?.mine_count ?? mineConversations.length;
-
-  /** Meta Chatwoot không có unread_count — giữ đếm từ mock/local */
-  const tabUnreadCount = unreadConversations.length;
-  const tabAllCount = conversationsMeta?.all_count ?? conversations.length;
+  const tabMeCount =
+    conversationsMeta?.mine_count ??
+    (assigneeType === "me" ? conversations.length : mineConversations.length);
+  const tabUnassignedCount =
+    conversationsMeta?.unassigned_count ??
+    (assigneeType === "unassigned"
+      ? conversations.length
+      : unassignedConversations.length);
+  const tabAllCount =
+    conversationsMeta?.all_count ??
+    (assigneeType === "all" ? conversations.length : conversations.length);
   const isEmptyByMeta = conversationsMeta?.all_count === 0;
   const tabCounts: Record<ConversationTab, number> = {
-    mine: tabMineCount,
-    unread: tabUnreadCount,
     all: tabAllCount,
+    me: tabMeCount,
+    unassigned: tabUnassignedCount,
   };
   const effectiveTab: ConversationTab = hideTabs ? "all" : activeTab;
-  const activeTabCount =
-    effectiveTab === "mine"
-      ? tabMineCount
-      : effectiveTab === "unread"
-        ? tabUnreadCount
-        : tabAllCount;
+  const activeTabCount = tabCounts[effectiveTab];
 
   const sortedConversations = useMemo(() => {
-    const tabFilteredConversations = conversations.filter((conversation) => {
-      if (effectiveTab === "mine") return conversation.type === "direct";
-      if (effectiveTab === "unread") return conversation.unreadCount > 0;
-      return true;
-    });
-
-    const searchFilteredConversations = tabFilteredConversations.filter(
-      (conversation) =>
-        conversation.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    // Danh sách đã được lọc theo assignee_type phía API — tab chỉ hiển thị/search/sort.
+    const searchFilteredConversations = conversations.filter((conversation) =>
+      conversation.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
 
     return [...searchFilteredConversations].sort((a, b) => {
@@ -398,7 +426,7 @@ export function ChatConversationList({
         getTime(b.lastMessage.timestamp) - getTime(a.lastMessage.timestamp)
       );
     });
-  }, [effectiveTab, conversations, searchQuery]);
+  }, [conversations, searchQuery]);
 
   const conversationItemRefs = useRef(new Map<string, HTMLElement>());
   const loadMoreForScrollRef = useRef<string | null>(null);
@@ -478,6 +506,7 @@ export function ChatConversationList({
     onLoadMore,
     scrollSelectedConversationIntoView,
     selectedConversation,
+    setActiveTab,
     sortedConversations,
   ]);
 
@@ -542,6 +571,29 @@ export function ChatConversationList({
       }
     },
     [buildConversationUrl, showConversationActionToast],
+  );
+
+  const handleDeleteConversation = useCallback(
+    (conversation: ChatConversation) => {
+      if (!tenantId.trim() || isDeletingConversation) return;
+
+      deleteConversation(
+        { tenantId, conversationId: conversation.id },
+        {
+          onSuccess: (res) => {
+            const statusCode = res?.status_code ?? 200;
+            if (statusCode !== 200 && statusCode !== 204) return;
+            onConversationDeleted?.(conversation.id);
+          },
+        },
+      );
+    },
+    [
+      deleteConversation,
+      isDeletingConversation,
+      onConversationDeleted,
+      tenantId,
+    ],
   );
 
   const handleToggleConversationLabel = useCallback(
@@ -701,76 +753,96 @@ export function ChatConversationList({
       <ContextMenuItem
         variant="destructive"
         className={CONTEXT_MENU_ITEM_CLASSNAME}
-        onSelect={() =>
-          showConversationActionToast(
-            "Đã yêu cầu xóa cuộc trò chuyện",
-            `Chức năng xóa cuộc trò chuyện với ${conversation.name} sẽ được kết nối dữ liệu ở bước tiếp theo.`,
-          )
-        }
+        disabled={isDeletingConversation || !tenantId.trim()}
+        onSelect={() => handleDeleteConversation(conversation)}
       >
         <Trash2 />
-        Xóa cuộc trò chuyện
+        {isDeletingConversation ? "Đang xóa..." : "Xóa cuộc trò chuyện"}
       </ContextMenuItem>
     </ContextMenuContent>
   );
 
   const renderConversationTabs = () => (
-    <div className="px-2 sm:pt-2 pb-2 border-b shrink-0 min-w-0">
-      <div className="grid w-full min-h-11 grid-cols-3 gap-1 rounded-2xl border border-primary/15 bg-primary/10 p-1 shadow-inner">
-        {TAB_CYCLE.map((tab) => {
-          const isActive = activeTab === tab;
+    <TooltipProvider delayDuration={200}>
+      <div className="relative min-w-0 shrink-0 border-b px-2 pb-2 pt-2 sm:pt-3">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              aria-label="Giải thích tab phân công"
+              className="absolute top-2 right-1 z-10 inline-flex items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10"
+            >
+              <CircleHelp
+                className="size-3.5 bg-primary text-white rounded-full"
+                strokeWidth={2.5}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent
+            side="left"
+            sideOffset={6}
+            className="max-w-64 rounded-md px-2.5 py-2 text-xs leading-relaxed"
+          >
+            {ASSIGNEE_TABS_HELP}
+          </TooltipContent>
+        </Tooltip>
 
-          return (
-            <Tooltip key={tab}>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={TAB_TOOLTIPS[tab]}
-                  aria-pressed={isActive}
-                  onClick={() => setActiveTab(tab)}
-                  className={cn(
-                    "flex min-h-9 min-w-0 cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-1 text-[10px] leading-tight transition-all duration-200 sm:flex-row sm:gap-1 sm:px-2 sm:py-1.5 sm:text-xs",
-                    isActive
-                      ? [
-                          "border-primary/20",
-                          "bg-primary/[0.08]",
-                          "text-primary",
-                          "backdrop-blur-sm",
-                        ]
-                      : [
-                          "border-transparent",
-                          "text-muted-foreground",
-                          "hover:border-border/60",
-                          "hover:bg-background/60",
-                          "hover:text-foreground",
-                        ],
-                  )}
-                >
-                  <span className="truncate text-center">
-                    {TAB_LABELS[tab]}
-                  </span>
-                  <span
+        <div className="grid w-full grid-cols-3 gap-1.5 rounded-2xl border border-primary/15 bg-primary/10 p-1.5 pr-6 shadow-inner">
+          {TAB_CYCLE.map((tab) => {
+            const isActive = activeTab === tab;
+            const count = tabCounts[tab];
+            const countLabel = count > 99 ? "99+" : String(count);
+
+            return (
+              <Tooltip key={tab} delayDuration={3000}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={TAB_LABELS[tab]}
+                    aria-pressed={isActive}
+                    onClick={() => setActiveTab(tab)}
                     className={cn(
-                      "inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[9px] font-semibold tabular-nums text-white sm:size-5 sm:text-[11px]",
-                      TAB_COLORS[tab],
+                      "flex h-10 min-w-0 w-full items-center justify-center rounded-xl border px-2 transition-all duration-200",
+                      isActive
+                        ? [
+                            "border-primary/20",
+                            "bg-primary/8",
+                            "text-primary",
+                            "backdrop-blur-sm",
+                          ]
+                        : [
+                            "border-transparent",
+                            "text-muted-foreground",
+                            "hover:border-border/60",
+                            "hover:bg-background/60",
+                            "hover:text-foreground",
+                          ],
                     )}
                   >
-                    {tabCounts[tab]}
-                  </span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent
-                side="bottom"
-                sideOffset={4}
-                className="rounded-sm px-2 py-1 text-[10px]"
-              >
-                {TAB_TOOLTIPS[tab]}
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+                    <span className="inline-flex max-w-full min-w-0 items-center justify-center gap-1.5">
+                      <span className="min-w-0 truncate text-xs py-1 font-bold leading-none">
+                        {TAB_LABELS[tab]}
+                      </span>
+                      <span
+                        className={cn(
+                          "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold leading-none tabular-nums text-white",
+                          TAB_COLORS[tab],
+                        )}
+                      >
+                        {countLabel}
+                      </span>
+                    </span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={6}>
+                  {TAB_LABELS[tab]}
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 
   const getOnlineStatus = (conversation: ChatConversation) => {
@@ -803,60 +875,56 @@ export function ChatConversationList({
       <div className="flex h-full flex-col overflow-hidden">
         {/* Compact tab slider for collapsed sidebar */}
         {!hideTabs && (
-        <div className="flex items-center justify-between gap-0.5 border-b px-1 py-1.5">
-          <button
-            type="button"
-            aria-label="Tab trước"
-            onClick={() => {
-              const idx = TAB_CYCLE.indexOf(activeTab);
-              setActiveTab(
-                TAB_CYCLE[(idx - 1 + TAB_CYCLE.length) % TAB_CYCLE.length],
-              );
-            }}
-            className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <ChevronLeft className="size-3.5" />
-          </button>
-
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -5 }}
-              transition={{ duration: 0.15 }}
-              className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
+          <div className="flex items-center justify-between gap-0.5 border-b px-1 py-1.5">
+            <button
+              type="button"
+              aria-label="Tab trước"
+              onClick={() => {
+                const idx = TAB_CYCLE.indexOf(activeTab);
+                setActiveTab(
+                  TAB_CYCLE[(idx - 1 + TAB_CYCLE.length) % TAB_CYCLE.length],
+                );
+              }}
+              className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
-              <span
-                className={cn(
-                  "inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums text-white",
-                  TAB_COLORS[activeTab],
-                )}
-              >
-                {activeTab === "mine"
-                  ? tabMineCount
-                  : activeTab === "unread"
-                    ? tabUnreadCount
-                    : tabAllCount}
-              </span>
-              <span className="truncate text-center text-[9px] leading-none text-muted-foreground">
-                {TAB_LABELS[activeTab]}
-              </span>
-            </motion.div>
-          </AnimatePresence>
+              <ChevronLeft className="size-3.5" />
+            </button>
 
-          <button
-            type="button"
-            aria-label="Tab tiếp theo"
-            onClick={() => {
-              const idx = TAB_CYCLE.indexOf(activeTab);
-              setActiveTab(TAB_CYCLE[(idx + 1) % TAB_CYCLE.length]);
-            }}
-            className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <ChevronRight className="size-3.5" />
-          </button>
-        </div>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.15 }}
+                className="flex min-w-0 flex-1 flex-col items-center gap-0.5"
+              >
+                <span
+                  className={cn(
+                    "inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums text-white",
+                    TAB_COLORS[activeTab],
+                  )}
+                >
+                  {tabCounts[activeTab]}
+                </span>
+                <span className="truncate text-center text-[9px] leading-none text-muted-foreground">
+                  {TAB_LABELS[activeTab]}
+                </span>
+              </motion.div>
+            </AnimatePresence>
+
+            <button
+              type="button"
+              aria-label="Tab tiếp theo"
+              onClick={() => {
+                const idx = TAB_CYCLE.indexOf(activeTab);
+                setActiveTab(TAB_CYCLE[(idx + 1) % TAB_CYCLE.length]);
+              }}
+              className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <ChevronRight className="size-3.5" />
+            </button>
+          </div>
         )}
 
         <TooltipProvider delayDuration={120}>
@@ -1052,7 +1120,7 @@ export function ChatConversationList({
               className="h-full overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               onScroll={handleConversationScroll}
             >
-              <div className="p-2 space-y-1">
+              <div className="space-y-0.5 p-1.5 sm:p-2">
                 {sortedConversations.map((conversation) => {
                   const conversationTime = formatConversationTimeParts(
                     conversation.lastMessage.timestamp,
@@ -1068,6 +1136,13 @@ export function ChatConversationList({
                         "Kênh chưa đặt tên")
                       : conversation.meta?.channel?.trim() ||
                         "Kênh chưa đặt tên";
+                  const isSelected = selectedConversation === conversation.id;
+                  const hasUnread = conversation.unreadCount > 0 && !isSelected;
+                  const visibleLabels = conversation.labels.slice(0, 3);
+                  const hiddenLabelCount = Math.max(
+                    0,
+                    conversation.labels.length - visibleLabels.length,
+                  );
 
                   return (
                     <ContextMenu key={conversation.id}>
@@ -1082,32 +1157,30 @@ export function ChatConversationList({
                           transition={{ duration: 0.18, ease: "easeOut" }}
                           data-conversation-id={conversation.id}
                           className={cn(
-                            "flex min-w-0 items-center gap-2 rounded-xl p-2 transition-all duration-200 sm:gap-3 sm:p-3",
-                            "cursor-pointer relative overflow-hidden",
-                            selectedConversation === conversation.id
-                              ? "bg-primary/10 text-accent-foreground shadow-sm"
-                              : "hover:bg-accent/50",
+                            "group relative flex min-w-0 cursor-pointer items-start gap-2.5 overflow-hidden rounded-xl px-2.5 py-2.5 transition-colors duration-200 sm:gap-3 sm:px-3 sm:py-3",
+                            isSelected
+                              ? "bg-primary/10 shadow-[inset_3px_0_0_0] shadow-primary"
+                              : "hover:bg-accent/60",
                           )}
                           onClick={() =>
                             handleSelectConversation(conversation.id)
                           }
                         >
-                          {/* Avatar with online indicator */}
-                          <div className="relative shrink-0">
+                          <div className="relative mt-0.5 shrink-0">
                             <Avatar
                               className={cn(
-                                "h-10 w-10 sm:h-12 sm:w-12 transition-all",
-                                selectedConversation === conversation.id &&
-                                  "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                                "size-11 transition-shadow sm:size-12",
+                                isSelected &&
+                                  "ring-2 ring-primary/50 ring-offset-2 ring-offset-background",
                               )}
                             >
                               <AvatarImage
                                 src={conversation.avatar}
                                 alt={conversation.name}
                               />
-                              <AvatarFallback className="text-sm bg-linear-to-br from-primary/20 to-primary/10">
+                              <AvatarFallback className="bg-linear-to-br from-primary/25 to-primary/10 text-xs font-semibold text-primary">
                                 {conversation.type === "group" ? (
-                                  <Users className="size-5 text-primary" />
+                                  <Users className="size-5" />
                                 ) : (
                                   conversation.name
                                     .split(" ")
@@ -1118,135 +1191,150 @@ export function ChatConversationList({
                               </AvatarFallback>
                             </Avatar>
 
-                            {/* Online indicator for direct messages */}
                             {conversation.type === "direct" &&
                               getOnlineStatus(conversation) && (
-                                <div className="absolute bottom-0 right-0 h-3.5 w-3.5 bg-green-500 border-2 border-background rounded-full animate-pulse" />
+                                <span className="absolute right-0 bottom-0 size-3 rounded-full border-2 border-background bg-emerald-500" />
                               )}
 
-                            {/* Group indicator */}
                             {conversation.type === "group" && (
-                              <div className="absolute bottom-0 right-0 size-4 bg-blue-500 border-2 border-background rounded-full flex items-center justify-center">
+                              <span className="absolute right-0 bottom-0 flex size-3.5 items-center justify-center rounded-full border-2 border-background bg-sky-500">
                                 <Hash className="size-2 text-white" />
-                              </div>
+                              </span>
                             )}
                           </div>
 
-                          {/* Content */}
-                          <div className="min-w-0 flex-1 overflow-hidden">
-                            <div className="mb-1 flex min-w-0 items-start gap-2">
-                              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-                                <h3 className="min-w-0 flex-1 truncate text-sm font-medium sm:text-base">
-                                  {conversation.name}
-                                </h3>
-                                {conversation.isPinned && (
-                                  <Pin className="size-3 shrink-0 text-muted-foreground" />
-                                )}
-                                {conversation.isMuted && (
-                                  <VolumeX className="size-3 shrink-0 text-muted-foreground" />
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex min-w-0 items-center gap-2">
-                              <p className="min-w-0 flex-1 text-xs text-muted-foreground flex items-center gap-1">
-                                <Reply className="size-3 shrink-0 text-muted-foreground" />
-                                <span className="truncate">
-                                  {conversation.lastMessage.content}
-                                </span>
-                              </p>
-
-                              <div className="flex shrink-0 items-center gap-1 text-[10px] leading-none text-muted-foreground/80">
-                                <span aria-hidden="true">
-                                  <Clock className="size-3 shrink-0 text-muted-foreground" />
-                                </span>
-                                <span className="whitespace-nowrap py-0.5">
-                                  {conversationTime}
-                                </span>
-                              </div>
-
-                              {/* Unread count */}
-                              <div className="relative shrink-0">
-                                {conversation.unreadCount > 0 &&
-                                  selectedConversation !== conversation.id && (
-                                    <Badge
-                                      variant="default"
-                                      className="min-w-[22px]
-                                        h-[22px]
-                                        px-1.5
-                                        rounded-full
-                                        bg-green-500
-                                        text-white
-                                        text-[11px]
-                                        font-bold
-                                        border-2
-                                        border-white
-                                        shadow-md
-                                        shrink-0"
-                                    >
-                                      {" "}
-                                      {conversation.unreadCount > 99
-                                        ? "99+"
-                                        : conversation.unreadCount}{" "}
-                                    </Badge>
-                                  )}
-                              </div>
-                            </div>
-
-                            <div className="flex min-w-0 flex-col">
-                              {conversation.labels.length > 0 && (
-                                <div className="min-w-0 flex flex-wrap gap-1.5 pt-1.5">
-                                  {conversation.labels
-                                    .slice(0, 2)
-                                    .map((label) => (
-                                      <span
-                                        key={`${conversation.id}-${label}`}
-                                        className="inline-flex min-w-0 items-center gap-1 rounded-md border border-border/70 bg-transparent px-2 py-1 text-[10px] font-medium text-foreground shadow-xs"
-                                      >
-                                        <span
-                                          className="size-1.5 shrink-0 rounded-full"
-                                          style={{
-                                            backgroundColor:
-                                              labelColorMap.get(label) ??
-                                              "#94a3b8",
-                                          }}
-                                          aria-hidden="true"
-                                        />
-                                        <span className="truncate">
-                                          {formatConversationLabel(label)}
-                                        </span>
-                                      </span>
-                                    ))}
-
-                                  {conversation.labels.length > 2 && (
-                                    <span className="inline-flex items-center rounded-md border border-dashed border-border/70 px-1.5 py-1 text-[10px] text-muted-foreground">
-                                      +{conversation.labels.length - 2}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              <div
+                          <div className="min-w-0 flex-1 space-y-1.5">
+                            <div className="flex min-w-0 items-center gap-1">
+                              <h3
                                 className={cn(
-                                  "flex items-center justify-between gap-1 text-[10px] pt-2 leading-none text-muted-foreground/80",
+                                  "min-w-0 flex-1 truncate text-sm leading-5 sm:text-[15px]",
+                                  hasUnread
+                                    ? "font-bold text-foreground"
+                                    : "font-medium text-foreground",
                                 )}
                               >
-                                <div className="flex min-w-0 items-center gap-1">
-                                  <Cast className="size-3 shrink-0" />
-                                  <span className="truncate">
-                                    {inboxDisplayName}
-                                  </span>
-                                </div>
-                                {assigneeAvailableName && (
-                                  <span className="flex max-w-32 items-center gap-1 truncate">
-                                    <User className="size-3 shrink-0" />
-                                    <span className="truncate py-0.5">
-                                      {assigneeAvailableName}
+                                {conversation.name}
+                              </h3>
+                              {conversation.isPinned && (
+                                <Pin className="size-3.5 shrink-0 text-foreground/55" />
+                              )}
+                              {conversation.isMuted && (
+                                <VolumeX className="size-3.5 shrink-0 text-foreground/55" />
+                              )}
+                              {hasUnread && (
+                                <span className="relative ml-0.5 inline-flex size-5 shrink-0 items-center justify-center">
+                                  <span
+                                    aria-hidden
+                                    className="absolute inline-flex size-full rounded-full bg-emerald-500/45 animate-ping"
+                                  />
+                                  <Badge
+                                    variant="default"
+                                    className="relative z-10 h-5 min-w-5 justify-center rounded-full border-0 bg-emerald-500 px-1.5 text-[10px] font-bold text-white shadow-[0_0_0_3px_rgba(16,185,129,0.22)]"
+                                  >
+                                    {conversation.unreadCount > 99
+                                      ? "99+"
+                                      : conversation.unreadCount}
+                                  </Badge>
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex min-w-0 items-center">
+                              <MessageSquareReply
+                                className={cn(
+                                  "size-3.5 shrink-0 mr-1",
+                                  hasUnread
+                                    ? "text-foreground/70"
+                                    : "text-foreground/45",
+                                )}
+                                aria-hidden
+                              />
+                              <p
+                                className={cn(
+                                  "min-w-0 truncate text-[11px] leading-4 sm:text-xs",
+                                  hasUnread
+                                    ? "font-bold"
+                                    : "font-normal text-foreground/65",
+                                )}
+                              >
+                                {conversation.lastMessage.content ||
+                                  "Chưa có tin nhắn"}
+                              </p>
+                              <span
+                                className={cn(
+                                  hasUnread
+                                    ? "text-foreground/50"
+                                    : "text-foreground/35",
+                                )}
+                                aria-hidden
+                              >
+                                <Dot className="size-3.5 shrink-0" />
+                              </span>
+                              <span
+                                className={cn(
+                                  "shrink-0 text-xs pt-0.5 leading-none tabular-nums",
+                                  hasUnread
+                                    ? "font-bold text-foreground/70"
+                                    : "font-medium text-foreground/50",
+                                )}
+                              >
+                                {conversationTime}
+                              </span>
+                            </div>
+
+                            {(visibleLabels.length > 0 ||
+                              inboxDisplayName ||
+                              assigneeAvailableName) && (
+                              <div className="flex min-w-0 flex-wrap items-center gap-1.5 pt-0.5">
+                                {visibleLabels.map((label) => {
+                                  const labelColor =
+                                    labelColorMap.get(label) ?? "#64748b";
+                                  return (
+                                    <span
+                                      key={`${conversation.id}-${label}`}
+                                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide whitespace-nowrap"
+                                      style={{
+                                        color: labelColor,
+                                        backgroundColor: `${labelColor}18`,
+                                        boxShadow: `inset 0 0 0 1px ${labelColor}33`,
+                                      }}
+                                    >
+                                      <span
+                                        className="size-1.5 shrink-0 rounded-full"
+                                        style={{ backgroundColor: labelColor }}
+                                        aria-hidden
+                                      />
+                                      <span>
+                                        {formatConversationLabel(label)}
+                                      </span>
                                     </span>
+                                  );
+                                })}
+
+                                {hiddenLabelCount > 0 && (
+                                  <span className="inline-flex items-center rounded-full bg-foreground/5 px-1.5 py-0.5 text-[10px] font-semibold text-foreground/60">
+                                    +{hiddenLabelCount}
                                   </span>
                                 )}
+
+                                <span className="ml-auto flex min-w-0 max-w-full items-center gap-2 text-[10px] font-medium text-foreground/55">
+                                  <span className="inline-flex min-w-0 items-center gap-1">
+                                    <Cast className="size-3 shrink-0 opacity-80" />
+                                    <span className="whitespace-nowrap">
+                                      {inboxDisplayName}
+                                    </span>
+                                  </span>
+                                  {assigneeAvailableName ? (
+                                    <span className="inline-flex min-w-0 items-center gap-1">
+                                      <User className="size-3 shrink-0 opacity-80" />
+                                      <span className="whitespace-nowrap">
+                                        {assigneeAvailableName}
+                                      </span>
+                                    </span>
+                                  ) : null}
+                                </span>
                               </div>
-                            </div>
+                            )}
                           </div>
                         </motion.div>
                       </ContextMenuTrigger>
@@ -1256,7 +1344,7 @@ export function ChatConversationList({
                   );
                 })}
                 {isLoadingMore && (
-                  <div className="px-2 py-3 space-y-2">
+                  <div className="space-y-2 px-2 py-3">
                     <Skeleton className="h-16 w-full rounded-xl" />
                     <Skeleton className="h-16 w-full rounded-xl" />
                   </div>

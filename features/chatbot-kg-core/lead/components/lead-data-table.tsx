@@ -14,12 +14,21 @@ import {
   ArrowUp,
   ArrowUpDown,
   CheckCircle2,
+  CircleDot,
   EllipsisVertical,
-  Loader2,
+  Globe2,
+  Handshake,
+  Link2Off,
+  MessageCircle,
+  Phone,
+  Send,
+  Sparkles,
+  type LucideIcon,
 } from "lucide-react";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { useState, type ReactNode } from "react";
-
+import { toast } from "sonner";
+import { usePatchLead } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,38 +52,113 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyData } from "@/components/empty-data";
 import { cn } from "@/lib/utils";
 import { convertDateTime } from "@/utils/convert-time";
-import type {
-  KgLead,
-  LeadStatus,
-} from "@/services/chatbot-kg-core/interfaces";
+import type { KgLead, LeadStatus } from "@/services/chatbot-kg-core/interfaces";
 import { LeadDataTablePagination } from "./lead-data-table-pagination";
 
 const LEAD_STATUS_META: Record<
   string,
-  { label: string; className: string }
+  { label: string; className: string; icon: LucideIcon }
 > = {
   new: {
     label: "Mới",
+    icon: Sparkles,
     className:
-      "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20",
+      "border-blue-200 bg-blue-100 text-blue-700 shadow-sm shadow-blue-500/10 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300",
   },
   contacted: {
     label: "Đã liên hệ",
+    icon: Handshake,
     className:
-      "text-amber-600 bg-amber-50 dark:text-amber-400 dark:bg-amber-900/20",
+      "border-amber-200 bg-amber-100 text-amber-800 shadow-sm shadow-amber-500/10 dark:border-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   },
   closed: {
     label: "Đã đóng",
+    icon: CheckCircle2,
     className:
-      "text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/20",
+      "border-emerald-200 bg-emerald-100 text-emerald-800 shadow-sm shadow-emerald-500/10 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
   },
 };
 
-const LEAD_STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
-  { value: "new", label: "Mới" },
-  { value: "contacted", label: "Đã liên hệ" },
-  { value: "closed", label: "Đã đóng" },
+const LEAD_CHANNEL_META: Record<
+  string,
+  { label: string; className: string; icon: LucideIcon }
+> = {
+  web: {
+    label: "Web",
+    icon: Globe2,
+    className:
+      "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300",
+  },
+  webchat: {
+    label: "Webchat",
+    icon: MessageCircle,
+    className:
+      "border-sky-200 bg-sky-100 text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300",
+  },
+  preview: {
+    label: "Preview",
+    icon: CircleDot,
+    className:
+      "border-violet-200 bg-violet-100 text-violet-700 dark:border-violet-800 dark:bg-violet-950/50 dark:text-violet-300",
+  },
+  facebook: {
+    label: "Facebook",
+    icon: MessageCircle,
+    className:
+      "border-blue-200 bg-blue-100 text-blue-700 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-300",
+  },
+  messenger: {
+    label: "Messenger",
+    icon: MessageCircle,
+    className:
+      "border-indigo-200 bg-indigo-100 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300",
+  },
+  zaloapp: {
+    label: "WhatsApp",
+    icon: Phone,
+    className:
+      "border-green-200 bg-green-100 text-green-700 dark:border-green-800 dark:bg-green-950/50 dark:text-green-300",
+  },
+  zalo: {
+    label: "Zalo",
+    icon: MessageCircle,
+    className:
+      "border-cyan-200 bg-cyan-100 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-300",
+  },
+  telegram: {
+    label: "Telegram",
+    icon: Send,
+    className:
+      "border-sky-200 bg-sky-100 text-sky-700 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-300",
+  },
+  email: {
+    label: "Email",
+    icon: Send,
+    className:
+      "border-orange-200 bg-orange-100 text-orange-700 dark:border-orange-800 dark:bg-orange-950/50 dark:text-orange-300",
+  },
+};
+
+const LEAD_ACTION_OPTIONS: {
+  value: LeadStatus;
+  label: string;
+  icon: LucideIcon;
+}[] = [
+  { value: "contacted", label: "Kết nối", icon: Handshake },
+  { value: "closed", label: "Đóng kết nối", icon: Link2Off },
 ];
+
+function getChannelMeta(channel: string | null | undefined) {
+  if (!channel) return null;
+  const key = channel.trim().toLowerCase();
+  return (
+    LEAD_CHANNEL_META[key] ?? {
+      label: channel,
+      icon: Globe2,
+      className: "border-border bg-muted text-foreground dark:bg-muted/60",
+    }
+  );
+}
 
 function renderValue(value: unknown): ReactNode {
   if (value === null || value === undefined || value === "") {
@@ -98,8 +182,6 @@ interface LeadDataTableProps {
   onPageSizeChange: (pageSize: number) => void;
   columnVisibility?: VisibilityState;
   onColumnVisibilityChange?: (visibility: VisibilityState) => void;
-  onUpdateStatus?: (leadId: string, status: LeadStatus) => void;
-  updatingLeadId?: string | null;
   title?: string;
   description?: string;
   emptyTitle?: string;
@@ -116,8 +198,6 @@ export function LeadDataTable({
   onPageSizeChange,
   columnVisibility: externalColumnVisibility,
   onColumnVisibilityChange,
-  onUpdateStatus,
-  updatingLeadId,
   title = "Danh sách Lead",
   description = "Theo dõi và quản lý danh sách khách hàng tiềm năng của agent",
   emptyTitle = "Chưa có lead",
@@ -127,6 +207,20 @@ export function LeadDataTable({
   const [rowSelection, setRowSelection] = useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
     useState<VisibilityState>({});
+  const { mutateAsync: patchLead } = usePatchLead();
+
+  const handleUpdateStatus = async (leadId: string, status: LeadStatus) => {
+    try {
+      await patchLead({ leadId, data: { status } });
+      toast.success(
+        status === "contacted"
+          ? "Đã kết nối lead thành công"
+          : "Đã đóng kết nối lead thành công",
+      );
+    } catch {
+      // Error toast đã được xử lý trong usePatchLead
+    }
+  };
 
   const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
   const setColumnVisibility = (
@@ -191,7 +285,7 @@ export function LeadDataTable({
       ),
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-medium">{renderValue(row.original.name)}</span>
+          <span className="font-bold">{renderValue(row.original.name)}</span>
           <span className="text-sm text-muted-foreground">
             {renderValue(row.original.email)}
           </span>
@@ -208,19 +302,34 @@ export function LeadDataTable({
     {
       accessorKey: "channel",
       header: "Kênh",
-      cell: ({ row }) => (
-        <span className="text-sm capitalize">
-          {renderValue(row.original.channel)}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const channel = row.original.channel;
+        const meta = getChannelMeta(channel);
+        if (!meta) {
+          return renderValue(channel);
+        }
+        const Icon = meta.icon;
+        return (
+          <Badge
+            variant="outline"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold capitalize",
+              meta.className,
+            )}
+          >
+            <Icon className="size-3.5 shrink-0" />
+            {meta.label}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "need",
       header: "Nhu cầu",
       cell: ({ row }) => (
-        <span className="line-clamp-2 max-w-xs text-sm text-muted-foreground">
+        <div className="max-w-xs whitespace-normal break-words text-sm text-muted-foreground line-clamp-3">
           {renderValue(row.original.need)}
-        </span>
+        </div>
       ),
     },
     {
@@ -229,11 +338,16 @@ export function LeadDataTable({
       cell: ({ row }) => {
         const status = row.original.status;
         const meta = LEAD_STATUS_META[status];
+        const Icon = meta?.icon ?? CircleDot;
         return (
           <Badge
-            variant="secondary"
-            className={cn(meta?.className, "capitalize")}
+            variant="outline"
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold tracking-wide",
+              meta?.className ?? "border-border bg-muted text-foreground",
+            )}
           >
+            <Icon className="size-3.5 shrink-0" />
             {meta?.label ?? status}
           </Badge>
         );
@@ -262,7 +376,7 @@ export function LeadDataTable({
         if (!createdAt) {
           return renderValue(createdAt);
         }
-        const { date, time } = convertDateTime(createdAt, "short");
+        const { date, time } = convertDateTime(createdAt, "text");
         return (
           <div className="flex flex-col text-sm">
             <span>{date}</span>
@@ -278,7 +392,6 @@ export function LeadDataTable({
       header: "Hành động",
       cell: ({ row }) => {
         const lead = row.original;
-        const isUpdating = updatingLeadId === lead.id;
         return (
           <div className="flex items-center gap-2">
             <DropdownMenu>
@@ -287,32 +400,30 @@ export function LeadDataTable({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 cursor-pointer"
-                  disabled={isUpdating}
                 >
-                  {isUpdating ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <EllipsisVertical className="size-4" />
-                  )}
+                  <EllipsisVertical className="size-4" />
                   <span className="sr-only">Hành động</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Cập nhật trạng thái</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {LEAD_STATUS_OPTIONS.map((option) => {
+                {LEAD_ACTION_OPTIONS.map((option) => {
                   const isCurrent = lead.status === option.value;
+                  const ActionIcon = option.icon;
                   return (
                     <DropdownMenuItem
                       key={option.value}
                       className="cursor-pointer"
                       disabled={isCurrent}
-                      onClick={() => onUpdateStatus?.(lead.id, option.value)}
+                      onClick={() =>
+                        void handleUpdateStatus(lead.id, option.value)
+                      }
                     >
                       {isCurrent ? (
                         <CheckCircle2 className="size-4 text-primary" />
                       ) : (
-                        <span className="size-4" />
+                        <ActionIcon className="size-4" />
                       )}
                       {option.label}
                     </DropdownMenuItem>
@@ -326,7 +437,6 @@ export function LeadDataTable({
     },
   ];
 
-  /* eslint-disable-next-line */
   const table = useReactTable({
     data: leads,
     columns,

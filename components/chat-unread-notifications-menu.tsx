@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import Link from "next/link";
-import { BellOff, BellRing, Mail } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { BellOff, BellRing } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { vi } from "date-fns/locale";
+import { StringParam, useQueryParams } from "use-query-params";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -109,7 +111,6 @@ interface UnreadNotificationItem {
   preview: string;
   timestamp: Date | null;
   unreadCount: number;
-  href: string;
 }
 
 function UnreadPingDot({
@@ -178,8 +179,10 @@ function NotificationBellTrigger({
 
 function NotificationListItem({
   notification,
+  onOpenConversation,
 }: {
   notification: UnreadNotificationItem;
+  onOpenConversation: (conversationId: string) => void;
 }) {
   const initials = notification.name
     .split(" ")
@@ -189,11 +192,13 @@ function NotificationListItem({
     .toUpperCase();
 
   return (
-    <DropdownMenuItem asChild className="rounded-none p-0 focus:bg-muted/50">
-      <Link
-        href={notification.href}
-        className="flex w-full cursor-pointer items-start gap-3 px-5 py-4 transition-colors hover:bg-muted/40"
-      >
+    <DropdownMenuItem
+      className="cursor-pointer rounded-none px-5 py-4 focus:bg-muted/50"
+      onSelect={() => {
+        onOpenConversation(notification.id);
+      }}
+    >
+      <div className="flex w-full items-start gap-3">
         <Avatar className="size-10 shrink-0">
           {notification.avatar ? (
             <AvatarImage src={notification.avatar} alt={notification.name} />
@@ -218,7 +223,7 @@ function NotificationListItem({
         </div>
 
         <NotificationStatusDot />
-      </Link>
+      </div>
     </DropdownMenuItem>
   );
 }
@@ -226,6 +231,11 @@ function NotificationListItem({
 export function ChatUnreadNotificationsMenu() {
   const { user } = useAuth();
   const tenantId = user?.tenant_id ?? "";
+  const pathname = usePathname();
+  const router = useRouter();
+  const [, setQuery] = useQueryParams({
+    conversation_id: StringParam,
+  });
   const totalUnread = useTotalUnread();
   const unreadEntries = useChatUnreadStore((state) => state.entries);
   const hasUnread = totalUnread > 0;
@@ -235,6 +245,22 @@ export function ChatUnreadNotificationsMenu() {
     sort_by: "last_activity_at_desc",
     page: 1,
   });
+
+  /**
+   * Chat đọc conversation_id qua use-query-params (WindowHistoryAdapter).
+   * Next.js <Link> chỉ cập nhật App Router, không notify adapter → lần click
+   * đầu URL/loader đổi nhưng khung chat không đổi. Dùng cùng setQuery với sidebar.
+   */
+  const openConversation = useCallback(
+    (conversationId: string) => {
+      if (pathname === "/chats") {
+        setQuery({ conversation_id: conversationId }, "replaceIn");
+        return;
+      }
+      router.push(buildConversationHref(conversationId));
+    },
+    [pathname, router, setQuery],
+  );
 
   const unreadNotifications = useMemo(() => {
     const conversationById = new Map<
@@ -268,7 +294,6 @@ export function ChatUnreadNotificationsMenu() {
           `${formatUnreadBadgeCount(entry.unreadCount)} tin nhắn chưa đọc`,
         timestamp: conversation?.timestamp ?? null,
         unreadCount: entry.unreadCount,
-        href: buildConversationHref(id),
       });
     }
 
@@ -306,17 +331,6 @@ export function ChatUnreadNotificationsMenu() {
               </span>
             )}
           </div>
-
-          {/* <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-8 text-muted-foreground hover:text-foreground"
-            asChild
-          >
-            <Link href="/chats" aria-label="Mở hộp thư">
-              <Mail className="h-4 w-4" />
-            </Link>
-          </Button> */}
         </div>
 
         {visibleNotifications.length === 0 ? (
@@ -337,6 +351,7 @@ export function ChatUnreadNotificationsMenu() {
               <NotificationListItem
                 key={notification.id}
                 notification={notification}
+                onOpenConversation={openConversation}
               />
             ))}
           </div>

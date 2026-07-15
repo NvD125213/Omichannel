@@ -37,9 +37,14 @@ import type {
 } from "@/services/chatwoot/interface";
 import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 import {
+  appendMessageToConversationMessagesCache,
   applyConversationStatusToListCache,
+  applyMessageCreatedToConversationList,
   clearConversationUnreadInListCache,
+  updateConversationInListCache,
 } from "@/features/chats/utils/chatwoot-realtime-cache";
+import { extractCreatedMessageFromResponse } from "@/features/chats/utils/normalize-message";
+import { useChatStore } from "@/features/chats/utils/use-chat";
 import { chatwootService } from "@/services/chatwoot/service";
 import { extractFilterConversationsPayload } from "@/features/chats/utils/conversation-filter";
 
@@ -1096,22 +1101,41 @@ export const useCreateTenantConversationMessage = () => {
       ),
     onSuccess: (res, variables) => {
       if (res.status_code === 200 || res.status_code === 201) {
-        queryClient.invalidateQueries({
-          queryKey: chatwootOmniKeys.tenantConversationMessages(
-            variables.tenantId,
-            variables.conversationId,
-          ),
-        });
+        const { tenantId, conversationId } = variables;
+        const rawMessage = extractCreatedMessageFromResponse(res);
+
+        // Ưu tiên append cache để UI chuyển pending → tin thật mượt, tránh refetch gây duplicate.
+        if (rawMessage) {
+          appendMessageToConversationMessagesCache(
+            queryClient,
+            tenantId,
+            conversationId,
+            rawMessage,
+          );
+          applyMessageCreatedToConversationList(
+            queryClient,
+            tenantId,
+            conversationId,
+            rawMessage,
+            true,
+          );
+        } else {
+          queryClient.invalidateQueries({
+            queryKey: chatwootOmniKeys.tenantConversationMessages(
+              tenantId,
+              conversationId,
+            ),
+          });
+        }
+
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.tenantConversation(
-            variables.tenantId,
-            variables.conversationId,
+            tenantId,
+            conversationId,
           ),
         });
         queryClient.invalidateQueries({
-          queryKey: chatwootOmniKeys.tenantConversationsBase(
-            variables.tenantId,
-          ),
+          queryKey: chatwootOmniKeys.tenantConversationsBase(tenantId),
         });
       } else {
         toast.error(res.message || "Gửi tin nhắn thất bại");
@@ -1168,6 +1192,56 @@ export const useDeleteTenantConversationMessage = () => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Có lỗi khi xóa tin nhắn";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useDeleteTenantConversation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      conversationId,
+    }: {
+      tenantId: string;
+      conversationId: string;
+    }) => chatwootService.deleteTenantConversation(tenantId, conversationId),
+    onSuccess: (res, variables) => {
+      const statusCode = res?.status_code ?? 200;
+      if (statusCode === 200 || statusCode === 204) {
+        const { tenantId, conversationId } = variables;
+
+        updateConversationInListCache(
+          queryClient,
+          tenantId,
+          conversationId,
+          (conversation) => conversation,
+          { remove: true },
+        );
+        useChatUnreadStore.getState().clearUnread(conversationId);
+        useChatStore.getState().removeConversation(conversationId);
+
+        queryClient.removeQueries({
+          queryKey: chatwootOmniKeys.tenantConversation(
+            tenantId,
+            conversationId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationsBase(tenantId),
+        });
+
+        toast.success(res?.message || "Xóa cuộc trò chuyện thành công");
+      } else {
+        toast.error(res?.message || "Xóa cuộc trò chuyện thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi xóa cuộc trò chuyện";
       toast.error(msg);
     },
   });

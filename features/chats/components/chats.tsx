@@ -53,6 +53,7 @@ import type {
 } from "../utils/types";
 import { useChat } from "../utils/use-chat";
 import { ChatConversationList } from "./chat-conversation-list";
+import type { ConversationAssigneeType } from "./chat-conversation-list";
 import {
   ChatNotificationSidebar,
   type ConversationSidebarAssigneeFilter,
@@ -88,7 +89,7 @@ import type { AccountCustomFilter } from "@/services/chatwoot/interface";
 /** Params list conversations — GET `/api/v1/chatwoot/tenants/:tenant_id/conversations` */
 const TENANT_CONVERSATION_LIST_BASE = {
   status: "open",
-  assignee_type: "me",
+  assignee_type: "all",
   page: 1,
   sort_by: "last_activity_at_desc",
 } as const satisfies Partial<ListTenantConversationsParams>;
@@ -740,6 +741,8 @@ export function Chat() {
   // Biến state để lọc danh sách hội thoại theo assignee
   const [sidebarConversationAssignee, setSidebarConversationAssignee] =
     useState<ConversationSidebarAssigneeFilter>("me");
+  const [conversationAssigneeType, setConversationAssigneeType] =
+    useState<ConversationAssigneeType>("all");
   const [sidebarInboxId, setSidebarInboxId] = useState<number | null>(null);
   const [sidebarLabel, setSidebarLabel] =
     useState<ConversationSidebarLabelFilter>(null);
@@ -802,6 +805,7 @@ export function Chat() {
     () =>
       ({
         ...TENANT_CONVERSATION_LIST_BASE,
+        assignee_type: conversationAssigneeType,
         ...(typeof sidebarInboxId === "number"
           ? {}
           : { conversation_type: sidebarConversationAssignee }),
@@ -810,7 +814,12 @@ export function Chat() {
           : {}),
         ...(sidebarLabel ? { labels: [sidebarLabel] } : {}),
       }) satisfies ListTenantConversationsParams,
-    [sidebarConversationAssignee, sidebarInboxId, sidebarLabel],
+    [
+      conversationAssigneeType,
+      sidebarConversationAssignee,
+      sidebarInboxId,
+      sidebarLabel,
+    ],
   );
 
   // Lấy thông tin user đang đăng nhập
@@ -956,11 +965,11 @@ export function Chat() {
     if (chatwootPayload !== null) {
       const total = mappedChatwootConversations.length;
       return {
-        mine_count: sidebarConversationAssignee === "me" ? total : 0,
-        assigned_count: sidebarConversationAssignee === "me" ? total : 0,
+        mine_count: conversationAssigneeType === "me" ? total : 0,
+        assigned_count: conversationAssigneeType === "me" ? total : 0,
         unassigned_count:
-          sidebarConversationAssignee === "unattended" ? total : 0,
-        all_count: total,
+          conversationAssigneeType === "unassigned" ? total : 0,
+        all_count: conversationAssigneeType === "all" ? total : 0,
       } satisfies TenantConversationsListMeta;
     }
 
@@ -973,7 +982,7 @@ export function Chat() {
     chatwootConversationPages,
     chatwootPayload,
     mappedChatwootConversations.length,
-    sidebarConversationAssignee,
+    conversationAssigneeType,
   ]);
 
   const handleLoadMoreConversations = useCallback(() => {
@@ -1294,10 +1303,9 @@ export function Chat() {
   const handleSendResult = useCallback(
     (id: string, succeeded: boolean, retry?: () => Promise<void>) => {
       if (succeeded) {
-        // Xóa tin nhắn tạm sau khi query refetch xong (~1s)
-        setTimeout(() => {
-          setPendingMessages((prev) => prev.filter((m) => m.id !== id));
-        }, 1200);
+        // Gỡ optimistic ngay — tin thật đã được append vào cache trong mutation onSuccess
+        // (MessageList còn reconcile thêm nếu socket/cache tới trước).
+        setPendingMessages((prev) => prev.filter((m) => m.id !== id));
       } else {
         setPendingMessages((prev) =>
           prev.map((m) =>
@@ -1506,10 +1514,17 @@ export function Chat() {
                       : Boolean(hasNextConversationPage)
                   }
                   conversationsMeta={chatwootConversationsMeta}
+                  assigneeType={conversationAssigneeType}
+                  onAssigneeTypeChange={setConversationAssigneeType}
                   onLoadMore={handleLoadMoreConversations}
                   onSelectConversation={(id: string) => {
                     setQuery({ conversation_id: id }, "replaceIn");
                     setIsSidebarOpen(false);
+                  }}
+                  onConversationDeleted={(id: string) => {
+                    if (selectedConversationFromQuery === id) {
+                      setQuery({ conversation_id: undefined }, "replaceIn");
+                    }
                   }}
                 />
               </div>
@@ -1576,10 +1591,17 @@ export function Chat() {
                     : Boolean(hasNextConversationPage)
                 }
                 conversationsMeta={chatwootConversationsMeta}
+                assigneeType={conversationAssigneeType}
+                onAssigneeTypeChange={setConversationAssigneeType}
                 onLoadMore={handleLoadMoreConversations}
                 onSelectConversation={(id: string) => {
                   setQuery({ conversation_id: id }, "replaceIn");
                   setIsSidebarOpen(false);
+                }}
+                onConversationDeleted={(id: string) => {
+                  if (selectedConversationFromQuery === id) {
+                    setQuery({ conversation_id: undefined }, "replaceIn");
+                  }
                 }}
               />
             </div>

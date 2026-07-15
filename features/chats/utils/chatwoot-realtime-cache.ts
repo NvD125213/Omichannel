@@ -282,6 +282,131 @@ export function clearConversationUnreadInListCache(
   );
 }
 
+const buildConversationRecordFromMessageCreated = (
+  conversationId: string,
+  rawMessage: Record<string, unknown>,
+  isActiveConversation: boolean,
+): Record<string, unknown> => {
+  const embedded =
+    rawMessage.conversation &&
+    typeof rawMessage.conversation === "object" &&
+    !Array.isArray(rawMessage.conversation)
+      ? ({ ...(rawMessage.conversation as Record<string, unknown>) } as Record<
+          string,
+          unknown
+        >)
+      : null;
+
+  const inbox =
+    rawMessage.inbox &&
+    typeof rawMessage.inbox === "object" &&
+    !Array.isArray(rawMessage.inbox)
+      ? (rawMessage.inbox as Record<string, unknown>)
+      : null;
+
+  const activityAt =
+    rawMessage.created_at ??
+    rawMessage.updated_at ??
+    embedded?.last_activity_at ??
+    embedded?.timestamp ??
+    new Date().toISOString();
+
+  const numericId = Number(conversationId);
+  const conversationIdentity = Number.isFinite(numericId)
+    ? numericId
+    : conversationId;
+
+  const base: Record<string, unknown> = embedded
+    ? { ...embedded }
+    : {
+        id: conversationIdentity,
+        status: "open",
+        meta: {
+          sender:
+            rawMessage.sender &&
+            typeof rawMessage.sender === "object" &&
+            !Array.isArray(rawMessage.sender)
+              ? rawMessage.sender
+              : {},
+        },
+      };
+
+  if (base.id === undefined || base.id === null || base.id === "") {
+    base.id = conversationIdentity;
+  }
+
+  if (
+    base.inbox_id == null &&
+    (typeof rawMessage.inbox_id === "number" ||
+      typeof rawMessage.inbox_id === "string")
+  ) {
+    base.inbox_id = rawMessage.inbox_id;
+  } else if (base.inbox_id == null && inbox?.id != null) {
+    base.inbox_id = inbox.id;
+  }
+
+  const next: Record<string, unknown> = {
+    ...base,
+    last_activity_at: activityAt,
+    timestamp: activityAt,
+    updated_at: activityAt,
+  };
+
+  if (!isActivityMessage(rawMessage)) {
+    next.last_non_activity_message = rawMessage;
+  }
+
+  if (isActiveConversation) {
+    next.unread_count = 0;
+  } else if (typeof embedded?.unread_count === "number") {
+    next.unread_count = embedded.unread_count;
+  } else {
+    next.unread_count = 1;
+  }
+
+  return next;
+};
+
+const patchConversationRecordForMessageCreated = (
+  conversation: Record<string, unknown>,
+  rawMessage: Record<string, unknown>,
+  isActiveConversation: boolean,
+): Record<string, unknown> => {
+  const activityAt =
+    rawMessage.created_at ??
+    rawMessage.updated_at ??
+    conversation.last_activity_at ??
+    new Date().toISOString();
+
+  const next: Record<string, unknown> = {
+    ...conversation,
+    last_activity_at: activityAt,
+    timestamp: activityAt,
+    updated_at: activityAt,
+  };
+
+  if (!isActivityMessage(rawMessage)) {
+    next.last_non_activity_message = rawMessage;
+  }
+
+  if (isActiveConversation) {
+    next.unread_count = 0;
+  } else {
+    const currentUnread =
+      typeof conversation.unread_count === "number"
+        ? conversation.unread_count
+        : 0;
+    next.unread_count = currentUnread + 1;
+  }
+
+  return next;
+};
+
+/**
+ * Cập nhật preview/unread và đưa hội thoại lên đầu list.
+ * Nếu conversation chưa có trong cache thì insert từ `payload.conversation`
+ * để đồng bộ với unread store (ChatUnreadNotificationsMenu).
+ */
 export function applyMessageCreatedToConversationList(
   queryClient: QueryClient,
   tenantId: string,
@@ -289,38 +414,51 @@ export function applyMessageCreatedToConversationList(
   rawMessage: Record<string, unknown>,
   isActiveConversation: boolean,
 ) {
-  const activityAt =
-    rawMessage.created_at ?? rawMessage.updated_at ?? new Date().toISOString();
+  queryClient.setQueriesData<InfiniteData<ListTenantConversationsResponse>>(
+    { queryKey: chatwootOmniKeys.tenantConversationsBase(tenantId) },
+    (old) => {
+      if (!old?.pages?.length) return old;
 
-  updateConversationInListCache(
-    queryClient,
-    tenantId,
-    conversationId,
-    (conversation) => {
-      const next: Record<string, unknown> = {
-        ...conversation,
-        last_activity_at: activityAt,
-        timestamp: activityAt,
-        updated_at: activityAt,
-      };
+      let existing: Record<string, unknown> | null = null;
 
-      if (!isActivityMessage(rawMessage)) {
-        next.last_non_activity_message = rawMessage;
-      }
+      const pagesWithoutTarget = old.pages.map((page) => {
+        const payload = extractPayloadFromConversationPage(page);
+        if (!payload) return page;
 
-      if (isActiveConversation) {
-        next.unread_count = 0;
-      } else {
-        const currentUnread =
-          typeof conversation.unread_count === "number"
-            ? conversation.unread_count
-            : 0;
-        next.unread_count = currentUnread + 1;
-      }
+        const nextPayload: Record<string, unknown>[] = [];
+        for (const conversation of payload) {
+          if (getConversationRecordId(conversation) === conversationId) {
+            existing = conversation;
+            continue;
+          }
+          nextPayload.push(conversation);
+        }
 
-      return next;
+        return setPayloadOnConversationPage(page, nextPayload);
+      });
+
+      const nextConversation = existing
+        ? patchConversationRecordForMessageCreated(
+            existing,
+            rawMessage,
+            isActiveConversation,
+          )
+        : buildConversationRecordFromMessageCreated(
+            conversationId,
+            rawMessage,
+            isActiveConversation,
+          );
+
+      const firstPage = pagesWithoutTarget[0];
+      const firstPayload = extractPayloadFromConversationPage(firstPage) ?? [];
+
+      pagesWithoutTarget[0] = setPayloadOnConversationPage(firstPage, [
+        nextConversation,
+        ...firstPayload,
+      ]);
+
+      return { ...old, pages: pagesWithoutTarget };
     },
-    { moveToTop: true },
   );
 }
 

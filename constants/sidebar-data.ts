@@ -26,6 +26,7 @@ import {
   IconSubtitles,
   IconRobot,
   IconBrain,
+  IconUser,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -188,7 +189,12 @@ export const sidebarData: SidebarData = {
           icon: IconBuilding,
           permissions: [PERMISSIONS.VIEW_DEPARTMENTS],
         },
-
+        {
+          title: "Lead",
+          url: "/ai/lead",
+          icon: IconUser,
+          permissions: [PERMISSIONS.VIEW_CUSTOMERS],
+        },
         {
           title: "Trò chuyện",
           url: "/chats",

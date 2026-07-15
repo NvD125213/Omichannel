@@ -31,20 +31,20 @@ import { useToggleTenantConversationStatus } from "@/hooks/chatwoot/use-chatwoot
 import { cn } from "@/lib/utils";
 import type { ChatConversation, ChatUser } from "../utils/types";
 
-type ConversationStatusValue = "resolved" | "reopened";
+type ConversationStatusValue = "resolved" | "open";
 
 const CONVERSATION_STATUS_OPTIONS: {
   value: ConversationStatusValue;
   label: string;
 }[] = [
-  { value: "reopened", label: "Mở lại" },
+  { value: "open", label: "Mở lại" },
   { value: "resolved", label: "Đã giải quyết" },
 ];
 
 const getConversationStatusValue = (
   status?: string,
 ): ConversationStatusValue => {
-  if (status === "reopened") return "reopened";
+  if (status === "open") return "open";
   // Mặc định: resolved (kể cả khi chưa có status từ API)
   return "resolved";
 };

@@ -50,11 +50,6 @@ export const chatbotSidebarData: SidebarData = {
           url: "/ai/agent",
           icon: IconRobot,
         },
-        {
-          title: "Lead",
-          url: "/ai/lead",
-          icon: IconUser,
-        },
         // {
         //   title: "Lịch sử hệ thống",
         //   url: "/ai/system-history",

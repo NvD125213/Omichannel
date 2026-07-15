@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ChevronDown,
   CheckCheck,
+  Clock,
   Copy,
   Loader2,
   MoreVertical,
@@ -105,6 +106,51 @@ const isDeletedMessage = (message: ChatMessage) => {
     typeof contentAttributes === "object" &&
     (contentAttributes as Record<string, unknown>).deleted === true;
   return deletedFlag;
+};
+
+const PENDING_CONFIRM_WINDOW_MS = 90_000;
+
+const isOutgoingChatMessage = (message: ChatMessage) =>
+  message.sender?.type === "user" || message.message_type === 1;
+
+/** Ẩn optimistic khi tin thật đã vào list (HTTP cache / socket) — tránh duplicate. */
+const hasMatchingConfirmedMessage = (
+  pending: PendingMessage,
+  confirmed: ChatMessage[],
+) => {
+  if (pending.status === "failed") return false;
+
+  const pendingContent = pending.content.trim();
+  const pendingTs = new Date(pending.created_at).getTime();
+  if (!Number.isFinite(pendingTs)) return false;
+
+  return confirmed.some((message) => {
+    if (!isOutgoingChatMessage(message)) return false;
+
+    const messageTs = getTime(message.created_at);
+    if (
+      !Number.isFinite(messageTs) ||
+      Math.abs(messageTs - pendingTs) > PENDING_CONFIRM_WINDOW_MS
+    ) {
+      return false;
+    }
+
+    const messageContent = (
+      message.content ??
+      message.processed_message_content ??
+      ""
+    ).trim();
+
+    if (pendingContent.length > 0) {
+      return messageContent === pendingContent;
+    }
+
+    if (pending.filesCount > 0) {
+      return (message.attachments?.length ?? 0) > 0;
+    }
+
+    return false;
+  });
 };
 
 const getAvatarInitials = (name?: string) => {
@@ -346,14 +392,14 @@ export function MessageList({
     const hasNewPending = currentPendingCount > previousPendingCountRef.current;
 
     if (hasNewPending) {
-      // Người dùng vừa gửi tin (optimistic) => luôn kéo xuống tin vừa gửi.
+      // Own send: nhảy xuống ngay (Meta-like), không chờ smooth scroll.
       requestAnimationFrame(() => {
         const vp = getViewport();
         if (vp) {
-          vp.scrollTo({ top: vp.scrollHeight, behavior: "smooth" });
+          vp.scrollTop = vp.scrollHeight;
         } else {
           bottomRef.current?.scrollIntoView({
-            behavior: "smooth",
+            behavior: "auto",
             block: "end",
           });
         }
@@ -679,6 +725,15 @@ export function MessageList({
     );
   };
 
+  const visiblePending = useMemo(() => {
+    const conversationPending = pendingMessages.filter(
+      (pm) => pm.conversationId === conversationId,
+    );
+    return conversationPending.filter(
+      (pm) => !hasMatchingConfirmedMessage(pm, resolvedMessages),
+    );
+  }, [conversationId, pendingMessages, resolvedMessages]);
+
   if (isLoadingMessages && resolvedMessages.length === 0) {
     return (
       <div className="relative flex-1 min-h-0 flex items-center justify-center">
@@ -690,17 +745,13 @@ export function MessageList({
     );
   }
 
-  const activePending = pendingMessages.filter(
-    (pm) => pm.conversationId === conversationId,
-  );
-
   if (
     !isLoadingMessages &&
     resolvedMessages.length === 0 &&
-    activePending.length === 0
+    visiblePending.length === 0
   ) {
     return (
-      <div className="relative flex-1 min-h-0">
+      <div className="relative flex-1 min-h-0 m-4">
         <EmptyData
           icon={MessageSquareOff}
           title="Chưa có tin nhắn"
@@ -716,7 +767,7 @@ export function MessageList({
   const showEmptyShell =
     !isLoadingMessages &&
     resolvedMessages.length === 0 &&
-    activePending.length > 0;
+    visiblePending.length > 0;
 
   return (
     <div className="relative flex-1 min-h-0">
@@ -1048,50 +1099,56 @@ export function MessageList({
           })}
 
           {/* ── Optimistic / pending messages ─────────────────────────────── */}
-          {pendingMessages
-            .filter((pm) => pm.conversationId === conversationId)
-            .map((pm) => {
-              const isFailed = pm.status === "failed";
-              return (
-                <div key={pm.id} className="flex gap-3 flex-row-reverse">
-                  <div className="ml-auto flex min-w-0 w-full max-w-[min(88%,42rem)] flex-col items-end sm:max-w-[min(80%,42rem)]">
-                    <div
-                      className={cn(
-                        "min-w-0 max-w-full rounded-2xl rounded-tr-sm px-3 py-2 text-sm whitespace-pre-wrap wrap-anywhere",
-                        isFailed
-                          ? "bg-destructive/10 text-destructive border border-destructive/20"
-                          : "bg-primary text-primary-foreground",
-                      )}
-                    >
-                      {pm.content ? <p>{pm.content}</p> : null}
-                      {pm.filesCount > 0 && (
-                        <div className="flex items-center gap-1 text-xs mt-1 opacity-80">
-                          <Paperclip className="size-3" />
-                          <span>{pm.filesCount} tệp đính kèm</span>
-                        </div>
+          {visiblePending.map((pm) => {
+            const isFailed = pm.status === "failed";
+            return (
+              <div
+                key={pm.id}
+                className="flex gap-3 flex-row-reverse animate-in fade-in slide-in-from-bottom-2 zoom-in-95 duration-200 fill-mode-both"
+              >
+                <div className="ml-auto flex min-w-0 w-full max-w-[min(88%,42rem)] flex-col items-end sm:max-w-[min(80%,42rem)]">
+                  <div
+                    className={cn(
+                      "min-w-0 max-w-full rounded-2xl rounded-tr-sm px-3 py-2 text-sm whitespace-pre-wrap wrap-anywhere shadow-sm transition-[opacity,transform] duration-200",
+                      isFailed
+                        ? "bg-destructive/10 text-destructive border border-destructive/20"
+                        : "bg-primary text-primary-foreground opacity-90",
+                    )}
+                  >
+                    {pm.content ? <p>{pm.content}</p> : null}
+                    {pm.filesCount > 0 && (
+                      <div className="flex items-center gap-1 text-xs mt-1 opacity-80">
+                        <Paperclip className="size-3" />
+                        <span>{pm.filesCount} tệp đính kèm</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {isFailed ? (
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <AlertTriangle className="size-3 text-destructive" />
+                      <span className="text-destructive">Gửi thất bại</span>
+                      {pm.retry && (
+                        <button
+                          type="button"
+                          onClick={() => void pm.retry?.()}
+                          className="ml-1 flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                        >
+                          <RefreshCw className="size-3" />
+                          Thử lại
+                        </button>
                       )}
                     </div>
-
-                    {isFailed ? (
-                      <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <AlertTriangle className="size-3 text-destructive" />
-                        <span className="text-destructive">Gửi thất bại</span>
-                        {pm.retry && (
-                          <button
-                            type="button"
-                            onClick={() => void pm.retry?.()}
-                            className="ml-1 flex items-center gap-0.5 rounded px-1 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
-                          >
-                            <RefreshCw className="size-3" />
-                            Thử lại
-                          </button>
-                        )}
-                      </div>
-                    ) : null}
-                  </div>
+                  ) : (
+                    <div className="mt-1 flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <Clock className="size-3 animate-pulse" />
+                      <span>Đang gửi</span>
+                    </div>
+                  )}
                 </div>
-              );
-            })}
+              </div>
+            );
+          })}
 
           <div ref={bottomRef} />
         </div>
