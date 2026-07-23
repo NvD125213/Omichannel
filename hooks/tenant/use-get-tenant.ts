@@ -6,7 +6,6 @@ import {
   getTenantsApi,
   updateTenantApi,
   type CreateTenantRequest,
-  type TenantDetailResponseApi,
   type TenantQueryParams,
   type TenantResponseApi,
   type UpdateTenantRequest,

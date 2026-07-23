@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  AlarmClockOff,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -11,7 +10,6 @@ import {
   Hash,
   Pin,
   Link2,
-  Mail,
   SquareArrowOutUpRight,
   Tag,
   Trash2,
@@ -44,10 +42,15 @@ import { toast } from "sonner";
 import {
   useBulkAction,
   useDeleteTenantConversation,
+  useListChatwootAgents,
   useListTenantInboxes,
   useListTenantLabels,
   useTenantConversationLastSeen,
+  useToggleTenantConversationStatus,
+  useAssignTenantConversation,
+  useListTenantTeams,
 } from "@/hooks/chatwoot/use-chatwoot";
+import { useMe } from "@/hooks/user/use-me";
 
 type ConversationTab = "all" | "me" | "unassigned";
 
@@ -57,6 +60,20 @@ type ConversationLabelOption = {
   id: string;
   title: string;
   color: string;
+};
+
+type ConversationAgentOption = {
+  id: string;
+  uuid: string;
+  name: string;
+  email?: string;
+  thumbnail?: string;
+};
+
+type ConversationTeamOption = {
+  id: string;
+  name: string;
+  description?: string;
 };
 
 const formatConversationLabel = (label: string) =>
@@ -137,6 +154,119 @@ function extractRawLabels(
   return [];
 }
 
+function extractAgentRecords(
+  response: unknown,
+): Array<Record<string, unknown>> {
+  if (!response || typeof response !== "object") return [];
+  const root = response as Record<string, unknown>;
+  const data = root.data as Record<string, unknown> | undefined;
+
+  return (
+    coerceObjectArray(data?.payload) ??
+    coerceObjectArray(data?.agents) ??
+    coerceObjectArray(
+      (data?.chatwoot as Record<string, unknown> | undefined)?.payload,
+    ) ??
+    coerceObjectArray(response) ??
+    []
+  );
+}
+
+function extractTeams(response: unknown): ConversationTeamOption[] {
+  if (!response || typeof response !== "object") return [];
+  const root = response as Record<string, unknown>;
+  const data = root.data as Record<string, unknown> | undefined;
+  if (!data) return [];
+
+  const rawTeams =
+    coerceObjectArray(data.teams) ??
+    coerceObjectArray(data.payload) ??
+    coerceObjectArray(data.chatwoot) ??
+    coerceObjectArray(
+      (data.chatwoot as Record<string, unknown> | undefined)?.payload,
+    ) ??
+    [];
+
+  return rawTeams
+    .map((raw): ConversationTeamOption | null => {
+      const id = String(raw.id ?? raw.team_id ?? "").trim();
+      const name = String(raw.name ?? "").trim();
+      if (!id || !name) return null;
+
+      const description =
+        typeof raw.description === "string"
+          ? raw.description.trim()
+          : undefined;
+
+      return {
+        id,
+        name,
+        ...(description ? { description } : {}),
+      };
+    })
+    .filter((team): team is ConversationTeamOption => team !== null);
+}
+
+function resolveAgentUuid(agent: ConversationAgentOption): string {
+  return agent.uuid.trim() || agent.id.trim();
+}
+
+function findAgentByAssignee(
+  agents: ConversationAgentOption[],
+  assigneeId?: string,
+  assigneeEmail?: string,
+): ConversationAgentOption | undefined {
+  const normalizedId = assigneeId?.trim();
+  const normalizedEmail = assigneeEmail?.trim().toLowerCase();
+
+  return agents.find((agent) => {
+    if (
+      normalizedId &&
+      (agent.id === normalizedId || agent.uuid === normalizedId)
+    ) {
+      return true;
+    }
+
+    if (normalizedEmail && agent.email?.toLowerCase() === normalizedEmail) {
+      return true;
+    }
+
+    return false;
+  });
+}
+
+function normalizeAgentOption(
+  raw: Record<string, unknown>,
+  index: number,
+): ConversationAgentOption | null {
+  const uuid = String(
+    raw.uuid ?? raw.agent_uuid ?? raw.assignee_agent_uuid ?? "",
+  ).trim();
+  const id = String(raw.id ?? raw.user_id ?? uuid).trim();
+  if (!uuid && !id) return null;
+
+  const email = String(raw.email ?? "").trim();
+  const name = String(
+    raw.available_name ??
+      raw.availableName ??
+      raw.name ??
+      email ??
+      `Nhân viên ${index + 1}`,
+  ).trim();
+
+  const thumbnail = String(
+    raw.thumbnail ?? raw.avatar_url ?? raw.avatarUrl ?? "",
+  ).trim();
+
+  return {
+    id: id || uuid,
+    uuid: uuid || id,
+    name: name || `Nhân viên ${index + 1}`,
+    ...(email ? { email } : {}),
+    thumbnail: thumbnail || undefined,
+  };
+}
+
 function normalizeLabelOption(
   raw: string | Record<string, unknown>,
   index: number,
@@ -185,7 +315,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { TenantConversationsListMeta } from "@/services/chatwoot/interface";
 import type { ChatConversation, ChatUser } from "../utils/types";
-import { clearConversationUnreadInListCache } from "../utils/chatwoot-realtime-cache";
+import {
+  applyConversationStatusToListCache,
+  clearConversationUnreadInListCache,
+} from "../utils/chatwoot-realtime-cache";
 import { useChatUnreadStore } from "../utils/chat-unread-store";
 import { useChat } from "../utils/use-chat";
 import { motion, AnimatePresence } from "framer-motion";
@@ -212,6 +345,8 @@ interface ConversationListProps {
   conversationsMeta?: TenantConversationsListMeta | null;
   /** assignee_type đang gửi lên API: all | me | unassigned */
   assigneeType?: ConversationAssigneeType;
+  /** team_id từ sidebar — lọc danh sách hội thoại theo team */
+  teamId?: string | null;
   onAssigneeTypeChange?: (assigneeType: ConversationAssigneeType) => void;
   onLoadMore?: () => void;
   onSelectConversation: (conversationId: string) => void;
@@ -231,18 +366,34 @@ export function ChatConversationList({
   listScrollResetKey,
   conversationsMeta = null,
   assigneeType = "all",
+  teamId = null,
   onAssigneeTypeChange,
   onLoadMore,
   onSelectConversation,
   onConversationDeleted,
 }: ConversationListProps) {
   const queryClient = useQueryClient();
+  const { data: currentUser } = useMe();
   const { searchQuery, setSearchQuery, markAsRead } = useChat();
   const clearUnread = useChatUnreadStore((state) => state.clearUnread);
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
+  const { data: agentsData, isLoading: isLoadingAgents } =
+    useListChatwootAgents(tenantId);
+  const { data: teamsData, isLoading: isLoadingTeams } =
+    useListTenantTeams(tenantId);
   const { mutate: deleteConversation, isPending: isDeletingConversation } =
     useDeleteTenantConversation();
+  const {
+    mutate: assignTenantConversation,
+    isPending: isAssigningTenantConversation,
+  } = useAssignTenantConversation();
+  const { mutate: bulkAction, isPending: isBulkActionPending } =
+    useBulkAction();
+  const {
+    mutate: toggleConversationStatus,
+    isPending: isTogglingConversationStatus,
+  } = useToggleTenantConversationStatus();
 
   const inboxNameById = useMemo(() => {
     const inboxPayload = (
@@ -270,8 +421,6 @@ export function ChatConversationList({
     }
     return map;
   }, [inboxData]);
-  const { mutate: bulkAction, isPending: isBulkActionPending } =
-    useBulkAction();
   const { mutate: updateConversationLastSeen } =
     useTenantConversationLastSeen();
   const lastSeenRequestRef = useRef<string | null>(null);
@@ -281,6 +430,8 @@ export function ChatConversationList({
   const [activeTab, setActiveTabLocal] =
     useState<ConversationTab>(assigneeType);
   const SCROLL_BOTTOM_THRESHOLD = 100;
+  const isTeamFiltered = typeof teamId === "string" && teamId.trim().length > 0;
+  const shouldHideTabs = hideTabs || isTeamFiltered;
 
   const setActiveTab = useCallback(
     (tab: ConversationTab) => {
@@ -318,11 +469,11 @@ export function ChatConversationList({
 
     listScrollResetKeyRef.current = listScrollResetKey;
     conversationListScrollRef.current?.scrollTo({ top: 0 });
-    if (!hideTabs) {
+    if (!shouldHideTabs) {
       setActiveTabLocal("all");
       onAssigneeTypeChange?.("all");
     }
-  }, [hideTabs, listScrollResetKey, onAssigneeTypeChange]);
+  }, [shouldHideTabs, listScrollResetKey, onAssigneeTypeChange]);
 
   const handleConversationScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
@@ -409,7 +560,7 @@ export function ChatConversationList({
     me: tabMeCount,
     unassigned: tabUnassignedCount,
   };
-  const effectiveTab: ConversationTab = hideTabs ? "all" : activeTab;
+  const effectiveTab: ConversationTab = shouldHideTabs ? "all" : activeTab;
   const activeTabCount = tabCounts[effectiveTab];
 
   const sortedConversations = useMemo(() => {
@@ -510,7 +661,32 @@ export function ChatConversationList({
     sortedConversations,
   ]);
 
-  const availableAgents = useMemo(() => users.slice(0, 5), [users]);
+  const availableAgents = useMemo(
+    () =>
+      extractAgentRecords(agentsData)
+        .map((raw, index) => normalizeAgentOption(raw, index))
+        .filter((agent): agent is ConversationAgentOption => agent !== null),
+    [agentsData],
+  );
+  const availableTeams = useMemo(() => extractTeams(teamsData), [teamsData]);
+  const currentAgentUuid = useMemo(() => {
+    const currentUserEmail = currentUser?.email?.trim().toLowerCase();
+    const currentUserId = currentUser?.id?.trim();
+
+    const currentAgent = availableAgents.find((agent) => {
+      if (currentUserEmail && agent.email?.toLowerCase() === currentUserEmail) {
+        return true;
+      }
+
+      if (currentUserId && agent.id === currentUserId) {
+        return true;
+      }
+
+      return false;
+    });
+
+    return currentAgent ? resolveAgentUuid(currentAgent) : "";
+  }, [availableAgents, currentUser?.email, currentUser?.id]);
   const labelOptions = useMemo(
     () =>
       extractRawLabels(labelData)
@@ -614,11 +790,122 @@ export function ChatConversationList({
     [bulkAction, tenantId],
   );
 
+  const handleAssignConversation = useCallback(
+    (conversation: ChatConversation, agent: ConversationAgentOption) => {
+      if (!tenantId.trim() || isBulkActionPending) return;
+
+      const conversationId = Number(conversation.id.trim());
+      const assigneeId = agent.uuid.trim() || agent.id.trim();
+      if (!Number.isFinite(conversationId) || !assigneeId) {
+        toast.error("Không thể gán nhân viên cho cuộc trò chuyện này");
+        return;
+      }
+
+      bulkAction({
+        tenantId,
+        data: {
+          type: "Conversation",
+          ids: [conversationId],
+          fields: {
+            assignee_id: assigneeId,
+          },
+        },
+      });
+    },
+    [bulkAction, isBulkActionPending, tenantId],
+  );
+
+  const resolveAssigneeAgentUuid = useCallback(
+    (conversation: ChatConversation) => {
+      const matchedAssignee = findAgentByAssignee(
+        availableAgents,
+        conversation.meta?.assignee?.id,
+        conversation.meta?.assignee?.email,
+      );
+      if (matchedAssignee) {
+        return resolveAgentUuid(matchedAssignee);
+      }
+
+      return currentAgentUuid;
+    },
+    [availableAgents, currentAgentUuid],
+  );
+
+  const handleAssignTeam = useCallback(
+    (conversation: ChatConversation, team: ConversationTeamOption) => {
+      if (!tenantId.trim() || isAssigningTenantConversation) return;
+
+      const conversationId = conversation.id.trim();
+      const teamId = team.id.trim();
+      if (!conversationId || !teamId) {
+        toast.error("Không thể gán nhóm xử lý cho cuộc trò chuyện này");
+        return;
+      }
+
+      const assigneeAgentUuid = resolveAssigneeAgentUuid(conversation);
+
+      assignTenantConversation({
+        tenantId,
+        conversationId,
+        data: {
+          assignee_agent_uuid: assigneeAgentUuid,
+          team_id: teamId,
+        },
+      });
+    },
+    [
+      assignTenantConversation,
+      isAssigningTenantConversation,
+      resolveAssigneeAgentUuid,
+      tenantId,
+    ],
+  );
+
+  const handleMarkConversationPending = useCallback(
+    (conversation: ChatConversation) => {
+      if (!tenantId.trim() || isTogglingConversationStatus) return;
+      if (conversation.status === "pending") return;
+
+      const conversationId = conversation.id.trim();
+      if (!conversationId) {
+        toast.error("Không thể cập nhật trạng thái cuộc trò chuyện này");
+        return;
+      }
+
+      toggleConversationStatus(
+        {
+          tenantId,
+          conversationId,
+          data: {
+            status: "pending",
+            snoozed_until: null,
+          },
+        },
+        {
+          onSuccess: () => {
+            applyConversationStatusToListCache(
+              queryClient,
+              tenantId,
+              conversation.id,
+              "pending",
+            );
+          },
+        },
+      );
+    },
+    [
+      isTogglingConversationStatus,
+      queryClient,
+      tenantId,
+      toggleConversationStatus,
+    ],
+  );
+
   const renderConversationContextMenuContent = (
     conversation: ChatConversation,
   ) => (
     <ContextMenuContent className={CONTEXT_MENU_CONTENT_CLASSNAME}>
-      <ContextMenuItem
+      {/* <ContextMenuItem
         className={CONTEXT_MENU_ITEM_CLASSNAME}
         onSelect={() =>
           showConversationActionToast(
@@ -629,8 +916,8 @@ export function ChatConversationList({
       >
         <Mail />
         Đánh dấu chưa đọc
-      </ContextMenuItem>
-      <ContextMenuSeparator className="my-1" />
+      </ContextMenuItem> */}
+      {/* <ContextMenuSeparator className="my-1" /> */}
       <ContextMenuItem
         className={CONTEXT_MENU_ITEM_CLASSNAME}
         onSelect={() =>
@@ -644,18 +931,16 @@ export function ChatConversationList({
         Đã xử lý
       </ContextMenuItem>
       <ContextMenuItem
-        className={CONTEXT_MENU_ITEM_CLASSNAME}
-        onSelect={() =>
-          showConversationActionToast(
-            "Đã đánh dấu đang chờ",
-            `Cuộc trò chuyện với ${conversation.name} đang ở trạng thái chờ xử lý.`,
-          )
+        disabled={
+          isTogglingConversationStatus || conversation.status === "pending"
         }
+        className={CONTEXT_MENU_ITEM_CLASSNAME}
+        onSelect={() => handleMarkConversationPending(conversation)}
       >
         <Clock3 />
-        Đánh dấu chờ
+        Chờ xử lý
       </ContextMenuItem>
-      <ContextMenuItem
+      {/* <ContextMenuItem
         className={CONTEXT_MENU_ITEM_CLASSNAME}
         onSelect={() =>
           showConversationActionToast(
@@ -666,7 +951,7 @@ export function ChatConversationList({
       >
         <AlarmClockOff />
         Tạm ẩn
-      </ContextMenuItem>
+      </ContextMenuItem> */}
       <ContextMenuSeparator className="my-1" />
       <ContextMenuSub>
         <ContextMenuSubTrigger className={CONTEXT_MENU_SUB_TRIGGER_CLASSNAME}>
@@ -709,27 +994,83 @@ export function ChatConversationList({
       <ContextMenuSub>
         <ContextMenuSubTrigger className={CONTEXT_MENU_SUB_TRIGGER_CLASSNAME}>
           <UserPlus />
-          Gán nhân viên
+          Gán nhân viên xử lý
         </ContextMenuSubTrigger>
-        <ContextMenuSubContent className="w-44 rounded-lg p-1">
-          {availableAgents.length > 0 ? (
-            availableAgents.map((agent) => (
+        <ContextMenuSubContent className="max-h-64 w-52 overflow-y-auto rounded-lg p-1">
+          {isLoadingAgents ? (
+            <ContextMenuItem disabled className={CONTEXT_MENU_ITEM_CLASSNAME}>
+              Đang tải nhân viên...
+            </ContextMenuItem>
+          ) : availableAgents.length > 0 ? (
+            availableAgents.map((agent) => {
+              const currentAssigneeId = String(
+                conversation.meta?.assignee?.id ?? "",
+              ).trim();
+              const isCurrent =
+                currentAssigneeId.length > 0 &&
+                (currentAssigneeId === agent.id ||
+                  currentAssigneeId === agent.uuid);
+
+              return (
+                <ContextMenuItem
+                  key={agent.uuid || agent.id}
+                  disabled={isBulkActionPending}
+                  className={cn(CONTEXT_MENU_ITEM_CLASSNAME)}
+                  onSelect={(event) => {
+                    if (isCurrent || isBulkActionPending) {
+                      event.preventDefault();
+                      return;
+                    }
+                    handleAssignConversation(conversation, agent);
+                  }}
+                >
+                  <Avatar className="size-5 shrink-0">
+                    {agent.thumbnail ? (
+                      <AvatarImage src={agent.thumbnail} alt={agent.name} />
+                    ) : null}
+                    <AvatarFallback className="text-[9px] font-medium">
+                      {agent.name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 truncate py-1">{agent.name}</span>
+                  {isCurrent ? (
+                    <Check className="size-3.5 text-primary" />
+                  ) : null}
+                </ContextMenuItem>
+              );
+            })
+          ) : (
+            <ContextMenuItem disabled className={CONTEXT_MENU_ITEM_CLASSNAME}>
+              Chưa có nhân viên
+            </ContextMenuItem>
+          )}
+        </ContextMenuSubContent>
+      </ContextMenuSub>
+      <ContextMenuSub>
+        <ContextMenuSubTrigger className={CONTEXT_MENU_SUB_TRIGGER_CLASSNAME}>
+          <Users />
+          Gán nhóm xử lý
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent className="max-h-64 w-52 overflow-y-auto rounded-lg p-1">
+          {isLoadingTeams ? (
+            <ContextMenuItem disabled className={CONTEXT_MENU_ITEM_CLASSNAME}>
+              Đang tải nhóm...
+            </ContextMenuItem>
+          ) : availableTeams.length > 0 ? (
+            availableTeams.map((team) => (
               <ContextMenuItem
-                key={agent.id}
+                key={team.id}
+                disabled={isAssigningTenantConversation}
                 className={CONTEXT_MENU_ITEM_CLASSNAME}
-                onSelect={() =>
-                  showConversationActionToast(
-                    `Đã gán cho ${agent.name}`,
-                    `Cuộc trò chuyện với ${conversation.name} đã được gán cho ${agent.name}.`,
-                  )
-                }
+                onSelect={() => handleAssignTeam(conversation, team)}
               >
-                {agent.name}
+                <Users className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="flex-1 truncate py-1">{team.name}</span>
               </ContextMenuItem>
             ))
           ) : (
             <ContextMenuItem disabled className={CONTEXT_MENU_ITEM_CLASSNAME}>
-              Chưa có nhân viên
+              Chưa có nhóm
             </ContextMenuItem>
           )}
         </ContextMenuSubContent>
@@ -773,7 +1114,7 @@ export function ChatConversationList({
               className="absolute top-2 right-1 z-10 inline-flex items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/10"
             >
               <CircleHelp
-                className="size-3.5 bg-primary text-white rounded-full"
+                className="size-4 bg-primary text-white rounded-full"
                 strokeWidth={2.5}
               />
             </button>
@@ -802,7 +1143,7 @@ export function ChatConversationList({
                     aria-pressed={isActive}
                     onClick={() => setActiveTab(tab)}
                     className={cn(
-                      "flex h-10 min-w-0 w-full items-center justify-center rounded-xl border px-2 transition-all duration-200",
+                      "flex h-10 min-w-0 w-full items-center justify-center rounded-2xl border px-2 transition-all duration-200",
                       isActive
                         ? [
                             "border-primary/20",
@@ -874,7 +1215,7 @@ export function ChatConversationList({
     return (
       <div className="flex h-full flex-col overflow-hidden">
         {/* Compact tab slider for collapsed sidebar */}
-        {!hideTabs && (
+        {!shouldHideTabs && (
           <div className="flex items-center justify-between gap-0.5 border-b px-1 py-1.5">
             <button
               type="button"
@@ -1051,7 +1392,7 @@ export function ChatConversationList({
           </div>
         </div> */}
 
-        {!hideTabs && renderConversationTabs()}
+        {!shouldHideTabs && renderConversationTabs()}
         <div className="flex-1 p-3">
           <EmptyData
             icon={Inbox}
@@ -1082,7 +1423,7 @@ export function ChatConversationList({
         </div>
       </div> */}
 
-      {!hideTabs && renderConversationTabs()}
+      {!shouldHideTabs && renderConversationTabs()}
 
       {/* Conversations */}
       <AnimatePresence mode="wait" initial={false}>

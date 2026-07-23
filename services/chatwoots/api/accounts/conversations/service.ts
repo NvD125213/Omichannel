@@ -59,7 +59,7 @@ export interface ConversationListQueryParams {
   /** Sắp xếp (tuỳ phiên bản server, ví dụ last_activity_at_asc) */
   sort_by?: string;
   inbox_id?: number;
-  team_id?: number;
+  team_id?: number | string;
   /** Lọc theo nhãn */
   labels?: string[];
   /** Tìm theo nội dung tin nhắn */

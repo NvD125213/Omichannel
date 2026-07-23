@@ -27,6 +27,7 @@ import {
   IconRobot,
   IconBrain,
   IconUser,
+  IconMessageCircle,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -190,8 +191,8 @@ export const sidebarData: SidebarData = {
           permissions: [PERMISSIONS.VIEW_DEPARTMENTS],
         },
         {
-          title: "Lead",
-          url: "/ai/lead",
+          title: "Danh sách Lead",
+          url: "/lead",
           icon: IconUser,
           permissions: [PERMISSIONS.VIEW_CUSTOMERS],
         },
@@ -344,15 +345,25 @@ export const sidebarData: SidebarData = {
               icon: IconTag,
             },
             {
+              title: "Quản lý đội nhóm",
+              url: "/settings/team",
+              icon: IconUsers,
+            },
+            {
+              title: "Quản lý kênh",
+              url: "/settings/channel",
+              icon: IconMessageCircle,
+            },
+            {
               title: "Giao diện",
               url: "/settings/appearance",
               icon: IconPalette,
             },
-            {
-              title: "Thông báo",
-              url: "/settings/notifications",
-              icon: IconNotification,
-            },
+            // {
+            //   title: "Thông báo",
+            //   url: "/settings/notifications",
+            //   icon: IconNotification,
+            // },
             {
               title: "Hiển thị",
               url: "/settings/display",

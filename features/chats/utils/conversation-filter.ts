@@ -25,10 +25,11 @@ export const EMPTY_CHAT_CONVERSATION_FILTER: ChatConversationFilterDraft = {
 };
 
 export const CHAT_CONVERSATION_STATUS_OPTIONS = [
-  { value: "open", label: "Open" },
-  { value: "resolved", label: "Resolved" },
-  { value: "pending", label: "Pending" },
-  { value: "snoozed", label: "Snoozed" },
+  { value: "open", label: "Đang mở" },
+  { value: "resolved", label: "Đã xử lý" },
+  { value: "pending", label: "Chờ xử lý" },
+  { value: "snoozed", label: "Đã tạm ẩn" },
+  { value: "all", label: "Tất cả" },
 ] as const;
 
 export function buildFilterConversationsPayload(

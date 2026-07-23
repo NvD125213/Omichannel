@@ -26,12 +26,19 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { IconMoodEmpty } from "@tabler/icons-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { usePatchLead } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -162,9 +169,81 @@ function getChannelMeta(channel: string | null | undefined) {
 
 function renderValue(value: unknown): ReactNode {
   if (value === null || value === undefined || value === "") {
-    return <span className="text-muted-foreground">Không có dữ liệu</span>;
+    return (
+      <span className="text-muted-foreground text-xs italic">
+        Không có dữ liệu
+      </span>
+    );
   }
   return String(value);
+}
+
+function LeadNeedCell({ need }: { need: string | null | undefined }) {
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const hasNeed = need !== null && need !== undefined && need !== "";
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el || !hasNeed) {
+      setIsTruncated(false);
+      return;
+    }
+
+    const checkTruncation = () => {
+      setIsTruncated(el.scrollHeight > el.clientHeight + 1);
+    };
+
+    checkTruncation();
+    const observer = new ResizeObserver(checkTruncation);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [need, hasNeed]);
+
+  if (!hasNeed) {
+    return renderValue(need);
+  }
+
+  return (
+    <>
+      <div className="max-w-xs">
+        <div className="flex items-end gap-1">
+          <p
+            ref={textRef}
+            className="min-w-0 flex-1 whitespace-normal break-words text-xs italic text-muted-foreground line-clamp-3"
+          >
+            {need}
+          </p>
+
+          {isTruncated && (
+            <button
+              type="button"
+              className="shrink-0 text-xs font-medium text-primary hover:underline"
+              onClick={() => setOpen(true)}
+            >
+              xem thêm
+            </button>
+          )}
+        </div>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nhu cầu</DialogTitle>
+            <DialogDescription className="sr-only">
+              Nội dung nhu cầu đầy đủ của lead
+            </DialogDescription>
+          </DialogHeader>
+          <p className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap wrap-break-word text-sm leading-relaxed text-foreground">
+            {need}
+          </p>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 interface LeadDataTableProps {
@@ -300,6 +379,26 @@ export function LeadDataTable({
       ),
     },
     {
+      accessorKey: "stage",
+      header: "Giai đoạn",
+      cell: ({ row }) => {
+        const stage = row.original.stage;
+        if (!stage) {
+          return renderValue(stage);
+        }
+        return (
+          <span className="font-semibold capitalize text-xs">{stage}</span>
+        );
+      },
+    },
+
+    {
+      accessorKey: "need",
+      header: "Nhu cầu",
+      cell: ({ row }) => <LeadNeedCell need={row.original.need} />,
+    },
+
+    {
       accessorKey: "channel",
       header: "Kênh",
       cell: ({ row }) => {
@@ -322,15 +421,6 @@ export function LeadDataTable({
           </Badge>
         );
       },
-    },
-    {
-      accessorKey: "need",
-      header: "Nhu cầu",
-      cell: ({ row }) => (
-        <div className="max-w-xs whitespace-normal break-words text-sm text-muted-foreground line-clamp-3">
-          {renderValue(row.original.need)}
-        </div>
-      ),
     },
     {
       accessorKey: "status",

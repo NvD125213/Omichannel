@@ -744,6 +744,7 @@ export function Chat() {
   const [conversationAssigneeType, setConversationAssigneeType] =
     useState<ConversationAssigneeType>("all");
   const [sidebarInboxId, setSidebarInboxId] = useState<number | null>(null);
+  const [sidebarTeamId, setSidebarTeamId] = useState<string | null>(null);
   const [sidebarLabel, setSidebarLabel] =
     useState<ConversationSidebarLabelFilter>(null);
   const [sidebarCustomFilterId, setSidebarCustomFilterId] = useState<
@@ -777,6 +778,7 @@ export function Chat() {
       exitChatFilterMode();
       setSidebarConversationAssignee(value);
       setSidebarInboxId(null);
+      setSidebarTeamId(null);
       setSidebarLabel(null);
     },
     [exitChatFilterMode],
@@ -786,6 +788,17 @@ export function Chat() {
     (inboxId: number | null) => {
       exitChatFilterMode();
       setSidebarInboxId(inboxId);
+      setSidebarTeamId(null);
+      setSidebarLabel(null);
+    },
+    [exitChatFilterMode],
+  );
+
+  const handleSidebarTeamChange = useCallback(
+    (teamId: string | null) => {
+      exitChatFilterMode();
+      setSidebarTeamId(teamId);
+      setSidebarInboxId(null);
       setSidebarLabel(null);
     },
     [exitChatFilterMode],
@@ -796,6 +809,7 @@ export function Chat() {
       exitChatFilterMode();
       setSidebarLabel(label);
       setSidebarInboxId(null);
+      setSidebarTeamId(null);
     },
     [exitChatFilterMode],
   );
@@ -806,11 +820,15 @@ export function Chat() {
       ({
         ...TENANT_CONVERSATION_LIST_BASE,
         assignee_type: conversationAssigneeType,
-        ...(typeof sidebarInboxId === "number"
+        ...(typeof sidebarInboxId === "number" ||
+        (typeof sidebarTeamId === "string" && sidebarTeamId.length > 0)
           ? {}
           : { conversation_type: sidebarConversationAssignee }),
         ...(typeof sidebarInboxId === "number"
           ? { inbox_id: sidebarInboxId }
+          : {}),
+        ...(typeof sidebarTeamId === "string" && sidebarTeamId.length > 0
+          ? { team_id: sidebarTeamId }
           : {}),
         ...(sidebarLabel ? { labels: [sidebarLabel] } : {}),
       }) satisfies ListTenantConversationsParams,
@@ -818,6 +836,7 @@ export function Chat() {
       conversationAssigneeType,
       sidebarConversationAssignee,
       sidebarInboxId,
+      sidebarTeamId,
       sidebarLabel,
     ],
   );
@@ -837,6 +856,9 @@ export function Chat() {
     if (typeof sidebarInboxId === "number") {
       return `inbox:${sidebarInboxId}`;
     }
+    if (typeof sidebarTeamId === "string" && sidebarTeamId.length > 0) {
+      return `team:${sidebarTeamId}`;
+    }
     if (sidebarLabel) {
       return `label:${sidebarLabel}`;
     }
@@ -846,6 +868,7 @@ export function Chat() {
     sidebarCustomFilterId,
     activeFilterRequest,
     sidebarInboxId,
+    sidebarTeamId,
     sidebarLabel,
     sidebarConversationAssignee,
   ]);
@@ -967,8 +990,7 @@ export function Chat() {
       return {
         mine_count: conversationAssigneeType === "me" ? total : 0,
         assigned_count: conversationAssigneeType === "me" ? total : 0,
-        unassigned_count:
-          conversationAssigneeType === "unassigned" ? total : 0,
+        unassigned_count: conversationAssigneeType === "unassigned" ? total : 0,
         all_count: conversationAssigneeType === "all" ? total : 0,
       } satisfies TenantConversationsListMeta;
     }
@@ -1041,6 +1063,7 @@ export function Chat() {
   }, [
     sidebarConversationAssignee,
     sidebarInboxId,
+    sidebarTeamId,
     sidebarLabel,
     handleClearChatFilters,
   ]);
@@ -1072,6 +1095,7 @@ export function Chat() {
 
       setSidebarCustomFilterId(filterId);
       setSidebarInboxId(null);
+      setSidebarTeamId(null);
       setSidebarLabel(null);
       setChatFilterDraft(nextDraft);
       setAppliedChatFilter(nextDraft);
@@ -1380,7 +1404,7 @@ export function Chat() {
               <div className="flex h-full w-full items-center justify-between gap-2 overflow-hidden px-4">
                 <h2 className="flex min-w-0 flex-1 items-center gap-2 text-lg font-semibold leading-none">
                   <MessagesSquare className="size-4 shrink-0" />
-                  <span className="min-w-0 truncate whitespace-nowrap transition-opacity duration-300">
+                  <span className="min-w-0 truncate py-1 whitespace-nowrap transition-opacity duration-300">
                     Danh sách trò chuyện
                   </span>
                   {isChatFilterActive ? (
@@ -1480,6 +1504,7 @@ export function Chat() {
                   isCollapsed
                   sidebarConversationAssignee={sidebarConversationAssignee}
                   sidebarInboxId={sidebarInboxId}
+                  sidebarTeamId={sidebarTeamId}
                   sidebarLabel={sidebarLabel}
                   sidebarCustomFilterId={sidebarCustomFilterId}
                   isSwitchingMenu={
@@ -1489,6 +1514,7 @@ export function Chat() {
                     handleSidebarConversationAssigneeChange
                   }
                   onSidebarInboxChange={handleSidebarInboxChange}
+                  onSidebarTeamChange={handleSidebarTeamChange}
                   onSidebarLabelChange={handleSidebarLabelChange}
                   onSidebarCustomFilterSelect={handleSidebarCustomFilterSelect}
                 />
@@ -1502,6 +1528,7 @@ export function Chat() {
                   isCollapsed
                   isLoading={isConversationListLoading}
                   hideTabs={isChatFilterActive}
+                  teamId={sidebarTeamId}
                   listScrollResetKey={conversationListNavigationKey}
                   isLoadingMore={
                     isChatFilterActive
@@ -1531,81 +1558,84 @@ export function Chat() {
             </div>
           ) : (
             <div className="flex min-h-0 flex-1 overflow-hidden">
-            <div
-              className={cn(
-                "shrink-0 transition-[width] duration-500 ease-in-out",
-                isNotificationSidebarCollapsed
-                  ? "w-16"
-                  : isConversationListCollapsed
-                    ? "w-[calc(100%-5rem)]"
-                    : isSidebarFullyExpanded
-                      ? "w-[38%]"
-                      : "w-[35%]",
-              )}
-            >
-              <ChatNotificationSidebar
-                tenantId={tenantId}
-                isCollapsed={isNotificationSidebarCollapsed}
-                sidebarConversationAssignee={sidebarConversationAssignee}
-                sidebarInboxId={sidebarInboxId}
-                sidebarLabel={sidebarLabel}
-                sidebarCustomFilterId={sidebarCustomFilterId}
-                isSwitchingMenu={
-                  isConversationListFetching && !isConversationListLoading
-                }
-                onSidebarConversationAssigneeChange={
-                  handleSidebarConversationAssigneeChange
-                }
-                onSidebarInboxChange={handleSidebarInboxChange}
-                onSidebarLabelChange={handleSidebarLabelChange}
-                onSidebarCustomFilterSelect={handleSidebarCustomFilterSelect}
-              />
-            </div>
-            <div
-              className={cn(
-                "min-w-0 transition-[width] duration-500 ease-in-out",
-                isConversationListCollapsed
-                  ? "w-20"
-                  : isNotificationSidebarCollapsed
-                    ? "w-[calc(100%-4rem)]"
-                    : "min-w-0 flex-1",
-              )}
-            >
-              <ChatConversationList
-                tenantId={tenantId}
-                conversations={displayConversations}
-                users={users}
-                selectedConversation={selectedConversation}
-                isCollapsed={isConversationListCollapsed}
-                isLoading={isConversationListLoading}
-                hideTabs={isChatFilterActive}
-                listScrollResetKey={conversationListNavigationKey}
-                isLoadingMore={
-                  isChatFilterActive
-                    ? isFilterFetchingNextPage
-                    : isChatwootFetchingNextPage
-                }
-                hasMore={
-                  isChatFilterActive
-                    ? Boolean(hasNextFilterPage)
-                    : Boolean(hasNextConversationPage)
-                }
-                conversationsMeta={chatwootConversationsMeta}
-                assigneeType={conversationAssigneeType}
-                onAssigneeTypeChange={setConversationAssigneeType}
-                onLoadMore={handleLoadMoreConversations}
-                onSelectConversation={(id: string) => {
-                  setQuery({ conversation_id: id }, "replaceIn");
-                  setIsSidebarOpen(false);
-                }}
-                onConversationDeleted={(id: string) => {
-                  if (selectedConversationFromQuery === id) {
-                    setQuery({ conversation_id: undefined }, "replaceIn");
+              <div
+                className={cn(
+                  "shrink-0 transition-[width] duration-500 ease-in-out",
+                  isNotificationSidebarCollapsed
+                    ? "w-16"
+                    : isConversationListCollapsed
+                      ? "w-[calc(100%-5rem)]"
+                      : isSidebarFullyExpanded
+                        ? "w-[38%]"
+                        : "w-[35%]",
+                )}
+              >
+                <ChatNotificationSidebar
+                  tenantId={tenantId}
+                  isCollapsed={isNotificationSidebarCollapsed}
+                  sidebarConversationAssignee={sidebarConversationAssignee}
+                  sidebarInboxId={sidebarInboxId}
+                  sidebarTeamId={sidebarTeamId}
+                  sidebarLabel={sidebarLabel}
+                  sidebarCustomFilterId={sidebarCustomFilterId}
+                  isSwitchingMenu={
+                    isConversationListFetching && !isConversationListLoading
                   }
-                }}
-              />
+                  onSidebarConversationAssigneeChange={
+                    handleSidebarConversationAssigneeChange
+                  }
+                  onSidebarInboxChange={handleSidebarInboxChange}
+                  onSidebarTeamChange={handleSidebarTeamChange}
+                  onSidebarLabelChange={handleSidebarLabelChange}
+                  onSidebarCustomFilterSelect={handleSidebarCustomFilterSelect}
+                />
+              </div>
+              <div
+                className={cn(
+                  "min-w-0 transition-[width] duration-500 ease-in-out",
+                  isConversationListCollapsed
+                    ? "w-20"
+                    : isNotificationSidebarCollapsed
+                      ? "w-[calc(100%-4rem)]"
+                      : "min-w-0 flex-1",
+                )}
+              >
+                <ChatConversationList
+                  tenantId={tenantId}
+                  conversations={displayConversations}
+                  users={users}
+                  selectedConversation={selectedConversation}
+                  isCollapsed={isConversationListCollapsed}
+                  isLoading={isConversationListLoading}
+                  hideTabs={isChatFilterActive}
+                  teamId={sidebarTeamId}
+                  listScrollResetKey={conversationListNavigationKey}
+                  isLoadingMore={
+                    isChatFilterActive
+                      ? isFilterFetchingNextPage
+                      : isChatwootFetchingNextPage
+                  }
+                  hasMore={
+                    isChatFilterActive
+                      ? Boolean(hasNextFilterPage)
+                      : Boolean(hasNextConversationPage)
+                  }
+                  conversationsMeta={chatwootConversationsMeta}
+                  assigneeType={conversationAssigneeType}
+                  onAssigneeTypeChange={setConversationAssigneeType}
+                  onLoadMore={handleLoadMoreConversations}
+                  onSelectConversation={(id: string) => {
+                    setQuery({ conversation_id: id }, "replaceIn");
+                    setIsSidebarOpen(false);
+                  }}
+                  onConversationDeleted={(id: string) => {
+                    if (selectedConversationFromQuery === id) {
+                      setQuery({ conversation_id: undefined }, "replaceIn");
+                    }
+                  }}
+                />
+              </div>
             </div>
-          </div>
           )}
         </div>
 

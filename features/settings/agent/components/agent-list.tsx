@@ -1,16 +1,28 @@
 "use client";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { EmptyData } from "@/components/empty-data";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
+  AlignLeft,
   CheckCircle2,
   Clock3,
   EllipsisVertical,
   Inbox,
+  Mail,
   Pencil,
   Search,
   ShieldCheck,
@@ -25,14 +37,6 @@ import {
 } from "@/hooks/chatwoot/use-chatwoot";
 import { useMe } from "@/hooks/user/use-me";
 import { AddAgentDialog } from "./add-agent-form";
-import {
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import { EmptyData } from "@/components/empty-data";
-import { ConfirmDialog } from "@/components/confirm-dialog";
 
 export type AgentRole = "admin" | "supplier";
 export type AgentVerification = "verified" | "pending";
@@ -45,16 +49,17 @@ export type AgentItem = {
   role: AgentRole;
   verification: AgentVerification;
   availability: AgentAvailability;
+  thumbnail?: string;
 };
 
 const ROLE_LABEL: Record<AgentRole, string> = {
   admin: "Quản trị viên",
-  supplier: "Nhà cung cấp",
+  supplier: "Nhân viên hỗ trợ",
 };
 
 const VERIFY_LABEL: Record<AgentVerification, string> = {
   verified: "Đã xác minh",
-  pending: "Đang chờ xác minh",
+  pending: "Chờ xác minh",
 };
 
 const AVAILABILITY_LABEL: Record<AgentAvailability, string> = {
@@ -82,14 +87,8 @@ const AVAILABILITY_BADGE_CLASS: Record<AgentAvailability, string> = {
     "border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
   busy: "border-orange-200 bg-orange-100 text-orange-700 dark:border-orange-900/50 dark:bg-orange-950/40 dark:text-orange-300",
   offline:
-    "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-300",
+    "border-red-200 bg-red-100 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300",
 };
-
-const AVATAR_BG = [
-  "bg-muted text-foreground",
-  "bg-sky-100 text-sky-900 dark:bg-sky-950/40 dark:text-sky-100",
-  "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100",
-];
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -174,12 +173,15 @@ function normalizeAgent(
         ? "offline"
         : "available";
   const isConfirmed = Boolean(record.confirmed);
-  const name = String(record.name ?? record.available_name ?? "").trim();
+  const name = String(record.available_name ?? record.name ?? "").trim();
   const email = String(record.email ?? "").trim();
   const id =
     String(record.id ?? record.uuid ?? "").trim() ||
     email ||
     `agent-${index + 1}`;
+  const thumbnail = String(
+    record.thumbnail ?? record.avatar_url ?? record.avatarUrl ?? "",
+  ).trim();
 
   return {
     id,
@@ -188,16 +190,46 @@ function normalizeAgent(
     role: rawRole.includes("admin") ? "admin" : "supplier",
     verification: isConfirmed ? "verified" : "pending",
     availability,
+    thumbnail: thumbnail || undefined,
   };
+}
+
+function AgentListSkeleton() {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <Card key={index} className="border py-2">
+          <div className="space-y-3 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Skeleton className="size-9 shrink-0 rounded-lg" />
+                <Skeleton className="h-4 w-32 max-w-full" />
+              </div>
+              <div className="flex gap-1">
+                <Skeleton className="size-7 rounded-md" />
+                <Skeleton className="size-7 rounded-md" />
+              </div>
+            </div>
+            <Skeleton className="h-3 w-40 max-w-full" />
+            <Skeleton className="h-8 w-full" />
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-5 w-24 rounded-full" />
+              <Skeleton className="h-5 w-24 rounded-full" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+  );
 }
 
 export default function AgentList() {
   const [query, setQuery] = useState("");
   const [editingAgent, setEditingAgent] = useState<AgentItem | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [pendingDeleteAgent, setPendingDeleteAgent] = useState<AgentItem | null>(
-    null,
-  );
+  const [pendingDeleteAgent, setPendingDeleteAgent] =
+    useState<AgentItem | null>(null);
   const { data: currentUser } = useMe();
   const tenantId = currentUser?.tenant_id ?? "";
   const {
@@ -223,7 +255,7 @@ export default function AgentList() {
             Tìm kiếm nhân viên
           </Label>
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
@@ -239,7 +271,7 @@ export default function AgentList() {
           />
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <AddAgentDialog />
           <AddAgentDialog
             open={isEditDialogOpen}
@@ -261,157 +293,184 @@ export default function AgentList() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div>
         {isLoadingAgents ? (
-          <p className="py-10 text-center text-muted-foreground text-sm">
-            Đang tải danh sách đại lý...
-          </p>
+          <AgentListSkeleton />
         ) : filtered.length === 0 ? (
-          <div className="py-6">
+          <div className="rounded-md border bg-card py-8">
             <EmptyData
               icon={Inbox}
-              title="Không có đại lý"
-              description="Chưa có đại lý nào trong hệ thống."
+              title={
+                query.trim() ? "Không tìm thấy nhân viên" : "Chưa có nhân viên"
+              }
+              description={
+                query.trim()
+                  ? "Thử đổi từ khóa tìm kiếm hoặc thêm nhân viên mới."
+                  : "Thêm nhân viên hỗ trợ để bắt đầu tiếp nhận và trả lời tin nhắn."
+              }
               showButton={false}
             />
           </div>
         ) : (
-          <ul role="list" className="divide-y divide-border">
-            {filtered.map((agent, i) => (
-              <li key={agent.id}>
-                <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4">
-                  <div className="relative shrink-0">
-                    <Avatar
-                      className={cn(
-                        "size-10 rounded-lg sm:size-11",
-                        AVATAR_BG[i % AVATAR_BG.length],
-                      )}
-                    >
-                      <AvatarFallback
-                        className={cn(
-                          "rounded-lg font-medium text-sm",
-                          AVATAR_BG[i % AVATAR_BG.length],
-                        )}
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((agent) => (
+              <Card
+                key={agent.id}
+                className="relative overflow-hidden border py-2"
+              >
+                <div className="space-y-2.5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div className="relative shrink-0">
+                        <Avatar className="size-9 rounded-lg border border-border/60 bg-muted">
+                          {agent.thumbnail ? (
+                            <AvatarImage
+                              src={agent.thumbnail}
+                              alt={agent.name}
+                              className="rounded-lg object-cover"
+                            />
+                          ) : null}
+                          <AvatarFallback className="rounded-lg bg-muted font-medium text-xs text-foreground">
+                            {initials(agent.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span
+                          className={cn(
+                            "absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-card",
+                            agent.availability === "available" &&
+                              "bg-emerald-500",
+                            agent.availability === "busy" && "bg-orange-500",
+                            agent.availability === "offline" && "bg-slate-400",
+                          )}
+                          aria-label={AVAILABILITY_LABEL[agent.availability]}
+                        />
+                      </div>
+                      <span className="truncate text-sm font-semibold">
+                        {agent.name}
+                      </span>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 cursor-pointer text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setEditingAgent(agent);
+                          setIsEditDialogOpen(true);
+                        }}
                       >
-                        {initials(agent.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    {agent.availability === "available" ? (
-                      <span
-                        className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-background"
-                        aria-label="Đang hoạt động"
-                      />
-                    ) : null}
+                        <Pencil className="size-3.5" />
+                        <span className="sr-only">Sửa</span>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 cursor-pointer text-muted-foreground hover:text-foreground"
+                          >
+                            <EllipsisVertical className="size-3.5" />
+                            <span className="sr-only">Hành động</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            variant="destructive"
+                            className="cursor-pointer"
+                            disabled={
+                              deleteChatwootAgentMutation.isPending || !tenantId
+                            }
+                            onClick={() => setPendingDeleteAgent(agent)}
+                          >
+                            <Trash2 className="size-4" />
+                            Xóa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium leading-snug">
-                      {agent.name}
-                    </p>
+                  <div className="flex items-start gap-2">
+                    <Mail className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/50" />
                     <p
-                      className="mt-0.5 truncate text-muted-foreground text-xs sm:text-sm"
+                      className="truncate text-xs text-muted-foreground"
                       translate="no"
                     >
                       {agent.email}
                     </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <Badge
-                        variant="outline"
-                        className={cn("border", ROLE_BADGE_CLASS[agent.role])}
-                      >
-                        {agent.role === "admin" ? (
-                          <ShieldCheck aria-hidden />
-                        ) : (
-                          <UserRound aria-hidden />
-                        )}
-                        {ROLE_LABEL[agent.role]}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border",
-                          VERIFY_BADGE_CLASS[agent.verification],
-                        )}
-                      >
-                        {agent.verification === "verified" ? (
-                          <CheckCircle2 aria-hidden />
-                        ) : (
-                          <Clock3 aria-hidden />
-                        )}
-                        {VERIFY_LABEL[agent.verification]}
-                      </Badge>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border",
-                          AVAILABILITY_BADGE_CLASS[agent.availability],
-                        )}
-                      >
-                        {agent.availability === "offline" ? (
-                          <XCircle aria-hidden />
-                        ) : (
-                          <CheckCircle2 aria-hidden />
-                        )}
-                        {AVAILABILITY_LABEL[agent.availability]}
-                      </Badge>
-                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 cursor-pointer"
-                      onClick={() => {
-                        setEditingAgent(agent);
-                        setIsEditDialogOpen(true);
-                      }}
+                  <div className="flex items-start gap-2">
+                    <AlignLeft className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/50" />
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {ROLE_LABEL[agent.role]} -{" "}
+                      {VERIFY_LABEL[agent.verification]}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "gap-1 text-[11px] font-medium",
+                        ROLE_BADGE_CLASS[agent.role],
+                      )}
                     >
-                      <Pencil className="size-4" />
-                      <span className="sr-only">Sửa</span>
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 cursor-pointer"
-                        >
-                          <EllipsisVertical className="size-4" />
-                          <span className="sr-only">Hành động</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          variant="destructive"
-                          className="cursor-pointer"
-                          disabled={
-                            deleteChatwootAgentMutation.isPending || !tenantId
-                          }
-                          onClick={() => setPendingDeleteAgent(agent)}
-                        >
-                          <Trash2 className="size-4" />
-                          Xóa
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      {agent.role === "admin" ? (
+                        <ShieldCheck className="size-3" aria-hidden />
+                      ) : (
+                        <UserRound className="size-3" aria-hidden />
+                      )}
+                      {ROLE_LABEL[agent.role]}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "gap-1 text-[11px] font-medium",
+                        VERIFY_BADGE_CLASS[agent.verification],
+                      )}
+                    >
+                      {agent.verification === "verified" ? (
+                        <CheckCircle2 className="size-3" aria-hidden />
+                      ) : (
+                        <Clock3 className="size-3" aria-hidden />
+                      )}
+                      {VERIFY_LABEL[agent.verification]}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "gap-1 text-[11px] font-medium",
+                        AVAILABILITY_BADGE_CLASS[agent.availability],
+                      )}
+                    >
+                      {agent.availability === "offline" ? (
+                        <XCircle className="size-3" aria-hidden />
+                      ) : (
+                        <CheckCircle2 className="size-3" aria-hidden />
+                      )}
+                      {AVAILABILITY_LABEL[agent.availability]}
+                    </Badge>
                   </div>
                 </div>
-              </li>
+              </Card>
             ))}
-          </ul>
+          </div>
         )}
       </div>
+
       {isFetchingAgents && !isLoadingAgents ? (
-        <p className="text-muted-foreground text-xs">Đang đồng bộ dữ liệu...</p>
+        <p className="text-xs text-muted-foreground">Đang đồng bộ dữ liệu...</p>
       ) : null}
+
       <ConfirmDialog
         open={Boolean(pendingDeleteAgent)}
         onOpenChange={(open) => {
           if (!open) setPendingDeleteAgent(null);
         }}
-        title="Xác nhận xóa đại lý"
-        description={`Xóa đại lý “${pendingDeleteAgent?.name ?? ""}”? Hành động này không thể hoàn tác.`}
+        title="Xác nhận xóa nhân viên"
+        description={`Xóa nhân viên “${pendingDeleteAgent?.name ?? ""}”? Hành động này không thể hoàn tác.`}
         confirmText="Xóa"
         cancelText="Hủy"
         confirmVariant="destructive"

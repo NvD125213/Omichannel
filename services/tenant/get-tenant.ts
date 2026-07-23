@@ -40,6 +40,7 @@ export interface TenantQueryParams {
   page_size?: number;
   search?: string;
   id?: string;
+  is_active?: number;
 }
 
 export async function getTenantsApi(params: TenantQueryParams) {

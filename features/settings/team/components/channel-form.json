@@ -1,0 +1,209 @@
+[
+  {
+    "channel": "website",
+    "name": "Kênh Website",
+    "fields": [
+      {
+        "key": "website_name",
+        "label": "Tên website",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập tên website (vd: Acme Inc)"
+      },
+      {
+        "key": "website_domain",
+        "label": "Tên miền website",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập tên miền website (vd: acme.com)"
+      },
+      {
+        "key": "widget_color",
+        "label": "Màu widget",
+        "type": "color",
+        "required": false
+      },
+      {
+        "key": "welcome_heading",
+        "label": "Tiêu đề chào mừng",
+        "type": "text",
+        "required": false,
+        "placeholder": "Xin chào!"
+      },
+      {
+        "key": "welcome_tagline",
+        "label": "Dòng mô tả chào mừng",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Chúng tôi sẵn sàng hỗ trợ bạn. Hãy hỏi bất cứ điều gì hoặc gửi phản hồi."
+      },
+      {
+        "key": "enable_channel_greeting",
+        "label": "Bật lời chào kênh",
+        "type": "select",
+        "required": false,
+        "default": "disabled",
+        "options": [
+          {
+            "label": "Tắt",
+            "value": "disabled"
+          },
+          {
+            "label": "Bật",
+            "value": "enabled"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "channel": "sms",
+    "name": "Kênh SMS",
+    "fields": [
+      {
+        "key": "api_provider",
+        "label": "Nhà cung cấp API",
+        "type": "select",
+        "required": true,
+        "default": "twilio",
+        "options": [
+          {
+            "label": "Twilio",
+            "value": "twilio"
+          }
+        ]
+      },
+      {
+        "key": "inbox_name",
+        "label": "Tên hộp thư đến",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập tên hộp thư đến"
+      },
+      {
+        "key": "phone_number",
+        "label": "Số điện thoại",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập số điện thoại dùng để gửi tin nhắn"
+      },
+      {
+        "key": "use_twilio_messaging_service",
+        "label": "Dùng Twilio Messaging Service",
+        "type": "checkbox",
+        "required": false
+      },
+      {
+        "key": "account_sid",
+        "label": "Account SID",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập Twilio Account SID của bạn"
+      },
+      {
+        "key": "use_api_key_authentication",
+        "label": "Xác thực bằng API Key",
+        "type": "checkbox",
+        "required": false
+      },
+      {
+        "key": "auth_token",
+        "label": "Auth Token",
+        "type": "password",
+        "required": true,
+        "placeholder": "Nhập Twilio Auth Token của bạn"
+      }
+    ]
+  },
+  {
+    "channel": "email",
+    "name": "Kênh Email",
+    "fields": [
+      {
+        "key": "channel_name",
+        "label": "Tên kênh",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập tên kênh"
+      },
+      {
+        "key": "email",
+        "label": "Email",
+        "type": "email",
+        "required": true,
+        "placeholder": "Nhập địa chỉ email",
+        "helperText": "Địa chỉ email mà khách hàng dùng để gửi yêu cầu hỗ trợ."
+      }
+    ]
+  },
+  {
+    "channel": "api",
+    "name": "Kênh API",
+    "fields": [
+      {
+        "key": "channel_name",
+        "label": "Tên kênh",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập tên kênh"
+      },
+      {
+        "key": "webhook_url",
+        "label": "Webhook URL",
+        "type": "url",
+        "required": true,
+        "placeholder": "Nhập Webhook URL",
+        "helperText": "URL nhận callback khi có sự kiện từ kênh."
+      }
+    ]
+  },
+  {
+    "channel": "telegram",
+    "name": "Kênh Telegram",
+    "fields": [
+      {
+        "key": "bot_token",
+        "label": "Bot Token",
+        "type": "password",
+        "required": true,
+        "placeholder": "Nhập Bot Token",
+        "helperText": "Token bot lấy từ Telegram BotFather."
+      }
+    ]
+  },
+  {
+    "channel": "line",
+    "name": "Kênh LINE",
+    "fields": [
+      {
+        "key": "channel_name",
+        "label": "Tên kênh",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập tên kênh"
+      },
+      {
+        "key": "line_channel_id",
+        "label": "LINE Channel ID",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập LINE Channel ID"
+      },
+      {
+        "key": "line_channel_secret",
+        "label": "LINE Channel Secret",
+        "type": "password",
+        "required": true,
+        "placeholder": "Nhập LINE Channel Secret"
+      },
+      {
+        "key": "line_channel_token",
+        "label": "LINE Channel Token",
+        "type": "password",
+        "required": true,
+        "placeholder": "Nhập LINE Channel Token"
+      }
+    ]
+  }
+]

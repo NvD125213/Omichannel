@@ -151,7 +151,7 @@ export interface ListTenantConversationsParams {
   conversation_type?: string;
   sort_by?: string;
   inbox_id?: number;
-  team_id?: number;
+  team_id?: number | string;
   labels?: string[];
   q?: string;
 }
@@ -256,6 +256,35 @@ export interface UpdateTenantInboxRequest {
   [key: string]: unknown;
 }
 
+export interface TenantTeam {
+  id?: string | number;
+  name: string;
+  description?: string | null;
+  allow_auto_assign?: boolean | null;
+  [key: string]: unknown;
+}
+
+export interface CreateTenantTeamRequest {
+  name: string;
+  description?: string | null;
+  allow_auto_assign?: boolean | null;
+}
+
+export type UpdateTenantTeamRequest = Partial<CreateTenantTeamRequest> & {
+  [key: string]: unknown;
+};
+
+export interface TenantTeamMember {
+  id?: string | number;
+  user_id?: string;
+  team_id?: string | number;
+  [key: string]: unknown;
+}
+
+export interface TenantTeamMembersRequest {
+  user_ids: string[];
+}
+
 export interface CreateTenantLabelRequest {
   [key: string]: unknown;
 }
@@ -264,7 +293,29 @@ export type ListTenantInboxesResponse = ApiResponse<ChatwootJsonPayload>;
 export type GetTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
 export type CreateTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
 export type UpdateTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
-export type ListTenantTeamsResponse = ApiResponse<ChatwootJsonPayload>;
+export type ListTenantTeamsResponse = ApiResponse<
+  TenantTeam[] | ChatwootJsonPayload
+>;
+export type GetTenantTeamResponse = ApiResponse<
+  TenantTeam | ChatwootJsonPayload
+>;
+export type CreateTenantTeamResponse = ApiResponse<
+  TenantTeam | ChatwootJsonPayload
+>;
+export type UpdateTenantTeamResponse = ApiResponse<
+  TenantTeam | ChatwootJsonPayload
+>;
+export type DeleteTenantTeamResponse = ApiResponse<void>;
+export type ListTenantTeamMembersResponse = ApiResponse<
+  TenantTeamMember[] | ChatwootJsonPayload
+>;
+export type AddTenantTeamMembersResponse = ApiResponse<
+  TenantTeamMember[] | ChatwootJsonPayload
+>;
+export type RemoveTenantTeamMembersResponse = ApiResponse<void>;
+export type UpdateTenantTeamMembersResponse = ApiResponse<
+  TenantTeamMember[] | ChatwootJsonPayload
+>;
 export type ListTenantLabelsResponse = ApiResponse<ChatwootJsonPayload>;
 export type CreateTenantLabelResponse = ApiResponse<ChatwootJsonPayload>;
 export type DeleteTenantLabelResponse = ApiResponse<void>;
@@ -296,10 +347,15 @@ export type DeleteChatwootUserResponse = ApiResponse<void>;
 // —— Bulk actions ——
 export interface BulkActionRequest {
   type: string;
-  ids: string[];
-  labels: {
+  ids: Array<string | number>;
+  labels?: {
     add?: string[];
     remove?: string[];
+  };
+  fields?: {
+    assignee_id?: string | number | null;
+    status?: string;
+    [key: string]: unknown;
   };
 }
 export type BulkActionResponse = ApiResponse<ChatwootJsonPayload>;

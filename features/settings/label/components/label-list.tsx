@@ -2,10 +2,12 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyData } from "@/components/empty-data";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,8 +16,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
+  AlignLeft,
   EllipsisVertical,
   Inbox,
+  PanelLeft,
   Pencil,
   Search,
   Tag,
@@ -193,13 +197,34 @@ export default function LabelList() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-border">
+      <div>
         {isLoading ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
-            Đang tải danh sách label...
-          </p>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <Card key={index} className="border py-2">
+                <div className="space-y-3 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <Skeleton className="size-9 shrink-0 rounded-lg" />
+                      <Skeleton className="h-4 w-28 max-w-full" />
+                    </div>
+                    <div className="flex gap-1">
+                      <Skeleton className="size-7 rounded-md" />
+                      <Skeleton className="size-7 rounded-md" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-8 w-full" />
+                  <div className="flex flex-wrap gap-1.5">
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                    <Skeleton className="h-5 w-20 rounded-full" />
+                    <Skeleton className="h-5 w-24 rounded-full" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="py-6">
+          <div className="rounded-lg border border-border py-6">
             <EmptyData
               icon={Inbox}
               title="Không có label"
@@ -208,90 +233,101 @@ export default function LabelList() {
             />
           </div>
         ) : (
-          <ul role="list" className="divide-y divide-border">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((item) => (
-              <li key={item.id}>
-                <div className="flex min-w-0 items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4">
-                  <div
-                    className="size-10 shrink-0 rounded-lg border sm:size-11"
-                    style={{ backgroundColor: item.color }}
-                    aria-hidden
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium leading-snug">
-                      {item.title}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground sm:text-sm">
-                      {item.description || "Không có mô tả"}
-                    </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "border border-border/70 bg-background text-foreground",
-                        )}
-                      >
-                        <Tag className="size-3.5" />
+              <Card key={item.id} className="relative overflow-hidden border py-2">
+                <div className="space-y-2.5 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <div
+                        className="size-9 shrink-0 rounded-lg border"
+                        style={{ backgroundColor: item.color }}
+                        aria-hidden
+                      />
+                      <span className="truncate text-sm font-semibold">
                         {item.title}
-                      </Badge>
-                      <Badge variant="outline" className="border">
-                        {item.color}
-                      </Badge>
-                      <Badge variant="outline" className="border">
-                        {item.show_on_sidebar
-                          ? "Hiển thị sidebar"
-                          : "Ẩn sidebar"}
-                      </Badge>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-7 cursor-pointer text-muted-foreground hover:text-foreground"
+                        onClick={() => {
+                          setEditingLabel({
+                            id: item.id,
+                            title: item.title,
+                            description: item.description,
+                            color: item.color,
+                            show_on_sidebar: item.show_on_sidebar,
+                          });
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="size-3.5" />
+                        <span className="sr-only">Sửa</span>
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 cursor-pointer text-muted-foreground hover:text-foreground"
+                          >
+                            <EllipsisVertical className="size-3.5" />
+                            <span className="sr-only">Hành động</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            variant="destructive"
+                            className="cursor-pointer"
+                            disabled={deleteLabelMutation.isPending || !tenantId}
+                            onClick={() => setPendingDeleteLabel(item)}
+                          >
+                            <Trash2 className="size-4" />
+                            Xóa
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 cursor-pointer"
-                      onClick={() => {
-                        setEditingLabel({
-                          id: item.id,
-                          title: item.title,
-                          description: item.description,
-                          color: item.color,
-                          show_on_sidebar: item.show_on_sidebar,
-                        });
-                        setIsEditDialogOpen(true);
-                      }}
+                  <div className="flex items-start gap-2">
+                    <AlignLeft className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/50" />
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
+                      {item.description || "Không có mô tả"}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "gap-1 border border-border/70 bg-background text-[11px] font-medium text-foreground",
+                      )}
                     >
-                      <Pencil className="size-4" />
-                      <span className="sr-only">Sửa</span>
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 cursor-pointer"
-                        >
-                          <EllipsisVertical className="size-4" />
-                          <span className="sr-only">Hành động</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          variant="destructive"
-                          className="cursor-pointer"
-                          disabled={deleteLabelMutation.isPending || !tenantId}
-                          onClick={() => setPendingDeleteLabel(item)}
-                        >
-                          <Trash2 className="size-4" />
-                          Xóa
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      <Tag className="size-3" />
+                      {item.title}
+                    </Badge>
+                    <Badge variant="outline" className="text-[11px] font-medium">
+                      {item.color}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className="gap-1 text-[11px] font-medium"
+                    >
+                      <PanelLeft className="size-3" />
+                      {item.show_on_sidebar
+                        ? "Hiển thị sidebar"
+                        : "Ẩn sidebar"}
+                    </Badge>
                   </div>
                 </div>
-              </li>
+              </Card>
             ))}
-          </ul>
+          </div>
         )}
       </div>
 

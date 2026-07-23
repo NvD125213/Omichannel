@@ -24,7 +24,7 @@ export const AUTH_NAV_RECOVERY_INLINE_SCRIPT = `
 
   window.addEventListener("pageshow", function (event) {
     if (event.persisted) {
-      window.location.reload();
+      recoverIfNeeded();
       return;
     }
     recoverIfNeeded();

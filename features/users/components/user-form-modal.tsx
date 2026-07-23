@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import {
   userDefaultValues,
@@ -78,12 +78,18 @@ export function UserFormDialog({
     currentUser?.permissions?.includes(PERMISSIONS.VIEW_TENANTS) ||
     currentUser?.permissions?.includes("get_tenants");
 
-  const { data: tenantsData, isLoading: isLoadingTenants } = useGetTenants(
-    {
+  const tenantsQueryParams = useMemo(
+    () => ({
       page: 1,
       page_size: 100,
-    },
-    { enabled: open && canGetTenants },
+      is_active: 1,
+    }),
+    [],
+  );
+
+  const { data: tenantsData, isLoading: isLoadingTenants } = useGetTenants(
+    tenantsQueryParams,
+    { enabled: open && Boolean(canGetTenants) },
   );
 
   const form = useForm<UserFormValues>({

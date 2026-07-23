@@ -43,10 +43,12 @@ import type {
   ListTenantChatwootAgentBotsResponse,
   ListTenantInboxesResponse,
   ListTenantLabelsResponse,
+  ListTenantTeamMembersResponse,
   ListTenantConversationMessagesParams,
   ListTenantConversationMessagesResponse,
   ListTenantConversationsParams,
   ListTenantConversationsResponse,
+  GetTenantTeamResponse,
   ListTenantTeamsResponse,
   ProvisionChatwootAccountRequest,
   ProvisionChatwootAccountResponse,
@@ -69,6 +71,15 @@ import type {
   UpdateTenantConversationResponse,
   UpdateTenantInboxRequest,
   UpdateTenantInboxResponse,
+  CreateTenantTeamRequest,
+  CreateTenantTeamResponse,
+  UpdateTenantTeamRequest,
+  UpdateTenantTeamResponse,
+  DeleteTenantTeamResponse,
+  TenantTeamMembersRequest,
+  AddTenantTeamMembersResponse,
+  RemoveTenantTeamMembersResponse,
+  UpdateTenantTeamMembersResponse,
   UpdateChatwootUserRequest,
   UpdateChatwootUserResponse,
   UpdateTenantChatwootAccountRequest,
@@ -358,6 +369,103 @@ export const chatwootService = {
   ): Promise<ListTenantTeamsResponse> => {
     const response = await apiClient.get<ListTenantTeamsResponse>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/teams`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/teams */
+  createTenantTeam: async (
+    tenantId: string,
+    data: CreateTenantTeamRequest,
+  ): Promise<CreateTenantTeamResponse> => {
+    const response = await apiClient.post<CreateTenantTeamResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/teams/:team_id */
+  getTenantTeam: async (
+    tenantId: string,
+    teamId: string,
+  ): Promise<GetTenantTeamResponse> => {
+    const response = await apiClient.get<GetTenantTeamResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams/${teamId}`,
+    );
+    return response.data;
+  },
+
+  /** PATCH /api/v1/chatwoot/tenants/:tenant_id/teams/:team_id */
+  updateTenantTeam: async (
+    tenantId: string,
+    teamId: string,
+    data: UpdateTenantTeamRequest,
+  ): Promise<UpdateTenantTeamResponse> => {
+    const response = await apiClient.patch<UpdateTenantTeamResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams/${teamId}`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** DELETE /api/v1/chatwoot/tenants/:tenant_id/teams/:team_id */
+  deleteTenantTeam: async (
+    tenantId: string,
+    teamId: string,
+  ): Promise<DeleteTenantTeamResponse> => {
+    const response = await apiClient.delete<DeleteTenantTeamResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams/${teamId}`,
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/chatwoot/tenants/:tenant_id/teams/:team_id/team_members */
+  listTenantTeamMembers: async (
+    tenantId: string,
+    teamId: string,
+  ): Promise<ListTenantTeamMembersResponse> => {
+    const response = await apiClient.get<ListTenantTeamMembersResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams/${teamId}/team_members`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/tenants/:tenant_id/teams/:team_id/team_members */
+  addTenantTeamMembers: async (
+    tenantId: string,
+    teamId: string,
+    data: TenantTeamMembersRequest,
+  ): Promise<AddTenantTeamMembersResponse> => {
+    const response = await apiClient.post<AddTenantTeamMembersResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams/${teamId}/team_members`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** DELETE /api/v1/chatwoot/tenants/:tenant_id/teams/:team_id/team_members */
+  removeTenantTeamMembers: async (
+    tenantId: string,
+    teamId: string,
+    data: TenantTeamMembersRequest,
+  ): Promise<RemoveTenantTeamMembersResponse> => {
+    const response = await apiClient.delete<RemoveTenantTeamMembersResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams/${teamId}/team_members`,
+      { data },
+    );
+    return response.data;
+  },
+
+  /** PATCH /api/v1/chatwoot/tenants/:tenant_id/teams/:team_id/team_members */
+  updateTenantTeamMembers: async (
+    tenantId: string,
+    teamId: string,
+    data: TenantTeamMembersRequest,
+  ): Promise<UpdateTenantTeamMembersResponse> => {
+    const response = await apiClient.patch<UpdateTenantTeamMembersResponse>(
+      `${CHATWOOT_BASE}/tenants/${tenantId}/teams/${teamId}/team_members`,
+      data,
     );
     return response.data;
   },

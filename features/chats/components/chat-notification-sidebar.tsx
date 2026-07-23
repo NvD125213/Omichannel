@@ -14,6 +14,7 @@ import {
   Tag,
   ListFilter,
   Bookmark,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -37,6 +38,7 @@ import {
   useListTenantInboxes,
   useListTenantLabels,
   useListAccountCustomFilters,
+  useListTenantTeams,
 } from "@/hooks/chatwoot/use-chatwoot";
 import type { AccountCustomFilter } from "@/services/chatwoot/interface";
 import {
@@ -98,6 +100,13 @@ interface TenantLabelItem {
   showOnSidebar: boolean;
 }
 
+interface TenantTeamItem {
+  id: string;
+  name: string;
+  description?: string;
+  isMember: boolean;
+}
+
 const LABEL_FALLBACK_COLORS = [
   "#3b82f6",
   "#10b981",
@@ -153,6 +162,43 @@ function extractRawLabels(
   if (nestedPayloadStrings) return nestedPayloadStrings;
 
   return [];
+}
+
+function extractTeams(response: unknown): TenantTeamItem[] {
+  if (!response || typeof response !== "object") return [];
+  const root = response as Record<string, unknown>;
+  const data = root.data as Record<string, unknown> | undefined;
+  if (!data) return [];
+
+  const rawTeams =
+    coerceObjectArray(data.teams) ??
+    coerceObjectArray(data.payload) ??
+    coerceObjectArray(data.chatwoot) ??
+    coerceObjectArray(
+      (data.chatwoot as Record<string, unknown> | undefined)?.payload,
+    ) ??
+    [];
+
+  return rawTeams
+    .map((raw): TenantTeamItem | null => {
+      const id = String(raw.id ?? raw.team_id ?? "").trim();
+      const name = String(raw.name ?? "").trim();
+      if (!id || !name) return null;
+
+      const isMember = raw.is_member === true;
+      if (!isMember) return null;
+
+      const description =
+        typeof raw.description === "string" ? raw.description.trim() : undefined;
+
+      return {
+        id,
+        name,
+        ...(description ? { description } : {}),
+        isMember: true,
+      };
+    })
+    .filter((team): team is TenantTeamItem => team !== null);
 }
 
 function normalizeLabel(
@@ -403,6 +449,7 @@ interface ChatNotificationSidebarProps {
   isCollapsed: boolean;
   sidebarConversationAssignee: ConversationSidebarAssigneeFilter;
   sidebarInboxId: number | null;
+  sidebarTeamId: string | null;
   sidebarLabel: ConversationSidebarLabelFilter;
   sidebarCustomFilterId: number | null;
   isSwitchingMenu?: boolean;
@@ -410,6 +457,7 @@ interface ChatNotificationSidebarProps {
     value: ConversationSidebarAssigneeFilter,
   ) => void;
   onSidebarInboxChange: (inboxId: number | null) => void;
+  onSidebarTeamChange: (teamId: string | null) => void;
   onSidebarLabelChange: (label: ConversationSidebarLabelFilter) => void;
   onSidebarCustomFilterSelect: (filter: AccountCustomFilter) => void;
 }
@@ -466,17 +514,21 @@ export function ChatNotificationSidebar({
   isCollapsed,
   sidebarConversationAssignee,
   sidebarInboxId,
+  sidebarTeamId,
   sidebarLabel,
   sidebarCustomFilterId,
   isSwitchingMenu = false,
   onSidebarConversationAssigneeChange,
   onSidebarInboxChange,
+  onSidebarTeamChange,
   onSidebarLabelChange,
   onSidebarCustomFilterSelect,
 }: ChatNotificationSidebarProps) {
   const unreadByInboxId = useUnreadByInboxId();
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
+  const { data: teamsData, isLoading: isTeamsLoading } =
+    useListTenantTeams(tenantId);
   const { data: customFiltersData, isLoading: isCustomFiltersLoading } =
     useListAccountCustomFilters(tenantId);
   const inboxPayload = (
@@ -499,11 +551,17 @@ export function ChatNotificationSidebar({
     () => extractAccountCustomFilters(customFiltersData),
     [customFiltersData],
   );
+  const teams = useMemo(() => extractTeams(teamsData), [teamsData]);
   const hasInboxSelection = typeof sidebarInboxId === "number";
+  const hasTeamSelection =
+    typeof sidebarTeamId === "string" && sidebarTeamId.length > 0;
   const hasLabelSelection = sidebarLabel !== null;
   const hasCustomFilterSelection = sidebarCustomFilterId !== null;
   const isConversationSelectionMode =
-    !hasInboxSelection && !hasLabelSelection && !hasCustomFilterSelection;
+    !hasInboxSelection &&
+    !hasTeamSelection &&
+    !hasLabelSelection &&
+    !hasCustomFilterSelection;
 
   if (isCollapsed) {
     return (
@@ -727,6 +785,56 @@ export function ChatNotificationSidebar({
                 </span>
               )}
             </CollapsedSidebarHoverMenu>
+
+            <CollapsedSidebarHoverMenu
+              title="Nhóm tham gia"
+              isActive={hasTeamSelection}
+              icon={<Users className="h-4 w-4 shrink-0" aria-hidden="true" />}
+            >
+              {isTeamsLoading ? (
+                <span className="block px-2 py-1 text-xs text-muted-foreground">
+                  Đang tải...
+                </span>
+              ) : teams.length > 0 ? (
+                teams.map((team) => {
+                  const isActive =
+                    hasTeamSelection && sidebarTeamId === team.id;
+
+                  return (
+                    <button
+                      key={team.id}
+                      type="button"
+                      title={team.name}
+                      onClick={() => onSidebarTeamChange(team.id)}
+                      disabled={isSwitchingMenu || isActive}
+                      aria-pressed={isActive}
+                      className={cn(
+                        "flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-sm transition-colors disabled:pointer-events-none",
+                        isActive
+                          ? "bg-accent text-accent-foreground"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                        isSwitchingMenu && "opacity-80",
+                      )}
+                    >
+                      <Users
+                        className="h-3.5 w-3.5 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span className="truncate">{team.name}</span>
+                    </button>
+                  );
+                })
+              ) : (
+                <span
+                  className={cn(
+                    "block px-2 py-1 text-xs text-muted-foreground",
+                    isSwitchingMenu && "opacity-80",
+                  )}
+                >
+                  Chưa có team
+                </span>
+              )}
+            </CollapsedSidebarHoverMenu>
           </section>
         </div>
       </aside>
@@ -917,6 +1025,113 @@ export function ChatNotificationSidebar({
                     Chưa có bộ lọc
                   </span>
                 )}
+            </CollapsibleContent>
+          </Collapsible>
+
+          <Collapsible defaultOpen>
+            <SidebarTooltip title="Nhóm tham gia">
+              <CollapsibleTrigger
+                className={cn(
+                  "group flex h-9 w-full items-center rounded-md px-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground",
+                  isCollapsed ? "justify-center px-0" : "justify-between px-2",
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex items-center truncate",
+                    isCollapsed ? "justify-center" : "gap-3",
+                  )}
+                >
+                  <Users className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {!isCollapsed && "Nhóm tham gia"}
+                </span>
+                {!isCollapsed && (
+                  <ChevronDown
+                    className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180"
+                    aria-hidden="true"
+                  />
+                )}
+              </CollapsibleTrigger>
+            </SidebarTooltip>
+            <CollapsibleContent
+              className={cn(
+                "mt-1 space-y-1",
+                !isCollapsed && "pl-4",
+                isCollapsed && "hidden",
+              )}
+            >
+              {isTeamsLoading && !isCollapsed && (
+                <span
+                  className={cn(
+                    "block px-2 text-xs text-muted-foreground",
+                    isSwitchingMenu && "opacity-80",
+                  )}
+                >
+                  Đang tải...
+                </span>
+              )}
+
+              {!isTeamsLoading &&
+                teams.map((team) => {
+                  const isActive =
+                    hasTeamSelection && sidebarTeamId === team.id;
+
+                  return (
+                    <SidebarTooltip
+                      key={team.id}
+                      title={team.name}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onSidebarTeamChange(team.id)}
+                        disabled={isSwitchingMenu || isActive}
+                        aria-pressed={isActive}
+                        aria-label={team.name}
+                        className={cn(
+                          "relative flex h-8 w-full items-center rounded-md text-sm transition-colors text-left disabled:pointer-events-none",
+                          isActive
+                            ? "text-accent-foreground"
+                            : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                          isSwitchingMenu && "opacity-80",
+                          isCollapsed ? "justify-center px-0" : "gap-2 px-2",
+                        )}
+                      >
+                        {isActive && (
+                          <motion.span
+                            layoutId="team-sidebar-active-item"
+                            transition={{
+                              type: "spring",
+                              stiffness: 360,
+                              damping: 32,
+                            }}
+                            className="absolute inset-0 rounded-md bg-accent"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <Users
+                          className="relative z-10 h-3.5 w-3.5 shrink-0"
+                          aria-hidden="true"
+                        />
+                        {!isCollapsed && (
+                          <span className="relative z-10 truncate">
+                            {team.name}
+                          </span>
+                        )}
+                      </button>
+                    </SidebarTooltip>
+                  );
+                })}
+
+              {!isTeamsLoading && teams.length === 0 && !isCollapsed && (
+                <span
+                  className={cn(
+                    "block px-2 text-xs text-muted-foreground",
+                    isSwitchingMenu && "opacity-80",
+                  )}
+                >
+                  Chưa có team
+                </span>
+              )}
             </CollapsibleContent>
           </Collapsible>
 

@@ -15,11 +15,13 @@ import type {
   CreateTenantConversationRequest,
   CreateTenantInboxRequest,
   CreateTenantLabelRequest,
+  CreateTenantTeamRequest,
   CreateChatwootUserRequest,
   ListTenantConversationMessagesParams,
   ListTenantConversationsParams,
   ProvisionChatwootAccountRequest,
   SetTenantConversationLabelsRequest,
+  TenantTeamMembersRequest,
   ToggleTenantConversationStatusRequest,
   ToggleTenantConversationTypingRequest,
   UpdateTenantAccountAgentBotRequest,
@@ -28,6 +30,7 @@ import type {
   UpdateTenantConversationCustomAttributesRequest,
   UpdateTenantConversationRequest,
   UpdateTenantInboxRequest,
+  UpdateTenantTeamRequest,
   UpdateChatwootUserRequest,
   UpdateTenantChatwootAccountRequest,
   BulkActionRequest,
@@ -72,6 +75,10 @@ export const chatwootOmniKeys = {
     [...chatwootOmniKeys.tenantInboxes(tenantId), inboxId] as const,
   tenantTeams: (tenantId: string) =>
     [...chatwootOmniKeys.tenant(tenantId), "teams"] as const,
+  tenantTeam: (tenantId: string, teamId: string) =>
+    [...chatwootOmniKeys.tenantTeams(tenantId), teamId] as const,
+  tenantTeamMembers: (tenantId: string, teamId: string) =>
+    [...chatwootOmniKeys.tenantTeam(tenantId, teamId), "team-members"] as const,
   tenantLabels: (tenantId: string) =>
     [...chatwootOmniKeys.tenant(tenantId), "labels"] as const,
   tenantCustomFilters: (tenantId: string) =>
@@ -206,6 +213,22 @@ export const useListTenantTeams = (tenantId: string) => {
     queryKey: chatwootOmniKeys.tenantTeams(tenantId),
     queryFn: () => chatwootService.listTenantTeams(tenantId),
     enabled: !!tenantId,
+  });
+};
+
+export const useGetTenantTeam = (tenantId: string, teamId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantTeam(tenantId, teamId),
+    queryFn: () => chatwootService.getTenantTeam(tenantId, teamId),
+    enabled: !!tenantId && !!teamId,
+  });
+};
+
+export const useListTenantTeamMembers = (tenantId: string, teamId: string) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantTeamMembers(tenantId, teamId),
+    queryFn: () => chatwootService.listTenantTeamMembers(tenantId, teamId),
+    enabled: !!tenantId && !!teamId,
   });
 };
 
@@ -917,6 +940,234 @@ export const useCreateTenantInbox = () => {
   });
 };
 
+export const useCreateTenantTeam = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: CreateTenantTeamRequest;
+    }) => chatwootService.createTenantTeam(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Tạo đội nhóm thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeams(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Tạo đội nhóm thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi tạo đội nhóm";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateTenantTeam = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      teamId,
+      data,
+    }: {
+      tenantId: string;
+      teamId: string;
+      data: UpdateTenantTeamRequest;
+    }) => chatwootService.updateTenantTeam(tenantId, teamId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Cập nhật đội nhóm thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeams(variables.tenantId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeam(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật đội nhóm thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật đội nhóm";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useDeleteTenantTeam = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ tenantId, teamId }: { tenantId: string; teamId: string }) =>
+      chatwootService.deleteTenantTeam(tenantId, teamId),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 204) {
+        toast.success(res.message || "Xóa đội nhóm thành công");
+        queryClient.removeQueries({
+          queryKey: chatwootOmniKeys.tenantTeam(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+        queryClient.removeQueries({
+          queryKey: chatwootOmniKeys.tenantTeamMembers(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeams(variables.tenantId),
+        });
+      } else {
+        toast.error(res.message || "Xóa đội nhóm thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi xóa đội nhóm";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useAddTenantTeamMembers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      teamId,
+      data,
+    }: {
+      tenantId: string;
+      teamId: string;
+      data: TenantTeamMembersRequest;
+    }) => chatwootService.addTenantTeamMembers(tenantId, teamId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Thêm thành viên vào đội nhóm thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeamMembers(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeam(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Thêm thành viên vào đội nhóm thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi thêm thành viên vào đội nhóm";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useRemoveTenantTeamMembers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      teamId,
+      data,
+    }: {
+      tenantId: string;
+      teamId: string;
+      data: TenantTeamMembersRequest;
+    }) => chatwootService.removeTenantTeamMembers(tenantId, teamId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 204) {
+        toast.success(res.message || "Xóa thành viên khỏi đội nhóm thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeamMembers(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeam(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Xóa thành viên khỏi đội nhóm thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi xóa thành viên khỏi đội nhóm";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateTenantTeamMembers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      teamId,
+      data,
+    }: {
+      tenantId: string;
+      teamId: string;
+      data: TenantTeamMembersRequest;
+    }) => chatwootService.updateTenantTeamMembers(tenantId, teamId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200) {
+        toast.success(res.message || "Cập nhật thành viên đội nhóm thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeamMembers(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantTeam(
+            variables.tenantId,
+            variables.teamId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật thành viên đội nhóm thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật thành viên đội nhóm";
+      toast.error(msg);
+    },
+  });
+};
+
 export const useUpdateTenantInbox = () => {
   const queryClient = useQueryClient();
 
@@ -1541,16 +1792,17 @@ export const useBulkAction = () => {
           ),
         });
         variables.data.ids.forEach((conversationId) => {
+          const id = String(conversationId);
           queryClient.invalidateQueries({
             queryKey: chatwootOmniKeys.tenantConversation(
               variables.tenantId,
-              conversationId,
+              id,
             ),
           });
           queryClient.invalidateQueries({
             queryKey: chatwootOmniKeys.tenantConversationLabels(
               variables.tenantId,
-              conversationId,
+              id,
             ),
           });
         });

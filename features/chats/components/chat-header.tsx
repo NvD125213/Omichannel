@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   AlertCircle,
   Bell,
@@ -12,6 +13,13 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +57,16 @@ const getConversationStatusValue = (
   return "resolved";
 };
 
+function getAvatarInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 interface ChatHeaderProps {
   conversation: ChatConversation | null;
   users: ChatUser[];
@@ -61,6 +79,7 @@ export function ChatHeader({
   users,
   onToggleMute,
 }: ChatHeaderProps) {
+  const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
   const { user } = useAuth();
   const tenantId = user?.tenant_id ?? "";
   const { mutate: toggleConversationStatus, isPending: isTogglingStatus } =
@@ -138,23 +157,65 @@ export function ChatHeader({
     }
   };
 
+  const avatarInitials =
+    conversation.type === "group" ? null : getAvatarInitials(conversation.name);
+  const hasAvatarImage = Boolean(conversation.avatar?.trim());
+
   return (
     <div className="flex h-full items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-3">
-        <Avatar className="size-10 cursor-pointer">
-          <AvatarImage src={conversation.avatar} alt={conversation.name} />
-          <AvatarFallback>
-            {conversation.type === "group" ? (
-              <Users className="size-5" />
-            ) : (
-              conversation.name
-                .split(" ")
-                .map((n: string) => n[0])
-                .join("")
-                .slice(0, 2)
-            )}
-          </AvatarFallback>
-        </Avatar>
+        <button
+          type="button"
+          aria-label={`Xem ảnh đại diện của ${conversation.name}`}
+          onClick={() => setIsAvatarPreviewOpen(true)}
+          className="rounded-full outline-none transition-transform hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        >
+          <Avatar className="size-10 cursor-pointer">
+            <AvatarImage src={conversation.avatar} alt={conversation.name} />
+            <AvatarFallback>
+              {conversation.type === "group" ? (
+                <Users className="size-5" />
+              ) : (
+                avatarInitials
+              )}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+
+        <Dialog open={isAvatarPreviewOpen} onOpenChange={setIsAvatarPreviewOpen}>
+          <DialogContent
+            showCloseButton
+            className="max-w-fit gap-0 border-0 bg-transparent p-0 shadow-none sm:max-w-fit"
+          >
+            <DialogHeader className="sr-only">
+              <DialogTitle>Ảnh đại diện — {conversation.name}</DialogTitle>
+              <DialogDescription>
+                Xem ảnh đại diện của cuộc hội thoại
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="relative size-80 overflow-hidden sm:size-96">
+              {hasAvatarImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={conversation.avatar}
+                  alt={conversation.name}
+                  className="size-full object-cover"
+                />
+              ) : (
+                <div className="flex size-full items-center justify-center bg-muted text-muted-foreground">
+                  {conversation.type === "group" ? (
+                    <Users className="size-24" aria-hidden="true" />
+                  ) : (
+                    <span className="text-6xl font-semibold tracking-tight">
+                      {avatarInitials}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">

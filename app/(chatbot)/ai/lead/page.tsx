@@ -35,6 +35,7 @@ const columnOptions: ColumnOption[] = [
   { id: "phone", label: "Số điện thoại" },
   { id: "channel", label: "Kênh" },
   { id: "need", label: "Nhu cầu" },
+  { id: "stage", label: "Stage" },
   { id: "status", label: "Trạng thái" },
   { id: "created_at", label: "Ngày tạo" },
 ];

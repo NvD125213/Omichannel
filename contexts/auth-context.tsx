@@ -25,12 +25,19 @@ import { useMe } from "@/hooks/user/use-me";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentUserApi } from "@/services/user/user-current";
+import { isAxiosError } from "axios";
+
+function isNetworkAuthError(error: unknown): boolean {
+  return isAxiosError(error) && !error.response;
+}
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   isAuthPending: boolean;
+  isConnectionError: boolean;
+  retryAuth: () => void;
   login: (
     name_tenant: string,
     username: string,
@@ -81,11 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useNavigationEvents();
 
   const hasToken = Boolean(getAccessToken());
+  const sessionInvalidatedRef = useRef(false);
   const {
     data: meData,
     isPending,
     isFetching,
     isError,
+    error,
+    refetch,
   } = useMe();
 
   const user = meData ? createUserFromMe(meData) : null;
@@ -94,10 +104,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [meData?.permissions],
   );
 
+  const isConnectionError =
+    hasToken && isError && isNetworkAuthError(error);
+
   // Một nguồn sự thật: đang chờ /user/current khi còn token
-  const isLoading = hasToken && (isPending || (isFetching && !meData));
+  const isLoading =
+    hasToken &&
+    !isConnectionError &&
+    (isPending || (isFetching && !meData));
   const isAuthPending = isLoading;
   const isAuthenticated = !!user && checkAuthenticated();
+
+  const retryAuth = useCallback(() => {
+    sessionInvalidatedRef.current = false;
+    void refetch();
+  }, [refetch]);
+
+  useLayoutEffect(() => {
+    if (meData) {
+      sessionInvalidatedRef.current = false;
+    }
+  }, [meData]);
 
   const hasPermission = useCallback(
     (permission: Permission): boolean => permissions.includes(permission),
@@ -128,15 +155,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoggingOutRef.current) return;
     isLoggingOutRef.current = true;
 
+    clearTokens();
+    await queryClient.cancelQueries({ queryKey: ["me"] });
+    queryClient.removeQueries({ queryKey: ["me"] });
+
     try {
       await logoutApi();
     } catch (error) {
       console.error("Logout API failed:", error);
     } finally {
-      clearTokens();
-      await queryClient.cancelQueries({ queryKey: ["me"] });
-      queryClient.removeQueries({ queryKey: ["me"] });
-      router.push("/sign-in");
+      router.replace("/sign-in");
     }
   }, [router, queryClient]);
 
@@ -155,11 +183,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useLayoutEffect(() => {
     if (!isError || !getAccessToken() || isLoggingOutRef.current) return;
+    if (isNetworkAuthError(error)) return;
+    if (sessionInvalidatedRef.current) return;
 
+    sessionInvalidatedRef.current = true;
     console.error("Session validation failed");
     toast.error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn");
     void logout();
-  }, [isError, logout]);
+  }, [error, isError, logout]);
 
   return (
     <AuthContext.Provider
@@ -168,6 +199,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isLoading,
         isAuthPending,
+        isConnectionError,
+        retryAuth,
         login,
         logout,
         permissions,
