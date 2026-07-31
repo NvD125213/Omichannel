@@ -3,6 +3,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/auth-context";
+import { CallSoftphoneHost } from "@/components/call-softphone-host";
+import { CGVCallSDKProvider } from "@/components/cgv-call-sdk-provider";
 import { AUTH_NAV_RECOVERY_INLINE_SCRIPT } from "@/constants/auth-navigation";
 import { FontProvider } from "@/contexts/font-context";
 import { SocketProvider } from "@/contexts/socket-context";
@@ -88,10 +90,13 @@ export default function RootLayout({
               />
               <QueryProvider>
                 <AuthProvider>
-                  <SocketProvider>
-                    {children}
-                    <Toaster richColors />
-                  </SocketProvider>
+                  <CGVCallSDKProvider>
+                    <SocketProvider>
+                      {children}
+                      <Toaster richColors />
+                    </SocketProvider>
+                    <CallSoftphoneHost />
+                  </CGVCallSDKProvider>
                 </AuthProvider>
               </QueryProvider>
             </FontProvider>

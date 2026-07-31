@@ -28,6 +28,7 @@ import {
   IconBrain,
   IconUser,
   IconMessageCircle,
+  IconPhoneCall,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -164,6 +165,7 @@ export const sidebarData: SidebarData = {
             },
           ],
         },
+
         {
           title: "Quản lý người dùng",
           icon: IconUserPlus,
@@ -201,6 +203,11 @@ export const sidebarData: SidebarData = {
           url: "/chats",
           badgeColor: "green",
           icon: IconMessages,
+        },
+        {
+          title: "Lịch sử cuộc gọi",
+          url: "/call-logs",
+          icon: IconPhoneCall,
         },
         // {
         //   title: "Calendar",

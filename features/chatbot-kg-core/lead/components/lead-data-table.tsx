@@ -60,6 +60,8 @@ import { EmptyData } from "@/components/empty-data";
 import { cn } from "@/lib/utils";
 import { convertDateTime } from "@/utils/convert-time";
 import type { KgLead, LeadStatus } from "@/services/chatbot-kg-core/interfaces";
+import { useCGVCallSDK } from "@/components/cgv-call-sdk-provider";
+import { useMe } from "@/hooks/user/use-me";
 import { LeadDataTablePagination } from "./lead-data-table-pagination";
 
 const LEAD_STATUS_META: Record<
@@ -287,6 +289,30 @@ export function LeadDataTable({
   const [internalColumnVisibility, setInternalColumnVisibility] =
     useState<VisibilityState>({});
   const { mutateAsync: patchLead } = usePatchLead();
+  const { openDialer, ready } = useCGVCallSDK();
+  const { data: currentUser } = useMe();
+
+  const handleOpenCall = (lead: KgLead) => {
+    const phone = lead.phone?.trim();
+    if (!phone) {
+      toast.error("Lead chưa có số điện thoại");
+      return;
+    }
+    if (!ready) {
+      toast.error("Softphone chưa sẵn sàng");
+      return;
+    }
+
+    openDialer({
+      phoneNumber: phone,
+      userName: lead.name || null,
+      context: {
+        tenant_id: currentUser?.tenant_id ?? null,
+        user_id: currentUser?.id ?? null,
+        display_name: lead.name || null,
+      },
+    });
+  };
 
   const handleUpdateStatus = async (leadId: string, status: LeadStatus) => {
     try {
@@ -496,7 +522,14 @@ export function LeadDataTable({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Cập nhật trạng thái</DropdownMenuLabel>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  disabled={!lead.phone?.trim() || !ready}
+                  onClick={() => handleOpenCall(lead)}
+                >
+                  <Phone className="size-4" />
+                  Liên hệ
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {LEAD_ACTION_OPTIONS.map((option) => {
                   const isCurrent = lead.status === option.value;
