@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Filter, FingerprintIcon, Home, LockIcon } from "lucide-react";
+import { Filter, FingerprintIcon, Home } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -27,7 +27,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AppBreadcrumb } from "@/components/breadcrumb";
-import { IconBuilding, IconLock } from "@tabler/icons-react";
+import { EmptyData } from "@/components/empty-data";
+import { IconMoodEmpty } from "@tabler/icons-react";
 
 interface Permission {
   id: string;
@@ -289,80 +290,85 @@ export default function PermissionsMatrix() {
       />
 
       <div className="rounded-md border max-h-[calc(100vh-12rem)] overflow-auto relative">
-        <Table>
-          <TableHeader className="bg-transparent sticky top-0 z-20">
-            <TableRow className="hover:bg-transparent border-b">
-              <TableHead className="w-[200px] sticky left-0 z-20 bg-transparent font-semibold shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
-                Quyền hạn
-              </TableHead>
-              {actions.map((action) => (
-                <TableHead
-                  key={action}
-                  className="text-center min-w-[100px] h-10 bg-transparent backdrop-blur-sm"
-                >
-                  {action.charAt(0).toUpperCase() + action.slice(1)}
+        {filteredData.length === 0 ? (
+          <EmptyData
+            icon={IconMoodEmpty}
+            title="Chưa có thông tin quyền hạn"
+            description="Vui lòng kiểm tra lại thông tin người dùng hoặc liên hệ với quản trị viên để được hỗ trợ"
+            showButton={false}
+            buttonText=""
+            className="m-4"
+            onButtonClick={() => {}}
+          />
+        ) : (
+          <Table>
+            <TableHeader className="bg-transparent sticky top-0 z-20">
+              <TableRow className="hover:bg-transparent border-b">
+                <TableHead className="w-[200px] sticky left-0 z-20 bg-transparent font-semibold shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
+                  Quyền hạn
                 </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.map((row) => (
-              <TableRow
-                key={row.model}
-                className="hover:bg-transparent border-b last:border-0"
-              >
-                <TableCell className="font-medium sticky left-0 z-10 bg-transparent shadow-[1px_0_0_0_rgba(0,0,0,0.1)] py-2">
-                  {row.model
-                    .replace(/_/g, " ")
-                    .split(" ")
-                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                    .join(" ")}
-                </TableCell>
-
-                {actions.map((action) => {
-                  const permission = row[action] as Permission | null;
-
-                  return (
-                    <TableCell key={action} className="text-center p-2">
-                      <div className="flex justify-center">
-                        {permission ? (
-                          <Checkbox
-                            checked={selectedPermissions.has(permission.id)}
-                            onCheckedChange={() =>
-                              togglePermission(permission.id)
-                            }
-                            aria-label={`Select ${action} for ${row.model}`}
-                            className="h-4 w-4"
-                          />
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div
-                                className="h-4 w-4 ml-2 rounded border border-dashed border-muted-foreground/40
-                                inline-flex items-center justify-center text-muted-foreground/60 cursor-default"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Không áp dụng quyền này
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </TableCell>
-                  );
-                })}
+                {actions.map((action) => (
+                  <TableHead
+                    key={action}
+                    className="text-center min-w-[100px] h-10 bg-transparent backdrop-blur-sm"
+                  >
+                    {action.charAt(0).toUpperCase() + action.slice(1)}
+                  </TableHead>
+                ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredData.map((row) => (
+                <TableRow
+                  key={row.model}
+                  className="hover:bg-transparent border-b last:border-0"
+                >
+                  <TableCell className="font-medium sticky left-0 z-10 bg-transparent shadow-[1px_0_0_0_rgba(0,0,0,0.1)] py-2">
+                    {row.model
+                      .replace(/_/g, " ")
+                      .split(" ")
+                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                      .join(" ")}
+                  </TableCell>
 
-        {filteredData.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-            <Filter className="w-6 h-6 mb-2 opacity-20" />
-            <p className="text-sm">Không tìm thấy quyền hạn</p>
-          </div>
+                  {actions.map((action) => {
+                    const permission = row[action] as Permission | null;
+
+                    return (
+                      <TableCell key={action} className="text-center p-2">
+                        <div className="flex justify-center">
+                          {permission ? (
+                            <Checkbox
+                              checked={selectedPermissions.has(permission.id)}
+                              onCheckedChange={() =>
+                                togglePermission(permission.id)
+                              }
+                              aria-label={`Select ${action} for ${row.model}`}
+                              className="h-4 w-4"
+                            />
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className="h-4 w-4 ml-2 rounded border border-dashed border-muted-foreground/40
+                                  inline-flex items-center justify-center text-muted-foreground/60 cursor-default"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Không áp dụng quyền này
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
     </div>

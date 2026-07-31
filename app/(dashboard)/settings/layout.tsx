@@ -16,7 +16,7 @@ import {
   IconTag,
   IconUsers,
 } from "@tabler/icons-react";
-import { Monitor, Palette, UserCog, Wrench } from "lucide-react";
+import { Monitor, Palette, UserCog } from "lucide-react";
 import type { ElementType } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -225,15 +225,8 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="-m-4 flex h-[calc(100vh-4rem)] flex-col">
-      <div className="shrink-0 border-b px-4 py-4 lg:px-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Cài đặt</h1>
-          <p className="text-sm text-muted-foreground">
-            Quản lý hồ sơ, nhân sự và các thiết lập hiển thị của tài khoản.
-          </p>
-        </div>
-
+    <div className="-m-4 flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="shrink-0 lg:mx-6">
         <div className="mt-4 md:hidden">
           <SidebarNavMobile />
         </div>

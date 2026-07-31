@@ -224,7 +224,7 @@ export default function LabelList() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="rounded-lg border border-border py-6">
+          <div className="rounded-md border bg-transparent py-6 px-4">
             <EmptyData
               icon={Inbox}
               title="Không có label"
@@ -235,7 +235,10 @@ export default function LabelList() {
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((item) => (
-              <Card key={item.id} className="relative overflow-hidden border py-2">
+              <Card
+                key={item.id}
+                className="relative overflow-hidden border py-2"
+              >
                 <div className="space-y-2.5 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-2.5">
@@ -283,7 +286,9 @@ export default function LabelList() {
                           <DropdownMenuItem
                             variant="destructive"
                             className="cursor-pointer"
-                            disabled={deleteLabelMutation.isPending || !tenantId}
+                            disabled={
+                              deleteLabelMutation.isPending || !tenantId
+                            }
                             onClick={() => setPendingDeleteLabel(item)}
                           >
                             <Trash2 className="size-4" />
@@ -311,7 +316,10 @@ export default function LabelList() {
                       <Tag className="size-3" />
                       {item.title}
                     </Badge>
-                    <Badge variant="outline" className="text-[11px] font-medium">
+                    <Badge
+                      variant="outline"
+                      className="text-[11px] font-medium"
+                    >
                       {item.color}
                     </Badge>
                     <Badge
@@ -319,9 +327,7 @@ export default function LabelList() {
                       className="gap-1 text-[11px] font-medium"
                     >
                       <PanelLeft className="size-3" />
-                      {item.show_on_sidebar
-                        ? "Hiển thị sidebar"
-                        : "Ẩn sidebar"}
+                      {item.show_on_sidebar ? "Hiển thị sidebar" : "Ẩn sidebar"}
                     </Badge>
                   </div>
                 </div>

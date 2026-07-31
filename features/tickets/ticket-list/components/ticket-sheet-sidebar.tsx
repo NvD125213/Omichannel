@@ -30,7 +30,7 @@ export function TicketCreateSheet({
   onOpenChange,
 }: TicketCreateSheetProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [showExtended, setShowExtended] = useState(false);
+  const [showExtended, setShowExtended] = useState(true);
   const [selectedFlowId, setSelectedFlowId] = useState<string>("");
   const [selectedStepId, setSelectedStepId] = useState<string>("");
   const [originalFlowId, setOriginalFlowId] = useState<string>("");
@@ -46,17 +46,21 @@ export function TicketCreateSheet({
   useEffect(() => {
     if (ticket?.flow_id) {
       setSelectedFlowId(ticket.flow_id);
-      setOriginalFlowId(ticket.flow_id); // Store original flow ID for comparison
-      setSelectedStepId(""); // Reset step ID so it can be fetched from instance
-      // Auto-expand panel if ticket has flow_id
-      setShowExtended(true);
+      setOriginalFlowId(ticket.flow_id);
+      setSelectedStepId("");
     } else if (!ticket) {
-      // Reset when creating new ticket
       setSelectedFlowId("");
       setSelectedStepId("");
       setOriginalFlowId("");
     }
   }, [ticket]);
+
+  // Luôn mở rộng full khi mở sheet để hiện phần flow
+  useEffect(() => {
+    if (open) {
+      setShowExtended(true);
+    }
+  }, [open]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

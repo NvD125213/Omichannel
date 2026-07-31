@@ -15,6 +15,7 @@ import {
   Loader2,
   FileText,
   X,
+  ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ import { useGetTicketEventsInfinite } from "@/hooks/ticket/ticket-events/use-tic
 import { useParams } from "next/navigation";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
+import { convertDateTime } from "@/utils/convert-time";
 
 import {
   Timeline,
@@ -45,6 +47,7 @@ import {
   TimelineSeparator,
 } from "@/components/ui/timeline";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const ActionType = {
   CREATED: "CREATED",
@@ -74,79 +77,246 @@ const ActionTypeLabels: Record<string, string> = {
   DETACHED: "Gỡ đính kèm",
 };
 
+const FIELD_LABELS: Record<string, string> = {
+  status: "Trạng thái",
+  title: "Tiêu đề",
+  description: "Mô tả",
+  assignee: "Người xử lý",
+  assignee_id: "Người xử lý",
+  priority: "Ưu tiên",
+  tags: "Tags",
+  tag: "Tag",
+  flow_id: "Luồng",
+  flow: "Luồng",
+  template_id: "Template",
+  extension_data: "Extension Data",
+  comment: "Bình luận",
+  note: "Ghi chú",
+  actor: "Tác nhân",
+};
+
 const getEventIcon = (type: string) => {
+  const iconClass = "h-3.5 w-3.5";
   switch (type) {
     case ActionType.CREATED:
-      return <PlusCircle className="h-4 w-4" />;
+      return <PlusCircle className={iconClass} />;
     case ActionType.UPDATED:
-      return <RefreshCw className="h-4 w-4" />;
+      return <RefreshCw className={iconClass} />;
     case ActionType.DELETED:
-      return <Scissors className="h-4 w-4" />;
+      return <Scissors className={iconClass} />;
     case ActionType.CLOSED:
-      return <CheckCircle2 className="h-4 w-4" />;
+      return <CheckCircle2 className={iconClass} />;
     case ActionType.ASSIGNED:
-      return <UserPlus className="h-4 w-4" />;
+      return <UserPlus className={iconClass} />;
     case ActionType.UNASSIGNED:
-      return <UserMinus className="h-4 w-4" />;
+      return <UserMinus className={iconClass} />;
     case ActionType.MERGED:
-      return <GitMerge className="h-4 w-4" />;
+      return <GitMerge className={iconClass} />;
     case ActionType.SPLITTED:
-      return <GitBranch className="h-4 w-4" />;
+      return <GitBranch className={iconClass} />;
     case ActionType.COMMENTED:
-      return <MessageSquare className="h-4 w-4" />;
+      return <MessageSquare className={iconClass} />;
     case ActionType.ATTACHED:
-      return <Paperclip className="h-4 w-4" />;
+      return <Paperclip className={iconClass} />;
     case ActionType.DETACHED:
-      return <Scissors className="h-4 w-4" />;
+      return <Scissors className={iconClass} />;
     default:
-      return <HelpCircle className="h-4 w-4" />;
+      return <HelpCircle className={iconClass} />;
   }
 };
 
 const getEventBadgeStyles = (type: string) => {
   switch (type) {
     case ActionType.CREATED:
-      return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800";
+      return "bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60";
     case ActionType.UPDATED:
-      return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800";
+      return "bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60";
     case ActionType.DELETED:
-      return "bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800";
+      return "bg-red-50 text-red-700 border-red-200/80 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800/60";
     case ActionType.CLOSED:
-      return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800";
+      return "bg-violet-50 text-violet-700 border-violet-200/80 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-800/60";
     case ActionType.ASSIGNED:
-      return "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800";
+      return "bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60";
     case ActionType.COMMENTED:
-      return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
+      return "bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60";
     default:
-      return "bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700";
+      return "bg-muted/50 text-muted-foreground border-border dark:bg-transparent dark:text-zinc-300 dark:border-zinc-700";
   }
 };
 
-const renderPayloadValue = (value: any) => {
+const getIconTone = (type: string) => {
+  switch (type) {
+    case ActionType.CREATED:
+      return "bg-blue-500 text-white";
+    case ActionType.UPDATED:
+      return "bg-emerald-500 text-white";
+    case ActionType.DELETED:
+      return "bg-red-500 text-white";
+    case ActionType.CLOSED:
+      return "bg-violet-500 text-white";
+    case ActionType.ASSIGNED:
+      return "bg-indigo-500 text-white";
+    case ActionType.COMMENTED:
+      return "bg-amber-500 text-white";
+    default:
+      return "bg-slate-400 text-white dark:bg-zinc-600";
+  }
+};
+
+const formatFieldLabel = (key: string) =>
+  FIELD_LABELS[key] ||
+  key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+const isDiffValue = (value: unknown): value is { old: unknown; new: unknown } =>
+  typeof value === "object" &&
+  value !== null &&
+  "old" in value &&
+  "new" in value;
+
+const formatPrimitive = (value: unknown): string => {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "boolean") return value ? "Có" : "Không";
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+};
+
+const DiffChip = ({
+  oldValue,
+  newValue,
+}: {
+  oldValue: unknown;
+  newValue: unknown;
+}) => (
+  <span className="inline-flex max-w-full flex-wrap items-center gap-1 text-xs">
+    <span className="truncate line-through text-red-500/80 dark:text-red-400/70">
+      {formatPrimitive(oldValue)}
+    </span>
+    <ArrowRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+    <span className="truncate font-medium text-emerald-600 dark:text-emerald-400">
+      {formatPrimitive(newValue)}
+    </span>
+  </span>
+);
+
+const renderPayloadValue = (value: unknown) => {
   if (value === null || value === undefined) return null;
 
-  if (typeof value === "object" && "old" in value && "new" in value) {
+  if (isDiffValue(value)) {
+    return <DiffChip oldValue={value.old} newValue={value.new} />;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0)
+      return <span className="text-muted-foreground">—</span>;
     return (
-      <span className="flex items-center gap-2 text-sm">
-        <span className="line-through text-red-400 dark:text-red-400/80">
-          {String(value.old)}
-        </span>
-        <span className="text-slate-400 dark:text-zinc-500">→</span>
-        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-          {String(value.new)}
-        </span>
-      </span>
+      <div className="flex flex-wrap gap-1">
+        {value.map((item, idx) => (
+          <Badge
+            key={idx}
+            variant="outline"
+            className="h-5 max-w-[140px] truncate border-border/70 bg-transparent px-1.5 text-[10px] font-normal"
+          >
+            {formatPrimitive(item)}
+          </Badge>
+        ))}
+      </div>
     );
   }
 
-  return <span>{String(value)}</span>;
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).filter(
+      ([, v]) => v !== null && v !== undefined && v !== "",
+    );
+    if (entries.length === 0)
+      return <span className="text-muted-foreground">—</span>;
+
+    return (
+      <div className="space-y-1">
+        {entries.map(([k, v]) => (
+          <div key={k} className="flex items-start justify-between gap-2">
+            <span className="shrink-0 text-[10px] text-muted-foreground">
+              {formatFieldLabel(k)}
+            </span>
+            <div className="min-w-0 text-right text-xs">
+              {isDiffValue(v) ? (
+                <DiffChip oldValue={v.old} newValue={v.new} />
+              ) : (
+                <span className="break-words font-medium text-foreground">
+                  {formatPrimitive(v)}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <span className="break-words font-medium text-foreground">
+      {formatPrimitive(value)}
+    </span>
+  );
+};
+
+const EventPayloadMeta = ({
+  payload,
+}: {
+  payload: Record<string, unknown>;
+}) => {
+  const entries = Object.entries(payload).filter(
+    ([, value]) => value !== null && value !== undefined && value !== "",
+  );
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="mt-1">
+      <div className="space-y-1 text-xs">
+        {entries.map(([key, value]) => {
+          const isBlockValue =
+            isDiffValue(value) ||
+            (typeof value === "object" &&
+              value !== null &&
+              !Array.isArray(value));
+
+          return (
+            <div
+              key={key}
+              className={cn(
+                "min-w-0",
+                isBlockValue ? "space-y-0.5" : "flex items-start gap-1",
+              )}
+            >
+              <div className="shrink-0 pt-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                {formatFieldLabel(key)}:
+              </div>
+              <div
+                className={cn(
+                  "min-w-0 text-foreground",
+                  isBlockValue ? "pl-0" : "flex items-center",
+                )}
+              >
+                {renderPayloadValue(value)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 };
 
 export function TicketEventTimelineData() {
   const params = useParams();
   const ticketId = params?.ticketId as string;
 
-  // Filter states
   const [eventTypeFilter, setEventTypeFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -214,12 +384,17 @@ export function TicketEventTimelineData() {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Filter Bar */}
-      <div className="grid grid-cols-3 gap-2 p-2 px-1 pb-4 border-b border-dashed border-slate-200 dark:border-zinc-700 mb-2">
-        {/* Status Filter */}
+      {/* Filter Bar — Select 1 hàng, 2 date Popover 1 hàng */}
+      <div className="mb-2 flex shrink-0 flex-col gap-1.5 border-b border-dashed border-border/70 pb-2.5 dark:border-zinc-700">
         <Select value={eventTypeFilter} onValueChange={setEventTypeFilter}>
-          <SelectTrigger className="h-8 text-xs w-full bg-white dark:bg-zinc-900 dark:border-zinc-700">
+          <SelectTrigger
+            className={cn(
+              "h-7 w-full bg-transparent text-xs",
+              "border border-border dark:border-zinc-700 dark:bg-transparent",
+            )}
+          >
             <SelectValue placeholder="Loại sự kiện" />
           </SelectTrigger>
           <SelectContent>
@@ -232,193 +407,189 @@ export function TicketEventTimelineData() {
           </SelectContent>
         </Select>
 
-        {/* Date From */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={`h-8 justify-start text-left font-normal text-xs px-2 dark:bg-zinc-900 dark:border-zinc-700 dark:hover:bg-zinc-800 ${
-                !dateFrom && "text-muted-foreground"
-              }`}
-            >
-              <Clock className="mr-1.5 h-3.5 w-3.5" />
-              {dateFrom ? (
-                format(dateFrom, "dd/MM/yy", { locale: vi })
-              ) : (
-                <span className="text-[12px]">Từ ngày</span>
+        <div className="grid min-w-0 grid-cols-2 gap-1.5">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-7 min-w-0 w-full justify-start overflow-hidden px-2 text-left text-xs font-normal",
+                  "border border-border dark:border-zinc-700 dark:bg-transparent dark:hover:bg-zinc-800/50",
+                  !dateFrom && "text-muted-foreground",
+                )}
+              >
+                <Clock className="mr-1 h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  {dateFrom
+                    ? format(dateFrom, "dd/MM/yy", { locale: vi })
+                    : "Từ ngày"}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateFrom}
+                onSelect={setDateFrom}
+                initialFocus
+              />
+              {dateFrom && (
+                <div className="border-t p-2 dark:border-zinc-700">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-full border-border text-xs dark:border-zinc-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDateFrom(undefined);
+                    }}
+                  >
+                    <X className="mr-1 h-3 w-3" />
+                    Xóa
+                  </Button>
+                </div>
               )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={dateFrom}
-              onSelect={setDateFrom}
-              initialFocus
-            />
-            {dateFrom && (
-              <div className="p-2 border-t dark:border-zinc-700">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-xs dark:border-zinc-700"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDateFrom(undefined);
-                  }}
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Xóa
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
 
-        {/* Date To */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={`h-8 justify-start text-left font-normal text-xs px-2 dark:bg-zinc-900 dark:border-zinc-700 dark:hover:bg-zinc-800 ${
-                !dateTo && "text-muted-foreground"
-              }`}
-            >
-              <Clock className="mr-1.5 h-3.5 w-3.5" />
-              {dateTo ? (
-                format(dateTo, "dd/MM/yy", { locale: vi })
-              ) : (
-                <span className="text-[12px]">Đến ngày</span>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "h-7 min-w-0 w-full justify-start overflow-hidden px-2 text-left text-xs font-normal",
+                  "border border-border dark:border-zinc-700 dark:bg-transparent dark:hover:bg-zinc-800/50",
+                  !dateTo && "text-muted-foreground",
+                )}
+              >
+                <Clock className="mr-1 h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  {dateTo
+                    ? format(dateTo, "dd/MM/yy", { locale: vi })
+                    : "Đến ngày"}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={dateTo}
+                onSelect={setDateTo}
+                initialFocus
+              />
+              {dateTo && (
+                <div className="border-t p-2 dark:border-zinc-700">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 w-full border-border text-xs dark:border-zinc-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDateTo(undefined);
+                    }}
+                  >
+                    <X className="mr-1 h-3 w-3" />
+                    Xóa
+                  </Button>
+                </div>
               )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={dateTo}
-              onSelect={setDateTo}
-              initialFocus
-            />
-            {dateTo && (
-              <div className="p-2 border-t dark:border-zinc-700">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-xs dark:border-zinc-700"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDateTo(undefined);
-                  }}
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Xóa
-                </Button>
-              </div>
-            )}
-          </PopoverContent>
-        </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       {isLoading || (isFetching && events.length === 0) ? (
-        <div className="flex flex-col items-center justify-center p-12 text-slate-500 dark:text-zinc-400 h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin mb-3" />
-          <p className="text-sm">Đang tải lịch sử sự kiện...</p>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-6 text-muted-foreground">
+          <Loader2 className="mb-2 h-6 w-6 animate-spin" />
+          <p className="text-xs">Đang tải lịch sử sự kiện...</p>
         </div>
       ) : isError ? (
-        <div className="flex flex-col items-center justify-center p-8 text-red-500 dark:text-red-400 h-[60vh]">
-          <p className="text-sm">Không thể tải dữ liệu sự kiện</p>
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-6 text-red-500 dark:text-red-400">
+          <p className="text-xs">Không thể tải dữ liệu sự kiện</p>
         </div>
       ) : events.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center text-muted-foreground">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
-            <FileText className="h-6 w-6 text-slate-400 dark:text-zinc-500" />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 text-center text-muted-foreground">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-muted/50 dark:bg-transparent dark:border dark:border-zinc-700">
+            <FileText className="h-5 w-5 text-muted-foreground" />
           </div>
-          <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+          <p className="text-xs font-medium text-foreground">
             Chưa có sự kiện nào cho ticket này
           </p>
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
+          <p className="mt-1 text-xs text-muted-foreground">
             Các hành vi sẽ được hệ thống tự động ghi lại
           </p>
         </div>
       ) : (
         <div
           ref={containerRef}
-          className="relative max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-zinc-600 scrollbar-track-slate-100 dark:scrollbar-track-zinc-900 pr-2"
+          className="relative min-h-0 flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border"
         >
           <Timeline
             color="secondary"
             orientation="vertical"
-            className="w-full p-2.5"
+            className="w-full p-1"
           >
             {events.map((event) => (
               <TimelineItem key={event.id}>
                 <TimelineHeader>
                   <TimelineSeparator />
-                  <TimelineIcon>{getEventIcon(event.event_type)}</TimelineIcon>
+                  <TimelineIcon>
+                    <div
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-full",
+                        getIconTone(event.event_type),
+                      )}
+                    >
+                      {getEventIcon(event.event_type)}
+                    </div>
+                  </TimelineIcon>
                 </TimelineHeader>
-                <TimelineBody className="-translate-y-1.5 pt-0 pb-4">
-                  <div className="flex flex-col gap-2.5">
-                    <div className="flex items-center gap-2">
+                <TimelineBody className="-translate-y-1 pt-0 pb-3">
+                  <div className="flex flex-col gap-1.5">
+                    {/* Row 1: type + actor + time */}
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <Badge
                         variant="outline"
-                        className={`${getEventBadgeStyles(event.event_type)} text-[10px] px-2 py-0 h-5 font-semibold`}
+                        className={cn(
+                          getEventBadgeStyles(event.event_type),
+                          "h-5 px-1.5 text-[10px] font-semibold",
+                        )}
                       >
                         {ActionTypeLabels[event.event_type] || event.event_type}
                       </Badge>
-                      <Badge
-                        variant="outline"
-                        className="bg-slate-50 text-slate-700 border-slate-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 text-[10px] px-2 py-0 h-5 font-semibold uppercase"
-                      >
-                        {event.actor_type}
-                      </Badge>
+                      {event.actor_type && (
+                        <Badge
+                          variant="outline"
+                          className="h-5 border-border/70 bg-transparent px-1.5 text-[10px] font-medium uppercase text-muted-foreground dark:border-zinc-700"
+                        >
+                          {event.actor_type}
+                        </Badge>
+                      )}
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <div className="bg-gradient-to-br from-blue-500 to-purple-600 p-1.5 rounded-full">
-                        <User className="h-3.5 w-3.5 text-white" />
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted/60 dark:bg-zinc-800">
+                        <User className="h-3 w-3 text-muted-foreground" />
                       </div>
-                      <div className="flex flex-col">
-                        <h3 className="text-sm leading-none font-bold text-slate-900 dark:text-zinc-100">
-                          {event.actor_username}
-                        </h3>
-                        <div className="flex items-center gap-1.5 text-slate-400 dark:text-zinc-500 mt-1">
-                          <Clock className="h-3 w-3" />
-                          <span className="text-[11px] font-medium">
-                            {event.created_at
-                              ? format(
-                                  new Date(event.created_at),
-                                  "hh:mm a, dd/MM/yyyy",
-                                )
-                              : "N/A"}
-                          </span>
-                        </div>
-                      </div>
+                      <span className="truncate text-xs font-medium text-foreground">
+                        {event.actor_username || "Hệ thống"}
+                      </span>
+                      <span className="text-muted-foreground/50">·</span>
+                      <span className="shrink-0 text-[10px] text-muted-foreground">
+                        {event.created_at
+                          ? convertDateTime(event.created_at, "short").datetime
+                          : "N/A"}
+                      </span>
                     </div>
 
-                    {/* Payload content */}
-                    {event.payload && typeof event.payload === "object" && (
-                      <div className="mt-2 space-y-2 bg-slate-50/50 dark:bg-zinc-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-zinc-700">
-                        {Object.entries(event.payload).map(([key, value]) => {
-                          if (value === null || value === undefined)
-                            return null;
-                          return (
-                            <div
-                              key={key}
-                              className="text-xs text-slate-700 dark:text-zinc-300"
-                            >
-                              <div className="flex flex-col gap-1">
-                                <span className="font-semibold text-slate-500 dark:text-zinc-400 capitalize border-b border-dashed border-slate-200 dark:border-zinc-600 self-start pb-0.5">
-                                  {key.replace(/_/g, " ")}
-                                </span>
-                                <div className="pl-2 border-l-2 text-xs border-slate-200 dark:border-zinc-600 ml-0.5">
-                                  {renderPayloadValue(value)}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    {/* Smart metadata */}
+                    {event.payload &&
+                      typeof event.payload === "object" &&
+                      !Array.isArray(event.payload) && (
+                        <EventPayloadMeta
+                          payload={event.payload as Record<string, unknown>}
+                        />
+                      )}
                   </div>
                 </TimelineBody>
               </TimelineItem>
@@ -428,14 +599,14 @@ export function TicketEventTimelineData() {
               <TimelineItem className="min-h-0">
                 <TimelineHeader>
                   <TimelineIcon>
-                    <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-zinc-600 ring-4 ring-slate-50 dark:ring-zinc-900" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 ring-2 ring-background" />
                   </TimelineIcon>
                 </TimelineHeader>
                 <TimelineBody className="pt-0 pb-0">
                   <button
                     onClick={() => fetchNextPage()}
                     disabled={isFetchingNextPage}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-slate-400 dark:disabled:text-zinc-500"
+                    className="text-xs font-medium text-primary hover:underline disabled:text-muted-foreground"
                   >
                     {isFetchingNextPage ? "Đang tải..." : "Tải thêm sự kiện"}
                   </button>
@@ -447,11 +618,11 @@ export function TicketEventTimelineData() {
               <TimelineItem className="min-h-0">
                 <TimelineHeader>
                   <TimelineIcon>
-                    <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-zinc-600 ring-4 ring-slate-50 dark:ring-zinc-900" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40 ring-2 ring-background" />
                   </TimelineIcon>
                 </TimelineHeader>
                 <TimelineBody className="pt-0 pb-0">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
                     Hết chuỗi sự kiện
                   </span>
                 </TimelineBody>
@@ -461,12 +632,12 @@ export function TicketEventTimelineData() {
             {hasNextPage && (
               <div
                 ref={observerRef}
-                className="h-10 flex items-center justify-center"
+                className="flex h-8 items-center justify-center"
               >
                 {isFetchingNextPage && (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-slate-400 dark:text-zinc-500" />
-                    <span className="text-xs text-slate-400 dark:text-zinc-500">
+                  <div className="flex items-center gap-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
                       Đang tải...
                     </span>
                   </div>

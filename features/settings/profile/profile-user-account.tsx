@@ -104,7 +104,7 @@ export default function SettingsProfilePage() {
             name="username"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Username</FormLabel>
+                <FormLabel>Họ và tên</FormLabel>
                 <FormControl>
                   <Input placeholder="shadcn" {...field} disabled={true} />
                 </FormControl>

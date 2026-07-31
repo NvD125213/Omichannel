@@ -267,7 +267,7 @@ export default function AgentList() {
             onChange={(e) => setQuery(e.target.value)}
             autoComplete="off"
             spellCheck={false}
-            className="h-10 w-full pl-9"
+            className="h-10 w-full pl-9 border border-border/80 rounded-md"
           />
         </div>
 
@@ -297,7 +297,7 @@ export default function AgentList() {
         {isLoadingAgents ? (
           <AgentListSkeleton />
         ) : filtered.length === 0 ? (
-          <div className="rounded-md border bg-card py-8">
+          <div className="rounded-md border bg-transparent py-6 px-4">
             <EmptyData
               icon={Inbox}
               title={

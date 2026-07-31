@@ -442,7 +442,7 @@ export default function ChannelInboxesDataList() {
       {isLoading ? (
         <ChannelInboxesSkeleton />
       ) : filtered.length === 0 ? (
-        <div className="flex min-h-70 items-center justify-center rounded-xl border border-dashed p-10 text-center animate-in fade-in-50">
+        <div className="rounded-md border bg-transparent py-6 px-4">
           <EmptyData
             icon={IconMoodEmpty}
             title={query.trim() ? "Không tìm thấy kênh" : "Chưa có kênh nào"}

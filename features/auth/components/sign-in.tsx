@@ -204,6 +204,7 @@ export default function SignIn() {
                       <FormLabel>Mật khẩu</FormLabel>
                       <Link
                         href="/reset-password-1"
+                        tabIndex={-1}
                         className="text-sm text-muted-foreground hover:text-primary transition-colors"
                       >
                         Quên mật khẩu?

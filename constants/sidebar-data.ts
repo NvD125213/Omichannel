@@ -327,49 +327,8 @@ export const sidebarData: SidebarData = {
         {
           title: "Settings",
           icon: IconSettings,
+          url: "/settings",
           // badge: "Coming Soon",
-          items: [
-            {
-              title: "Profile",
-              url: "/settings",
-              icon: IconUserCog,
-            },
-            {
-              title: "Agent",
-              url: "/settings/agent",
-              icon: IconSubtitles,
-            },
-            {
-              title: "Quản lý nhãn",
-              url: "/settings/label",
-              icon: IconTag,
-            },
-            {
-              title: "Quản lý đội nhóm",
-              url: "/settings/team",
-              icon: IconUsers,
-            },
-            {
-              title: "Quản lý kênh",
-              url: "/settings/channel",
-              icon: IconMessageCircle,
-            },
-            {
-              title: "Giao diện",
-              url: "/settings/appearance",
-              icon: IconPalette,
-            },
-            // {
-            //   title: "Thông báo",
-            //   url: "/settings/notifications",
-            //   icon: IconNotification,
-            // },
-            {
-              title: "Hiển thị",
-              url: "/settings/display",
-              icon: IconBrowserCheck,
-            },
-          ],
         },
         // {
         //   title: "Help Center",

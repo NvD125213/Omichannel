@@ -39,7 +39,9 @@ import {
 } from "@/components/ui/timeline";
 import { EmptyData } from "@/components/empty-data";
 import { IconFilter, IconMoodEmpty } from "@tabler/icons-react";
-import TicketFlowInstanceDetail from "./ticket-flow-instance-detail";
+import TicketFlowInstanceDetail, {
+  TicketFlowInstanceActionBar,
+} from "./ticket-flow-instance-detail";
 import { cn } from "@/lib/utils";
 
 interface StepData {
@@ -59,34 +61,32 @@ const normalizeStatus = (status?: string) => status?.toLowerCase() ?? "default";
 const getStepIcon = (status?: string) => {
   switch (normalizeStatus(status)) {
     case "completed":
-      return <Check className="h-3.5 w-3.5 text-white" />;
+      return <Check className="h-2.5 w-2.5 text-white" />;
 
     case "running":
     case "active":
-      return <CircleDot className="h-3.5 w-3.5 text-white" />;
+      return <CircleDot className="h-2.5 w-2.5 text-white" />;
 
     case "pending":
       return (
-        <Clock className="h-3.5 w-3.5 text-muted-foreground dark:text-muted-foreground" />
+        <Clock className="h-2.5 w-2.5 text-muted-foreground dark:text-muted-foreground" />
       );
 
     case "paused":
       return (
-        <PauseCircle className="h-3.5 w-3.5 text-amber-700 dark:text-amber-300" />
+        <PauseCircle className="h-2.5 w-2.5 text-amber-700 dark:text-amber-300" />
       );
 
     case "failed":
-      return <XCircle className="h-3.5 w-3.5 text-red-700 dark:text-red-300" />;
+      return <XCircle className="h-2.5 w-2.5 text-red-700 dark:text-red-300" />;
 
     case "cancelled":
       return (
-        <AlertCircle className="h-3.5 w-3.5 text-rose-700 dark:text-rose-300" />
+        <AlertCircle className="h-2.5 w-2.5 text-rose-700 dark:text-rose-300" />
       );
 
     default:
-      return (
-        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
-      );
+      return <HelpCircle className="h-2.5 w-2.5 text-muted-foreground" />;
   }
 };
 
@@ -332,7 +332,7 @@ export default function TicketFlowStepper({
 
   if (isLoadingSteps || isLoadingInstance) {
     return (
-      <div className="flex items-center justify-center p-12">
+      <div className="flex h-full min-h-0 items-center justify-center p-8">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">
@@ -358,19 +358,16 @@ export default function TicketFlowStepper({
   const selectedStepData = filteredStepsData.find((s) => s.id === selectedStep);
 
   return (
-    <div className="grid h-full grid-cols-10 gap-4 rounded-lg bg-transparent">
-      {/* Left Column - Steps List (60% - 6 cols) */}
-      <div className="col-span-6 border-r border-border/60 pr-4">
-        {/* Filter Bar */}
-        <div className="mb-3 flex items-center gap-2 justify-between border-b border-border/60 pb-3">
-          {/* Status Filter */}
-          <p className="flex items-center gap-2 rounded-lg bg-muted/40 px-2.5 py-1.5 text-sm font-medium text-foreground dark:bg-muted/25">
-            <IconFilter className="size-4 text-muted-foreground" />
-            Bộ lọc
-          </p>
+    <div className="grid h-full min-h-0 grid-cols-12 rounded-lg bg-transparent">
+      {/* Cột trái — 1 border-r liền từ filter xuống list */}
+      <div className="col-span-5 flex h-full min-h-0 flex-col border-r border-border/60">
+        <div className="flex shrink-0 items-center gap-2 border-b border-border/60 pb-2 px-1">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 w-48 border-border/70 bg-transparent text-xs dark:bg-transparent dark:hover:bg-muted/30">
-              <SelectValue placeholder="Trạng thái" />
+            <SelectTrigger className="h-7 w-full border-border/70 bg-transparent text-xs dark:bg-transparent dark:hover:bg-muted/30">
+              <div className="flex items-center gap-1.5 truncate">
+                <IconFilter className="size-3.5 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Trạng thái" />
+              </div>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả trạng thái</SelectItem>
@@ -383,101 +380,84 @@ export default function TicketFlowStepper({
             </SelectContent>
           </Select>
 
-          {/* Active Filter Summary */}
           {statusFilter !== "all" && (
-            <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <span className="font-medium">Đang lọc:</span>
-                <Badge
-                  variant="secondary"
-                  className="text-xs px-1.5 py-0.5 h-5"
-                >
-                  {getTranslateStatus(statusFilter)}
-                </Badge>
-              </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                onClick={() => setStatusFilter("all")}
-              >
-                <X className="h-3 w-3 mr-0.5" />
-                Xóa bộ lọc
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 shrink-0 px-1.5 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setStatusFilter("all")}
+              title="Xóa bộ lọc"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
           )}
         </div>
 
         {filteredStepsData.length === 0 ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center space-y-2">
-              <IconMoodEmpty className="mx-auto h-12 w-12 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-foreground">
+          <div className="flex flex-1 items-center justify-center py-6">
+            <div className="space-y-1 text-center">
+              <IconMoodEmpty className="mx-auto h-8 w-8 text-muted-foreground/40" />
+              <p className="text-xs font-medium text-foreground">
                 Không tìm thấy kết quả
               </p>
-              <p className="text-xs text-muted-foreground">
-                Thử thay đổi bộ lọc để xem kết quả khác
+              <p className="text-[11px] text-muted-foreground">
+                Thử thay đổi bộ lọc
               </p>
             </div>
           </div>
         ) : (
           <div
             ref={containerRef}
-            className="max-h-[calc(100vh-18rem)] overflow-y-auto pr-2 pt-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border"
+            className="min-h-0 flex-1 overflow-y-auto py-3 px-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border"
           >
             <Timeline
               color="secondary"
               orientation="vertical"
               className="w-full"
             >
-              {filteredStepsData.map((step, index) => (
+              {filteredStepsData.map((step) => (
                 <TimelineItem key={step.id}>
                   <TimelineHeader>
                     <TimelineSeparator />
                     <TimelineIcon>
                       <div
-                        className={`${getStepIconBackground(step.status)} w-4 h-4 rounded-full flex items-center justify-center cursor-pointer transition-all hover:shadow-md`}
+                        className={`${getStepIconBackground(step.status)} flex h-3.5 w-3.5 cursor-pointer items-center justify-center rounded-full transition-all hover:shadow-md`}
                         onClick={() => setSelectedStep(step.id)}
                       >
                         {getStepIcon(step.status)}
                       </div>
                     </TimelineIcon>
                   </TimelineHeader>
-                  <TimelineBody className="-translate-y-1.5 pt-0 pb-5">
+                  <TimelineBody className="-translate-y-1 pt-0 pb-2">
                     <div
                       className={cn(
-                        "flex cursor-pointer flex-col gap-1.5 rounded-lg border border-transparent p-2.5 transition-all",
+                        "flex cursor-pointer flex-col gap-0.5 rounded-md border border-transparent px-2 py-1.5 transition-all",
                         selectedStep === step.id
                           ? "border-primary/25 bg-primary/8 dark:border-primary/30 dark:bg-primary/10"
                           : "hover:border-border/50 hover:bg-muted/35 dark:hover:bg-muted/20",
                       )}
                       onClick={() => setSelectedStep(step.id)}
                     >
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
                         <Badge
                           variant="outline"
-                          className={`${getStepBadgeStyles(step.status)} text-xs px-1.5 py-1 h-5 font-medium`}
+                          className={`${getStepBadgeStyles(step.status)} h-4 px-1 text-[10px] font-medium`}
                         >
                           {getTranslateStatus(step.status)}
                         </Badge>
-                        <Badge
-                          variant="outline"
-                          className="h-5 border-border/70 bg-background/80 px-1.5 py-1 text-xs font-medium text-foreground dark:bg-muted/30"
-                        >
-                          Bước {step.step_order}
-                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          #{step.step_order}
+                        </span>
                       </div>
 
-                      <h3 className="text-sm leading-tight font-medium text-foreground">
+                      <h3 className="truncate text-xs font-medium leading-snug text-foreground">
                         {step.name}
                       </h3>
 
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">
-                          {
-                            convertDateTime(step.created_at, "short").datetime
-                          }{" "}
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-2.5 w-2.5 shrink-0" />
+                        <span className="truncate text-[10px]">
+                          {convertDateTime(step.created_at, "short").datetime}
                         </span>
                       </div>
                     </div>
@@ -485,7 +465,6 @@ export default function TicketFlowStepper({
                 </TimelineItem>
               ))}
 
-              {/* Loading indicator */}
               {isFetchingNextStepsPage && (
                 <TimelineItem className="min-h-0">
                   <TimelineHeader>
@@ -493,25 +472,24 @@ export default function TicketFlowStepper({
                       <Loader2 className="h-3 w-3 animate-spin text-primary" />
                     </TimelineIcon>
                   </TimelineHeader>
-                  <TimelineBody className="pt-0 pb-2">
-                    <span className="text-xs italic text-muted-foreground">
+                  <TimelineBody className="pt-0 pb-1">
+                    <span className="text-[10px] italic text-muted-foreground">
                       Đang tải...
                     </span>
                   </TimelineBody>
                 </TimelineItem>
               )}
 
-              {/* End indicator - Không còn sự kiện */}
               {!hasNextStepsPage && filteredStepsData.length > 0 && (
                 <TimelineItem className="min-h-0">
                   <TimelineHeader>
                     <TimelineIcon>
-                      <div className="h-1.5 w-1.5 rounded-sm bg-muted-foreground/40" />
+                      <div className="h-1 w-1 rounded-sm bg-muted-foreground/40" />
                     </TimelineIcon>
                   </TimelineHeader>
-                  <TimelineBody className="pt-0 pb-2">
-                    <span className="text-xs italic text-muted-foreground">
-                      Không còn sự kiện
+                  <TimelineBody className="pt-0 pb-1">
+                    <span className="text-[10px] italic text-muted-foreground">
+                      Hết danh sách
                     </span>
                   </TimelineBody>
                 </TimelineItem>
@@ -521,9 +499,19 @@ export default function TicketFlowStepper({
         )}
       </div>
 
-      {/* Right Column - Step Details (40% - 4 cols) */}
-      <div className="col-span-4 pl-2">
-        <div className="pr-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
+      {/* Cột phải — action + detail, border-b khớp với filter để line ngang liền */}
+      <div className="col-span-7 flex h-full min-h-0 flex-col">
+        <div className="flex shrink-0 items-center border-b border-border/60 pb-2 px-1">
+          <TicketFlowInstanceActionBar
+            instance={selectedStepInstance}
+            stepData={selectedStepData}
+            ticket_id={ticket_id}
+            flow_id={flow_id}
+            getStepBadgeStyles={getStepBadgeStyles}
+          />
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-border">
           <AnimatePresence mode="wait">
             <TicketFlowInstanceDetail
               instance={selectedStepInstance}
@@ -535,6 +523,7 @@ export default function TicketFlowStepper({
               getStepIconBackground={getStepIconBackground}
               getStepBadgeStyles={getStepBadgeStyles}
               getTranslateStatus={getTranslateStatus}
+              showActionBar={false}
             />
           </AnimatePresence>
         </div>

@@ -54,6 +54,14 @@
             "value": "enabled"
           }
         ]
+      },
+      {
+        "key": "greeting_message",
+        "label": "Nội dung lời chào",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Xin chào! Chúng tôi có thể giúp gì cho bạn?"
       }
     ]
   },

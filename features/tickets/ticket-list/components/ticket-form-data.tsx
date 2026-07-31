@@ -199,14 +199,6 @@ export default function TicketForm({
   };
 
   function onSubmit(data: TicketFormValues) {
-    console.log("🎯 Form submitted with data:", data);
-    console.log("📊 Current state:", {
-      isEditMode,
-      selectedFlowId,
-      selectedStepId,
-      ticketId: ticket?.id,
-    });
-
     if (isEditMode && ticket?.id) {
       // Flow is locked in edit mode, just update ticket data
       updateTicketMutation.mutate(
@@ -226,8 +218,6 @@ export default function TicketForm({
         ...data,
         ...(selectedFlowId && { flow_id: selectedFlowId }),
       };
-
-      console.log("📦 Create ticket payload:", createPayload);
 
       createTicketMutation.mutate(createPayload as any, {
         onSuccess: (response: any) => {
@@ -402,43 +392,44 @@ export default function TicketForm({
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="assigned_to"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Người được giao</FormLabel>
-                <Popover open={openAssignee} onOpenChange={setOpenAssignee}>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between"
-                        disabled={isLoadingUsers}
-                      >
-                        {isLoadingUsers ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang tải...
-                          </span>
-                        ) : field.value ? (
-                          users.find((user: any) => user.id === field.value)
-                            ?.username || "Chọn người..."
-                        ) : (
-                          "Chọn người..."
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Tìm người..." />
-                      <CommandEmpty>Không tìm thấy.</CommandEmpty>
-                      <CommandGroup>
-                        {users.map((user: any) => (
+        <FormField
+          control={form.control}
+          name="assigned_to"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Người được giao</FormLabel>
+              <Popover open={openAssignee} onOpenChange={setOpenAssignee}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      disabled={isLoadingUsers}
+                    >
+                      {isLoadingUsers ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang tải...
+                        </span>
+                      ) : field.value ? (
+                        users.find((user: any) => user.id === field.value)
+                          ?.username || "Chọn người..."
+                      ) : (
+                        "Chọn người..."
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                  <Command>
+                    <CommandInput placeholder="Tìm người..." />
+                    <CommandEmpty>Không tìm thấy.</CommandEmpty>
+                    <CommandGroup>
+                      {users.map((user: any) => {
+                        const isSelected = field.value === user.id;
+                        return (
                           <CommandItem
                             key={user.id}
                             value={user.username}
@@ -446,62 +437,71 @@ export default function TicketForm({
                               field.onChange(user.id);
                               setOpenAssignee(false);
                             }}
+                            className="gap-2"
                           >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${
-                                field.value === user.id
-                                  ? "opacity-100"
-                                  : "opacity-0"
+                            <span
+                              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                                isSelected
+                                  ? "border-primary"
+                                  : "border-muted-foreground/40"
                               }`}
-                            />
-                            {user.username}
+                              aria-hidden
+                            >
+                              {isSelected && (
+                                <span className="h-2 w-2 rounded-full bg-primary" />
+                              )}
+                            </span>
+                            <span className="truncate">{user.username}</span>
                           </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                        );
+                      })}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="template_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Template</FormLabel>
-                <Popover open={openTemplate} onOpenChange={setOpenTemplate}>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between"
-                        disabled={isLoadingTemplates}
-                      >
-                        {isLoadingTemplates ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Đang tải...
-                          </span>
-                        ) : field.value ? (
-                          templates.find((t) => t.id === field.value)?.name ||
-                          "Chọn template..."
-                        ) : (
-                          "Chọn template..."
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full p-0">
-                    <Command>
-                      <CommandInput placeholder="Tìm template..." />
-                      <CommandEmpty>Không tìm thấy.</CommandEmpty>
-                      <CommandGroup>
-                        {templates.map((template) => (
+        <FormField
+          control={form.control}
+          name="template_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Template</FormLabel>
+              <Popover open={openTemplate} onOpenChange={setOpenTemplate}>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="w-full justify-between"
+                      disabled={isLoadingTemplates}
+                    >
+                      {isLoadingTemplates ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Đang tải...
+                        </span>
+                      ) : field.value ? (
+                        templates.find((t) => t.id === field.value)?.name ||
+                        "Chọn template..."
+                      ) : (
+                        "Chọn template..."
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                  <Command>
+                    <CommandInput placeholder="Tìm template..." />
+                    <CommandEmpty>Không tìm thấy.</CommandEmpty>
+                    <CommandGroup>
+                      {templates.map((template) => {
+                        const isSelected = field.value === template.id;
+                        return (
                           <CommandItem
                             key={template.id}
                             value={template.name}
@@ -509,26 +509,32 @@ export default function TicketForm({
                               field.onChange(template.id);
                               setOpenTemplate(false);
                             }}
+                            className="gap-2"
                           >
-                            <Check
-                              className={`mr-2 h-4 w-4 ${
-                                field.value === template.id
-                                  ? "opacity-100"
-                                  : "opacity-0"
+                            <span
+                              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                                isSelected
+                                  ? "border-primary"
+                                  : "border-muted-foreground/40"
                               }`}
-                            />
-                            {template.name}
+                              aria-hidden
+                            >
+                              {isSelected && (
+                                <span className="h-2 w-2 rounded-full bg-primary" />
+                              )}
+                            </span>
+                            <span className="truncate">{template.name}</span>
                           </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                        );
+                      })}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -612,64 +618,10 @@ export default function TicketForm({
           )}
         />
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label>Thông tin mở rộng</Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={addExtensionField}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Thêm trường
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {extensionFields.map((field, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder="Key"
-                  value={field.key}
-                  onChange={(e) =>
-                    updateExtensionField(index, "key", e.target.value)
-                  }
-                  className="flex-1"
-                />
-                <Input
-                  placeholder="Value"
-                  value={field.value}
-                  onChange={(e) =>
-                    updateExtensionField(index, "value", e.target.value)
-                  }
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeExtensionField(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="flex gap-3 pt-4">
           <Button
             type="submit"
             className="flex-1"
-            onClick={() => {
-              console.log("🔘 Submit button clicked!");
-              console.log("🔍 Form state:", {
-                isValid: form.formState.isValid,
-                errors: form.formState.errors,
-                isDirty: form.formState.isDirty,
-                isSubmitting: form.formState.isSubmitting,
-              });
-            }}
             disabled={
               isEditMode
                 ? updateTicketMutation.isPending

@@ -202,7 +202,7 @@ export default function AgentBotList() {
             Đang tải danh sách bot...
           </p>
         ) : filtered.length === 0 ? (
-          <div className="py-6">
+          <div className="rounded-md border bg-card py-8 px-6">
             <EmptyData
               icon={Inbox}
               title="Không có agent bot"

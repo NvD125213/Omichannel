@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  AlignLeft,
-  Pencil,
-  Trash2,
-  UsersRound,
-  Zap,
-} from "lucide-react";
+import { AlignLeft, Pencil, Trash2, UsersRound, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -77,7 +71,7 @@ export function TeamListData({
 
   if (teams.length === 0) {
     return (
-      <div className="min-h-[280px] flex items-center justify-center rounded-xl border border-dashed p-10 text-center animate-in fade-in-50">
+      <div className="rounded-md border bg-transparent py-6 px-4">
         <EmptyData
           icon={IconMoodEmpty}
           title="Chưa có đội nhóm nào."
@@ -96,7 +90,10 @@ export function TeamListData({
         {teams.map((team, index) => {
           const colorIndex = index % ICON_COLORS.length;
           return (
-            <Card key={team.id} className="relative overflow-hidden border py-2">
+            <Card
+              key={team.id}
+              className="relative overflow-hidden border py-2"
+            >
               <div className="flex h-full flex-col space-y-2.5 p-4">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div

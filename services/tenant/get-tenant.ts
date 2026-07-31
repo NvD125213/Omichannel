@@ -6,6 +6,11 @@ export interface TenantListItem {
   name: string;
   description: string;
   is_active: number;
+  meta?: {
+    chatbot_enabled?: boolean;
+    default_responder?: "bot" | "agent";
+    [key: string]: unknown;
+  } | null;
 }
 
 export interface Tenant {
@@ -13,6 +18,11 @@ export interface Tenant {
   name: string;
   description: string;
   is_active: number;
+  meta?: {
+    chatbot_enabled?: boolean;
+    default_responder?: "bot" | "agent";
+    [key: string]: unknown;
+  } | null;
 }
 
 export interface TenantResponseApi {
@@ -55,12 +65,20 @@ export interface CreateTenantRequest {
   name: string;
   description?: string;
   is_active?: number;
+  meta?: {
+    chatbot_enabled: boolean;
+    default_responder: "bot" | "agent";
+  };
 }
 
 export interface UpdateTenantRequest {
   name?: string;
   description?: string;
   is_active?: number;
+  meta?: {
+    chatbot_enabled: boolean;
+    default_responder: "bot" | "agent";
+  };
 }
 
 export async function createTenantApi(data: CreateTenantRequest) {

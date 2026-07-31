@@ -1,21 +1,18 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Users,
   Loader2,
   FileText,
   Calendar,
   Hash,
-  User,
   Play,
   RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { convertDateTime } from "@/utils/convert-time";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { IconReportMoney } from "@tabler/icons-react";
 import {
   useUpdateTicketFlowInstance,
@@ -29,7 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Status options for the select
 const STATUS_OPTIONS = [
   { value: "running", label: "Đang xử lý" },
   { value: "completed", label: "Hoàn thành" },
@@ -80,30 +76,39 @@ interface TicketFlowInstanceDetailProps {
   getStepIconBackground: (status?: string) => string;
   getStepBadgeStyles: (status?: string) => string;
   getTranslateStatus: (status?: string) => string;
+  showActionBar?: boolean;
 }
 
-export default function TicketFlowInstanceDetail({
+export function TicketFlowInstanceActionBar({
   instance,
   stepData,
-  isLoading,
   ticket_id,
   flow_id,
   getStepBadgeStyles,
-  getTranslateStatus,
-}: TicketFlowInstanceDetailProps) {
+}: {
+  instance?: FlowInstance;
+  stepData?: StepData;
+  ticket_id: string;
+  flow_id: string;
+  getStepBadgeStyles: (status?: string) => string;
+}) {
   const updateInstanceMutation = useUpdateTicketFlowInstance();
   const createInstanceMutation = useCreateTicketFlowInstance();
 
-  // Track selected status for the select dropdown
   const [selectedStatus, setSelectedStatus] = useState<string>(
     instance?.status || "running",
   );
+
+  useEffect(() => {
+    if (instance?.status) {
+      setSelectedStatus(instance.status);
+    }
+  }, [instance?.status, instance?.id]);
 
   const handleAction = () => {
     if (!stepData) return;
 
     if (instance?.id) {
-      // Update existing instance with new status
       updateInstanceMutation.mutate({
         id: instance.id,
         data: {
@@ -112,7 +117,6 @@ export default function TicketFlowInstanceDetail({
         },
       });
     } else {
-      // Create new instance for this step
       createInstanceMutation.mutate({
         ticket_id: ticket_id,
         flow_id: flow_id,
@@ -124,324 +128,271 @@ export default function TicketFlowInstanceDetail({
   const isActionLoading =
     updateInstanceMutation.isPending || createInstanceMutation.isPending;
 
+  if (!stepData) return null;
+
+  if (!instance) {
+    return (
+      <Button
+        onClick={handleAction}
+        disabled={isActionLoading}
+        className="h-7 gap-1.5 text-xs"
+        size="sm"
+      >
+        {isActionLoading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Play className="h-3.5 w-3.5" />
+        )}
+        Thực hiện bước
+      </Button>
+    );
+  }
+
+  return (
+    <div className="grid w-full grid-cols-2 gap-1.5">
+      <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+        <SelectTrigger
+          className={`${getStepBadgeStyles(selectedStatus)} h-7 w-full border px-2 text-xs font-medium`}
+        >
+          <SelectValue placeholder="Trạng thái" />
+        </SelectTrigger>
+        <SelectContent>
+          {STATUS_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Button
+        onClick={handleAction}
+        disabled={isActionLoading}
+        className="h-9 w-full text-xs"
+        variant="outline"
+        size="sm"
+      >
+        {isActionLoading ? (
+          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+        ) : (
+          <RefreshCw className="mr-1 h-3 w-3" />
+        )}
+        Cập nhật
+      </Button>
+    </div>
+  );
+}
+
+export default function TicketFlowInstanceDetail({
+  instance,
+  stepData,
+  isLoading,
+  ticket_id,
+  flow_id,
+  getStepBadgeStyles,
+  getTranslateStatus,
+  showActionBar = true,
+}: TicketFlowInstanceDetailProps) {
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-3" />
-        <p className="text-sm text-muted-foreground">Đang tải chi tiết...</p>
+      <div className="flex flex-col items-center justify-center py-8">
+        <Loader2 className="mb-2 h-5 w-5 animate-spin text-muted-foreground" />
+        <p className="text-xs text-muted-foreground">Đang tải chi tiết...</p>
       </div>
     );
   }
 
   if (!stepData) {
     return (
-      <div className="flex flex-col items-center justify-center h-full py-12 text-center text-muted-foreground">
-        <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
-          <FileText className="h-6 w-6 text-slate-400 dark:text-zinc-500" />
+      <div className="flex h-full flex-col items-center justify-center px-2 py-8 text-center text-muted-foreground">
+        <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800">
+          <FileText className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
         </div>
-        <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+        <p className="text-xs font-medium text-slate-900 dark:text-zinc-100">
           Chưa chọn bước nào
         </p>
-        <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-          Chọn một bước từ danh sách bên trái để xem chi tiết
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-zinc-400">
+          Chọn một bước bên trái để xem chi tiết
         </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full flex flex-col">
-      {" "}
-      {/* Sticky Action Section at Top - chỉ hiển thị khi đã có instance */}
-      {instance && (
-        <div className="shrink-0 pb-3 bg-white dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800 sticky top-0 z-10">
-          <div className="flex items-center gap-2">
-            {instance.id && (
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger
-                  className={`${getStepBadgeStyles(selectedStatus)} h-9 text-xs border font-medium px-3 min-w-[130px]`}
-                >
-                  <SelectValue placeholder="Chọn trạng thái" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button
-              onClick={handleAction}
-              disabled={isActionLoading}
-              className="flex-1 dark:border-zinc-700 dark:hover:bg-zinc-800"
-              variant="outline"
-            >
-              {isActionLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              Cập nhật trạng thái
-            </Button>
-          </div>
+    <div className="flex h-full min-h-0 flex-col">
+      {showActionBar && instance && (
+        <div className="sticky top-0 z-10 shrink-0 bg-white pb-2 dark:bg-zinc-900">
+          <TicketFlowInstanceActionBar
+            instance={instance}
+            stepData={stepData}
+            ticket_id={ticket_id}
+            flow_id={flow_id}
+            getStepBadgeStyles={getStepBadgeStyles}
+          />
         </div>
       )}
-      {/* Content Section - ScrollArea or Empty State */}
+
       {instance ? (
-        <ScrollArea className="flex-1 pr-4 pt-3">
+        <div className="min-h-0 flex-1 overflow-y-auto pt-2 pr-1">
           <motion.div
             key={stepData.id}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 12 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-6 pb-6"
+            exit={{ opacity: 0, x: -12 }}
+            transition={{ duration: 0.15 }}
+            className="space-y-3 pb-3"
           >
-            {/* HEADER SECTION */}
-            <div className="flex items-start gap-4">
-              <div className="flex-1 min-w-0 pt-0.5">
-                <h3 className="font-bold text-lg text-slate-900 dark:text-zinc-100 leading mb-2.5">
-                  {stepData.name}
-                </h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className="text-xs bg-white dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700 font-normal"
-                  >
-                    Bước {stepData.step_order}
-                  </Badge>
-                  <Badge
-                    className={`${getStepBadgeStyles(instance.status)} text-xs border font-medium`}
-                    variant="outline"
-                  >
-                    {getTranslateStatus(instance.status)}
-                  </Badge>
-                </div>
+            {/* Header — badges + tên cùng hàng */}
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Badge
+                  variant="outline"
+                  className="h-5 border-slate-200 bg-transparent px-1.5 text-xs font-normal text-slate-600 dark:border-zinc-700 dark:text-zinc-300"
+                >
+                  Bước {stepData.step_order}
+                </Badge>
+                <Badge
+                  className={`${getStepBadgeStyles(instance.status)} h-5 border px-1.5 text-xs font-medium`}
+                  variant="outline"
+                >
+                  {getTranslateStatus(instance.status)}
+                </Badge>
               </div>
+              <h3 className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                {stepData.name}
+              </h3>
             </div>
 
-            <Separator />
-
-            {/* ASSIGNEE SECTION */}
-            {stepData.assignee && (
-              <div className="group">
-                <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  {stepData.assignee_user_id ? (
-                    <User className="w-3.5 h-3.5" />
-                  ) : (
-                    <Users className="w-3.5 h-3.5" />
-                  )}
-                  {stepData.assignee_user_id
-                    ? "Người thực hiện"
-                    : "Nhóm thực hiện"}
-                </h4>
-                <div className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors rounded-lg">
-                  {stepData.assignee_user_id ? (
-                    <Avatar className="h-9 w-9 border-2 border-white dark:border-zinc-700 shadow-sm">
-                      <AvatarImage
-                        src={`/avatar/${stepData.assignee_user_id}.jpg`}
-                        alt={stepData.assignee}
-                      />
-                      <AvatarFallback className="text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 font-bold">
-                        {stepData.assignee?.charAt(0)?.toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-zinc-700 flex items-center justify-center border-2 border-white dark:border-zinc-700 shadow-sm">
-                      <Users className="h-4 w-4 text-slate-500 dark:text-zinc-400" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">
+            {/* Bảng thông tin — label | value */}
+            <div className="overflow-hidden rounded-lg border border-slate-100 dark:border-zinc-800">
+              {stepData.assignee && (
+                <div className="flex items-center gap-3 border-b border-slate-100 px-2.5 py-2 dark:border-zinc-800">
+                  <span className="w-24 shrink-0 text-xs text-slate-500 dark:text-zinc-400">
+                    {stepData.assignee_user_id
+                      ? "Người thực hiện"
+                      : "Nhóm thực hiện"}
+                  </span>
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    {stepData.assignee_user_id ? (
+                      <Avatar className="h-6 w-6 shrink-0">
+                        <AvatarImage
+                          src={`/avatar/${stepData.assignee_user_id}.jpg`}
+                          alt={stepData.assignee}
+                        />
+                        <AvatarFallback className="bg-indigo-100 text-[10px] font-bold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
+                          {stepData.assignee?.charAt(0)?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                    ) : (
+                      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-200 dark:bg-zinc-700">
+                        <Users className="h-3 w-3 text-slate-500 dark:text-zinc-400" />
+                      </div>
+                    )}
+                    <span className="truncate text-xs font-medium text-slate-900 dark:text-zinc-100">
                       {stepData.assignee}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Badge
-                        variant="secondary"
-                        className="text-[10px] h-4 px-1.5 font-normal bg-slate-200/50 text-slate-600 hover:bg-slate-200 dark:bg-zinc-700/50 dark:text-zinc-400 dark:hover:bg-zinc-700"
-                      >
-                        {stepData.assignee_user_id
-                          ? "Người thực hiện"
-                          : "Nhóm thực hiện"}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* DETAILS GRID */}
-            <div className="grid gap-6">
-              {/* Timeline */}
-              <div>
-                <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5" />
-                  Thời gian xử lý
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-emerald-50/50 dark:bg-emerald-950/30 rounded-lg p-3 border border-emerald-100/50 dark:border-emerald-900/50">
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Badge variant="outline" className="text-xs font-normal">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                        Bắt đầu
-                      </Badge>
-                    </div>
-                    {instance.started_at ? (
-                      <div className="space-y-0.5">
-                        <div className="text-[12px] text-slate-900 dark:text-zinc-200">
-                          {convertDateTime(instance.started_at).time}
-                        </div>
-                        <div className="text-[12px] text-emerald-600/80 dark:text-emerald-400/80">
-                          {convertDateTime(instance.started_at).date}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400 dark:text-zinc-500 italic">
-                        --/--
-                      </span>
-                    )}
-                  </div>
-
-                  <div
-                    className={`rounded-lg p-3 border ${instance.finished_at ? "bg-blue-50/50 border-blue-100/50 dark:bg-blue-950/30 dark:border-blue-900/50" : "bg-slate-50 border-slate-100 dark:bg-zinc-800/50 dark:border-zinc-700"}`}
-                  >
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <Badge variant="outline" className="text-xs font-normal">
-                        <div
-                          className={`w-1.5 h-1.5 rounded-full ${instance.finished_at ? "bg-blue-500" : "bg-slate-300 dark:bg-zinc-600"}`}
-                        ></div>
-                        Kết thúc
-                      </Badge>
-                    </div>
-                    {instance.finished_at ? (
-                      <div className="space-y-0.5">
-                        <div className="text-[12px] text-slate-900 dark:text-zinc-200">
-                          {convertDateTime(instance.finished_at).time}
-                        </div>
-                        <div className="text-[12px] text-blue-600/80 dark:text-blue-400/80 px-0.5">
-                          {convertDateTime(instance.finished_at).date}
-                        </div>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400 dark:text-zinc-500 italic">
-                        --/--/--
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              {/* Ticket Info */}
-
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="flex items-center gap-2">
-                  <IconReportMoney className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
-                  <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                    Thông tin Ticket
-                  </h4>
-                </div>
-
-                {/* Card */}
-                <div className="bg-transparent border border-transparent dark:border-zinc-800 py-4 space-y-4 rounded-lg">
-                  {/* Title */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500 dark:text-zinc-400">
-                      Tiêu đề
                     </span>
-                    <div className="text-sm font-medium text-slate-900 dark:text-zinc-100 px-2.5 py-0.5 rounded-full">
-                      {instance.ticket.title}
-                    </div>
-                  </div>
-                  {/* Code */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500 dark:text-zinc-400">
-                      Code
-                    </span>
-                    <Badge className="text-xs font-medium bg-slate-100 text-slate-700 dark:bg-zinc-700 dark:text-zinc-300 px-2.5 py-0.5 rounded-full">
-                      #{instance.ticket.code}
-                    </Badge>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-500 dark:text-zinc-400">
-                      Trạng thái
-                    </span>
-                    <Badge
-                      className={`${getStepBadgeStyles(
-                        instance.ticket.status,
-                      )} text-xs font-medium px-2.5 py-0.5 rounded-full`}
-                    >
-                      {getTranslateStatus(instance.ticket.status)}
-                    </Badge>
                   </div>
                 </div>
+              )}
+
+              <div className="flex items-center gap-3 border-b border-slate-100 px-2.5 py-2 dark:border-zinc-800">
+                <span className="flex w-24 shrink-0 items-center gap-1 text-xs text-slate-500 dark:text-zinc-400">
+                  <Calendar className="h-3 w-3" />
+                  Bắt đầu
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-900 dark:text-zinc-100">
+                  {instance.started_at
+                    ? convertDateTime(instance.started_at, "short").datetime
+                    : "--/--"}
+                </span>
               </div>
 
-              {/* Instance & Flow Info */}
-              <div className="space-y-3">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Hash className="w-4 h-4 text-slate-400 dark:text-zinc-500" />
-                    <h4 className="text-xs font-semibold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                      Thông tin luồng
-                    </h4>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Badge className="text-xs font-medium bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400 dark:border-indigo-800 px-2.5 py-0.5 rounded-full">
-                      {instance.flow.name}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Card */}
-                <div className="rounded-xl space-y-4">
-                  {/* Description */}
-                  {instance.flow.description && (
-                    <div className="text-xs text-slate-600 dark:text-zinc-300 bg-transparent border border-transparent dark:border-zinc-800 rounded-lg p-3 leading-relaxed">
-                      <span className="block text-[10px] uppercase tracking-wide text-slate-400 dark:text-zinc-500 mb-1">
-                        Mô tả
-                      </span>
-                      {instance.flow.description}
-                    </div>
-                  )}
-                </div>
+              <div className="flex items-center gap-3 border-b border-slate-100 px-2.5 py-2 dark:border-zinc-800">
+                <span className="flex w-24 shrink-0 items-center gap-1 text-xs text-slate-500 dark:text-zinc-400">
+                  <Calendar className="h-3 w-3" />
+                  Kết thúc
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-900 dark:text-zinc-100">
+                  {instance.finished_at
+                    ? convertDateTime(instance.finished_at, "short").datetime
+                    : "--/--"}
+                </span>
               </div>
+
+              <div className="flex items-center gap-3 border-b border-slate-100 px-2.5 py-2 dark:border-zinc-800">
+                <span className="flex w-24 shrink-0 items-center gap-1 text-xs text-slate-500 dark:text-zinc-400">
+                  <IconReportMoney className="h-3 w-3" />
+                  Tiêu đề
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-900 dark:text-zinc-100">
+                  {instance.ticket.title}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 border-b border-slate-100 px-2.5 py-2 dark:border-zinc-800">
+                <span className="w-24 shrink-0 text-xs text-slate-500 dark:text-zinc-400">
+                  Code
+                </span>
+                <Badge className="h-5 rounded-full border border-slate-200 bg-slate-100 px-1.5 text-xs font-medium text-slate-700 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                  #{instance.ticket.code}
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-3 border-b border-slate-100 px-2.5 py-2 dark:border-zinc-800">
+                <span className="w-24 shrink-0 text-xs text-slate-500 dark:text-zinc-400">
+                  Trạng thái
+                </span>
+                <Badge
+                  className={`${getStepBadgeStyles(instance.ticket.status)} h-5 rounded-full px-1.5 text-xs font-medium`}
+                >
+                  {getTranslateStatus(instance.ticket.status)}
+                </Badge>
+              </div>
+
+              <div className="flex items-center gap-3 border-b border-slate-100 px-2.5 py-2 dark:border-zinc-800">
+                <span className="flex w-24 shrink-0 items-center gap-1 text-xs text-slate-500 dark:text-zinc-400">
+                  <Hash className="h-3 w-3" />
+                  Luồng
+                </span>
+                <Badge className="h-5 max-w-[70%] truncate rounded-full border border-indigo-100 bg-indigo-50 px-1.5 text-xs font-medium text-indigo-600 dark:border-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400">
+                  {instance.flow.name}
+                </Badge>
+              </div>
+
+              {instance.flow.description && (
+                <div className="flex items-start gap-3 px-2.5 py-2">
+                  <span className="w-24 shrink-0 pt-0.5 text-xs text-slate-500 dark:text-zinc-400">
+                    Mô tả
+                  </span>
+                  <p className="min-w-0 flex-1 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
+                    {instance.flow.description}
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
-        </ScrollArea>
+        </div>
       ) : (
-        /* Empty State when no instance */
-        <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground translate-y-full">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
-            <FileText className="h-6 w-6 text-slate-400 dark:text-zinc-500" />
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-2 text-center text-muted-foreground">
+          <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 dark:bg-zinc-800">
+            <FileText className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
           </div>
-
-          <p className="text-sm font-medium text-slate-900 dark:text-zinc-100">
+          <p className="text-xs font-medium text-slate-900 dark:text-zinc-100">
             Chưa thực hiện đến bước này
           </p>
-
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mt-1">
-            Nhấn nút bên dưới để bắt đầu thực hiện bước
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-zinc-400">
+            {showActionBar
+              ? "Nhấn nút bên dưới để bắt đầu"
+              : "Dùng nút phía trên để bắt đầu"}
           </p>
-
-          <div className="mt-4 flex items-center gap-2">
-            <Button
-              onClick={handleAction}
-              disabled={isActionLoading}
-              className="gap-2"
-            >
-              {isActionLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              <span>Thực hiện bước</span>
-            </Button>
-          </div>
+          {showActionBar && (
+            <TicketFlowInstanceActionBar
+              instance={instance}
+              stepData={stepData}
+              ticket_id={ticket_id}
+              flow_id={flow_id}
+              getStepBadgeStyles={getStepBadgeStyles}
+            />
+          )}
         </div>
       )}
     </div>

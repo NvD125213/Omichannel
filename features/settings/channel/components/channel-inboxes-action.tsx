@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { Sketch } from "@uiw/react-color";
 import {
   ArrowLeft,
   Code2,
@@ -43,22 +44,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
+  useCreateAccountInboxMembers,
   useCreateTenantInbox,
   useGetTenantInbox,
   useListChatwootAgents,
   useListTenantInboxes,
+  useUpdateAccountInboxMembers,
   useUpdateTenantInbox,
 } from "@/hooks/chatwoot/use-chatwoot";
 import { useAuth } from "@/contexts/auth-context";
+import { chatwootService } from "@/services/chatwoot/service";
 import channelFormSchema from "./channel-form.json";
 
-type ChannelKey =
-  | "website"
-  | "sms"
-  | "email"
-  | "api"
-  | "telegram"
-  | "line";
+type ChannelKey = "website" | "sms" | "email" | "api" | "telegram" | "line";
 
 type FieldType =
   | "text"
@@ -95,6 +93,7 @@ type ChannelDefinition = {
 
 type AgentOption = {
   id: string;
+  userId: number | null;
   name: string;
   email: string;
   thumbnail?: string;
@@ -135,19 +134,22 @@ const CHANNEL_META: Record<
     title: "Email",
     description: "Nhận và trả lời yêu cầu hỗ trợ qua email.",
     icon: Mail,
-    color: "bg-rose-500/15 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400",
+    color:
+      "bg-rose-500/15 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400",
   },
   api: {
     title: "API",
     description: "Kênh API / webhook tùy chỉnh (Zalo OA, …).",
     icon: Code2,
-    color: "bg-blue-500/15 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
+    color:
+      "bg-blue-500/15 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
   },
   telegram: {
     title: "Telegram",
     description: "Kết nối bot Telegram qua BotFather token.",
     icon: Send,
-    color: "bg-cyan-500/15 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400",
+    color:
+      "bg-cyan-500/15 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400",
   },
   line: {
     title: "LINE",
@@ -247,25 +249,57 @@ function extractSingleRecord(
   );
 }
 
-function readId(value: unknown): string | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === "string" || typeof value === "number") {
-    const id = String(value).trim();
-    return id || null;
+function toNumericId(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  const raw = String(value ?? "").trim();
+  if (!raw || !/^-?\d+$/.test(raw)) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function findNumericIdInValue(
+  value: unknown,
+  depth = 0,
+  keys: string[] = ["id", "inbox_id", "chatwoot_inbox_id", "cw_inbox_id"],
+): number | null {
+  if (value == null || depth > 6) return null;
+
+  if (typeof value === "number" || typeof value === "string") {
+    return toNumericId(value);
   }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findNumericIdInValue(item, depth + 1, keys);
+      if (found !== null) return found;
+    }
+    return null;
+  }
+
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of keys) {
+      const found = toNumericId(record[key]);
+      if (found !== null) return found;
+    }
+    for (const nested of Object.values(record)) {
+      if (nested && typeof nested === "object") {
+        const found = findNumericIdInValue(nested, depth + 1, keys);
+        if (found !== null) return found;
+      }
+    }
+  }
+
   return null;
 }
 
-function extractEntityId(response: unknown): string | null {
-  if (!response || typeof response !== "object") return null;
-  const root = response as Record<string, unknown>;
-  const fromData = extractSingleRecord(response);
-  return (
-    readId(fromData?.id) ??
-    readId(fromData?.inbox_id) ??
-    readId((root.data as Record<string, unknown> | undefined)?.id) ??
-    null
-  );
+function extractNumericInboxId(
+  response: unknown,
+  fallback?: string,
+): number | null {
+  const fromResponse = findNumericIdInValue(response);
+  if (fromResponse !== null) return fromResponse;
+  return toNumericId(fallback);
 }
 
 function isSuccessResponse(response: unknown): boolean {
@@ -274,7 +308,9 @@ function isSuccessResponse(response: unknown): boolean {
   return statusCode === 200 || statusCode === 201;
 }
 
-function buildDefaultValues(def: ChannelDefinition | undefined): ChannelFormValues {
+function buildDefaultValues(
+  def: ChannelDefinition | undefined,
+): ChannelFormValues {
   const values: ChannelFormValues = {};
   if (!def) return values;
   for (const field of def.fields) {
@@ -328,9 +364,12 @@ function mapInboxToFormValues(
         pick("enable_channel_greeting") === "enabled"
           ? "enabled"
           : "disabled";
+      values.greeting_message = String(pick("greeting_message") ?? "");
       break;
     case "sms":
-      values.api_provider = String(pick("provider", "api_provider") ?? "twilio");
+      values.api_provider = String(
+        pick("provider", "api_provider") ?? "twilio",
+      );
       values.inbox_name = String(pick("name", "inbox_name") ?? "");
       values.phone_number = String(pick("phone_number") ?? "");
       values.account_sid = String(pick("account_sid") ?? "");
@@ -364,17 +403,12 @@ function mapInboxToFormValues(
   return values;
 }
 
-function buildInboxPayload(
-  channelKey: ChannelKey,
-  values: ChannelFormValues,
-  agentIds: string[],
-) {
+function buildInboxPayload(channelKey: ChannelKey, values: ChannelFormValues) {
   const str = (key: string) => String(values[key] ?? "").trim();
   const bool = (key: string) => Boolean(values[key]);
 
   const base: Record<string, unknown> = {
     channel_type: channelKey,
-    agent_ids: agentIds,
   };
 
   switch (channelKey) {
@@ -382,13 +416,14 @@ function buildInboxPayload(
       return {
         ...base,
         name: str("website_name"),
+        greeting_enabled: values.enable_channel_greeting === "enabled",
+        greeting_message: str("greeting_message"),
         channel: {
           type: "web_widget",
           website_url: str("website_domain"),
           widget_color: str("widget_color") || "#1f93ff",
           welcome_title: str("welcome_heading") || null,
           welcome_tagline: str("welcome_tagline") || null,
-          greeting_enabled: values.enable_channel_greeting === "enabled",
         },
       };
     case "sms":
@@ -454,7 +489,12 @@ function normalizeAgent(
 ): AgentOption {
   const name = String(record.available_name ?? record.name ?? "").trim();
   const email = String(record.email ?? "").trim();
+  const userId =
+    toNumericId(record.user_id) ??
+    toNumericId(record.id) ??
+    toNumericId(record.account_user_id);
   const id =
+    (userId !== null ? String(userId) : "") ||
     String(record.id ?? record.user_id ?? record.uuid ?? "").trim() ||
     email ||
     `agent-${index + 1}`;
@@ -464,6 +504,7 @@ function normalizeAgent(
 
   return {
     id,
+    userId,
     name: name || `Agent ${index + 1}`,
     email: email || "N/A",
     thumbnail: thumbnail || undefined,
@@ -521,6 +562,8 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
 
   const createInbox = useCreateTenantInbox();
   const updateInbox = useUpdateTenantInbox();
+  const createInboxMembers = useCreateAccountInboxMembers();
+  const updateInboxMembers = useUpdateAccountInboxMembers();
 
   const agents = useMemo(
     () => extractRecords(agentsResponse).map(normalizeAgent),
@@ -630,11 +673,10 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
 
     setSubmitting(true);
     try {
-      const payload = buildInboxPayload(
-        selectedChannel,
-        form.getValues(),
-        selectedMemberIds,
-      );
+      const formValues = form.getValues();
+      const payload = buildInboxPayload(selectedChannel, formValues);
+      const inboxName = String(payload.name ?? "").trim();
+      let resolvedInboxId: number | null = null;
 
       if (isEdit && inboxId) {
         const res = await updateInbox.mutateAsync({
@@ -643,17 +685,71 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
           data: payload,
         });
         if (!isSuccessResponse(res)) return false;
+        resolvedInboxId = extractNumericInboxId(res, inboxId);
       } else {
         const res = await createInbox.mutateAsync({
           tenantId,
           data: payload,
         });
         if (!isSuccessResponse(res)) return false;
+        resolvedInboxId = extractNumericInboxId(res);
 
-        const createdId = extractEntityId(res);
-        if (!createdId) {
-          // vẫn coi là thành công tạo inbox
+        // Fallback: lấy inbox_id từ danh sách nếu response tạo không trả id số
+        if (resolvedInboxId === null) {
+          try {
+            const listRes = await chatwootService.listTenantInboxes(tenantId);
+            const records = extractRecords(listRes);
+            const matched = [...records]
+              .reverse()
+              .find(
+                (item) =>
+                  !inboxName ||
+                  String(item.name ?? "").trim() === inboxName,
+              );
+            resolvedInboxId = extractNumericInboxId(
+              matched ? { data: matched } : listRes,
+            );
+          } catch {
+            // ignore list fallback errors; handled below
+          }
         }
+      }
+
+      const userIds = selectedMemberIds
+        .map((selectedId) => {
+          const agent = agents.find((item) => item.id === selectedId);
+          return agent?.userId ?? toNumericId(selectedId);
+        })
+        .filter((id): id is number => id !== null);
+
+      // Luôn gọi inbox_members sau khi tạo/cập nhật kênh nếu đã chọn agent
+      if (selectedMemberIds.length > 0) {
+        if (userIds.length === 0) {
+          toast.error("Không lấy được user_ids hợp lệ từ danh sách agent");
+          return false;
+        }
+
+        if (resolvedInboxId === null) {
+          toast.error("Không lấy được inbox_id để gán nhân viên");
+          return false;
+        }
+
+        const membersPayload = {
+          inbox_id: resolvedInboxId,
+          user_ids: userIds,
+        };
+
+        const membersRes = isEdit
+          ? await updateInboxMembers.mutateAsync({
+              accountId: tenantId,
+              data: membersPayload,
+            })
+          : await createInboxMembers.mutateAsync({
+              accountId: tenantId,
+              data: membersPayload,
+            });
+
+        if (!isSuccessResponse(membersRes)) return false;
       }
 
       setCurrentStep(4);
@@ -667,7 +763,11 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
 
   const isBootstrapping = isEdit && !inboxHydrated;
   const isBusy =
-    submitting || createInbox.isPending || updateInbox.isPending;
+    submitting ||
+    createInbox.isPending ||
+    updateInbox.isPending ||
+    createInboxMembers.isPending ||
+    updateInboxMembers.isPending;
   const isSuccessStep = currentStep === 4;
 
   if (isBootstrapping) {
@@ -732,9 +832,7 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
         }}
         nextButtonProps={{
           disabled:
-            isBusy ||
-            isSuccessStep ||
-            (currentStep === 1 && !selectedChannel),
+            isBusy || isSuccessStep || (currentStep === 1 && !selectedChannel),
           onClick: (event) => {
             if (currentStep === 1) {
               if (!selectedChannel) {
@@ -821,9 +919,7 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
           <div className="space-y-4 px-1 pb-2 sm:px-1.5">
             <div className="space-y-1">
               <h3 className="text-base font-medium">
-                {isEdit
-                  ? "Cập nhật thông tin kênh"
-                  : "Điền thông tin kênh"}
+                {isEdit ? "Cập nhật thông tin kênh" : "Điền thông tin kênh"}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {selectedChannel
@@ -925,21 +1021,32 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
                                     </SelectContent>
                                   </Select>
                                 ) : field.type === "color" ? (
-                                  <div className="flex items-center gap-3">
-                                    <Input
-                                      type="color"
-                                      className="h-10 w-14 cursor-pointer border-2 border-border p-1"
-                                      disabled={isBusy || isSuccessStep}
-                                      value={String(rhfField.value || "#1f93ff")}
-                                      onChange={rhfField.onChange}
-                                    />
-                                    <Input
-                                      type="text"
-                                      className="border-2 border-border"
-                                      disabled={isBusy || isSuccessStep}
-                                      value={String(rhfField.value ?? "")}
-                                      onChange={rhfField.onChange}
-                                      placeholder="#1f93ff"
+                                  <div
+                                    className={cn(
+                                      "w-full",
+                                      (isBusy || isSuccessStep) &&
+                                        "pointer-events-none opacity-60",
+                                    )}
+                                  >
+                                    <Sketch
+                                      color={String(
+                                        rhfField.value || "#1f93ff",
+                                      )}
+                                      onChange={(color) => {
+                                        rhfField.onChange(color.hex);
+                                      }}
+                                      style={
+                                        {
+                                          width: "100%",
+                                          boxShadow: "none",
+                                          background: "transparent",
+                                          "--sketch-background": "transparent",
+                                          "--sketch-box-shadow": "none",
+                                          "--sketch-swatch-border-top":
+                                            "1px solid hsl(var(--border))",
+                                        } as CSSProperties
+                                      }
+                                      disableAlpha
                                     />
                                   </div>
                                 ) : (
@@ -1090,22 +1197,21 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
         </Step>
 
         <Step>
-          <div className="flex flex-col items-center gap-3 py-4 sm:flex-row sm:items-center sm:justify-center sm:gap-2 sm:py-6 sm:text-left">
-            <div className="h-40 w-40 shrink-0 overflow-hidden sm:h-60 sm:w-60">
+          <div className="flex flex-col items-center py-6">
+            <div className="h-60 w-60 overflow-hidden">
               <DotLottieReact
                 src="/success/success2.lottie"
                 autoplay
                 loop={false}
                 speed={0.5}
-                className="h-full w-full scale-100"
+                className="h-full w-full scale-110 origin-center"
               />
             </div>
-            <div className="flex max-w-md flex-col items-center gap-3 text-center sm:-ml-2 sm:items-start sm:text-left">
+
+            <div className="-mt-8 flex max-w-md flex-col items-center gap-4 text-center">
               <div className="space-y-1.5">
                 <h3 className="text-lg font-semibold tracking-tight">
-                  {isEdit
-                    ? "Cập nhật kênh thành công"
-                    : "Tạo kênh thành công"}
+                  {isEdit ? "Cập nhật kênh thành công" : "Tạo kênh thành công"}
                 </h3>
                 <p className="text-sm text-muted-foreground">
                   {isEdit
@@ -1113,6 +1219,7 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
                     : "Kênh mới đã sẵn sàng để tiếp nhận hội thoại."}
                 </p>
               </div>
+
               <Button type="button" onClick={handleBackToList}>
                 Về danh sách
               </Button>

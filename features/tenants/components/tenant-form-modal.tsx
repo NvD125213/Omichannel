@@ -13,6 +13,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -26,11 +27,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus } from "lucide-react";
+import { Bot, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { removeEmptyFields } from "@/utils/remove-field-empty";
+import { cn } from "@/lib/utils";
 import {
   tenantDefaultValues,
   tenantFormSchema,
@@ -76,6 +79,8 @@ export function TenantFormDialog({
         name: tenant.name,
         description: tenant.description ?? "",
         is_active: tenant.is_active,
+        chatbot_enabled: tenant.meta?.chatbot_enabled ?? true,
+        default_responder: tenant.meta?.default_responder ?? "bot",
       });
     } else if (!tenant && open) {
       form.reset(tenantDefaultValues);
@@ -83,7 +88,16 @@ export function TenantFormDialog({
   }, [tenant, open, form]);
 
   function onSubmit(data: TenantFormValues) {
-    const payload = removeEmptyFields(data) as TenantFormValues;
+    const description = data.description?.trim();
+    const payload = {
+      name: data.name.trim(),
+      ...(description ? { description } : {}),
+      is_active: data.is_active,
+      meta: {
+        chatbot_enabled: Boolean(data.chatbot_enabled),
+        default_responder: data.default_responder,
+      },
+    };
 
     if (isEditMode && tenant?.id) {
       updateTenantMutation.mutate(
@@ -155,34 +169,80 @@ export function TenantFormDialog({
                   </FormItem>
                 )}
               />
-            </div>
-
-            {/* <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
-                name="is_active"
+                name="default_responder"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Trạng thái</FormLabel>
-                    <FormControl>
-                      <Select
-                        value={String(field.value)}
-                        onValueChange={(value) => field.onChange(Number(value))}
-                      >
-                        <SelectTrigger className="cursor-pointer">
-                          <SelectValue placeholder="Chọn trạng thái" />
+                    <FormLabel>Người phản hồi mặc định</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-full cursor-pointer">
+                          <SelectValue placeholder="Chọn người phản hồi" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">Hoạt động</SelectItem>
-                          <SelectItem value="0">Không hoạt động</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="bot">Bot</SelectItem>
+                        <SelectItem value="agent">Agent</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div> */}
+            </div>
+
+            <FormField
+              control={form.control}
+              name="chatbot_enabled"
+              render={({ field }) => (
+                <FormItem className="flex items-start justify-between gap-4 rounded-xl border border-border/80 bg-muted/15 p-4">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div
+                      className={cn(
+                        "flex size-10 shrink-0 items-center justify-center rounded-lg border",
+                        field.value
+                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : "border-border/70 bg-background text-muted-foreground",
+                      )}
+                    >
+                      <Bot className="size-4" />
+                    </div>
+                    <div className="min-w-0 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <FormLabel className="text-sm font-semibold leading-none">
+                          Kích hoạt chatbot
+                        </FormLabel>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "h-5 border px-1.5 text-[10px] font-medium",
+                            field.value
+                              ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              : "border-border bg-background text-muted-foreground",
+                          )}
+                        >
+                          {field.value ? "Đang bật" : "Đã tắt"}
+                        </Badge>
+                      </div>
+                      <FormDescription className="text-xs leading-relaxed">
+                        Bật hoặc tắt chatbot cho doanh nghiệp này.
+                      </FormDescription>
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="mt-1 shrink-0"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
               <Button

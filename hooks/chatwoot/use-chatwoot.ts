@@ -37,6 +37,7 @@ import type {
   FilterConversationsRequest,
   CreateAccountCustomFilterRequest,
   UpdateAccountCustomFilterRequest,
+  AccountInboxMembersRequest,
 } from "@/services/chatwoot/interface";
 import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 import {
@@ -73,6 +74,8 @@ export const chatwootOmniKeys = {
     [...chatwootOmniKeys.tenant(tenantId), "inboxes"] as const,
   tenantInbox: (tenantId: string, inboxId: string) =>
     [...chatwootOmniKeys.tenantInboxes(tenantId), inboxId] as const,
+  accountInboxMembers: (accountId: string) =>
+    [...chatwootOmniKeys.all, "account", accountId, "inbox-members"] as const,
   tenantTeams: (tenantId: string) =>
     [...chatwootOmniKeys.tenant(tenantId), "teams"] as const,
   tenantTeam: (tenantId: string, teamId: string) =>
@@ -1201,6 +1204,72 @@ export const useUpdateTenantInbox = () => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
           ?.data?.message || "Có lỗi khi cập nhật inbox";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useCreateAccountInboxMembers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      accountId,
+      data,
+    }: {
+      accountId: string;
+      data: AccountInboxMembersRequest;
+    }) => chatwootService.createAccountInboxMembers(accountId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Thêm nhân viên vào kênh thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.accountInboxMembers(variables.accountId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantInboxes(variables.accountId),
+        });
+      } else {
+        toast.error(res.message || "Thêm nhân viên vào kênh thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi thêm nhân viên vào kênh";
+      toast.error(msg);
+    },
+  });
+};
+
+export const useUpdateAccountInboxMembers = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      accountId,
+      data,
+    }: {
+      accountId: string;
+      data: AccountInboxMembersRequest;
+    }) => chatwootService.updateAccountInboxMembers(accountId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Cập nhật nhân viên kênh thành công");
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.accountInboxMembers(variables.accountId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantInboxes(variables.accountId),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật nhân viên kênh thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật nhân viên kênh";
       toast.error(msg);
     },
   });

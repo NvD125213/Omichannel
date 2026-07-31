@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { KeyRound, Loader2 } from "lucide-react";
-import { useGetAgentById } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGetGraphAgent } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 import type {
   AgentConfig,
   KgAgent,
@@ -517,7 +518,8 @@ interface AgentDataDetailPanelProps {
 }
 
 export function AgentDataDetailPanel({ agent }: AgentDataDetailPanelProps) {
-  const { data: liveAgent, isLoading } = useGetAgentById(agent.id);
+  const graphId = useGraphId() || agent.graph_id;
+  const { data: liveAgent, isLoading } = useGetGraphAgent(graphId, agent.id);
 
   const resolved = liveAgent ?? agent;
   const config = (resolved.config ?? {}) as AgentConfig;

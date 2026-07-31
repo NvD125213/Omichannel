@@ -42,6 +42,7 @@ import {
 import {
   useGetAgentById,
   useListAgents,
+  useListGraphAgents,
 } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
 import { useGraphId } from "@/hooks/use-graph-id";
 import { cn } from "@/lib/utils";
@@ -297,12 +298,16 @@ export function ChatboxPreview() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: agentsData, isLoading: isLoadingAgents } = useListAgents({
-    limit: 100,
-    offset: 0,
-  });
+  const { data: listGraphAgentsData, isLoading: isLoadingListGraphAgents } =
+    useListGraphAgents(graphId, {
+      limit: 100,
+      offset: 0,
+    });
 
-  const agents = useMemo(() => agentsData?.items ?? [], [agentsData?.items]);
+  const agents = useMemo(
+    () => listGraphAgentsData?.items ?? [],
+    [listGraphAgentsData?.items],
+  );
 
   const { data: agent, isLoading: isLoadingAgent } =
     useGetAgentById(selectedAgentId);
@@ -501,7 +506,7 @@ export function ChatboxPreview() {
                     value={selectedAgentId}
                     onChange={handleAgentChange}
                     agents={agents}
-                    isLoading={isLoadingAgents}
+                    isLoading={isLoadingListGraphAgents}
                     triggerClassName="h-8 w-full min-w-0 sm:w-[200px]"
                   />
                 </div>

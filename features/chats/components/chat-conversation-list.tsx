@@ -1613,10 +1613,10 @@ export function ChatConversationList({
                               </span>
                               <span
                                 className={cn(
-                                  "shrink-0 text-xs pt-0.5 leading-none tabular-nums",
+                                  "shrink-0 text-xs leading-none tabular-nums",
                                   hasUnread
                                     ? "font-bold text-foreground/70"
-                                    : "font-medium text-foreground/50",
+                                    : "font-medium text-foreground/40",
                                 )}
                               >
                                 {conversationTime}

@@ -60,7 +60,10 @@ import {
   SidebarDetailMain,
   SidebarDetailPanel,
 } from "@/components/sidebar-detail";
-import { useListAgents } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import {
+  useListGraphAgents,
+} from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useGraphId } from "@/hooks/use-graph-id";
 import { DataTablePagination } from "@/features/chatbot-kg-core/document/components/document-data-pagination";
 import { DocumentTableEmptyValue } from "@/features/chatbot-kg-core/document/components/document-table-empty-value";
 import { AgentDataDetailPanel } from "./agent-data-detail-panel";
@@ -169,6 +172,7 @@ function SortableHeader({
 }
 
 export function AgentDataListTable() {
+  const graphId = useGraphId();
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<KgAgent | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -192,7 +196,10 @@ export function AgentDataListTable() {
     [page, pageSize],
   );
 
-  const { data, isLoading, isFetching } = useListAgents(listParams);
+  const { data, isLoading, isFetching } = useListGraphAgents(
+    graphId,
+    listParams,
+  );
 
   const agents = useMemo(() => data?.items ?? [], [data?.items]);
   const total = data?.total ?? 0;

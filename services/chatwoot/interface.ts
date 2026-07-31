@@ -293,6 +293,17 @@ export type ListTenantInboxesResponse = ApiResponse<ChatwootJsonPayload>;
 export type GetTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
 export type CreateTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
 export type UpdateTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
+
+export interface AccountInboxMembersRequest {
+  inbox_id: number;
+  user_ids: number[];
+}
+
+export type CreateAccountInboxMembersResponse =
+  ApiResponse<ChatwootJsonPayload>;
+export type UpdateAccountInboxMembersResponse =
+  ApiResponse<ChatwootJsonPayload>;
+
 export type ListTenantTeamsResponse = ApiResponse<
   TenantTeam[] | ChatwootJsonPayload
 >;

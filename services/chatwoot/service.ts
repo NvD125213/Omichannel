@@ -15,6 +15,9 @@ import type {
   CreateTenantConversationResponse,
   CreateTenantInboxRequest,
   CreateTenantInboxResponse,
+  AccountInboxMembersRequest,
+  CreateAccountInboxMembersResponse,
+  UpdateAccountInboxMembersResponse,
   CreateTenantLabelRequest,
   CreateTenantLabelResponse,
   CreateChatwootUserRequest,
@@ -836,6 +839,30 @@ export const chatwootService = {
   ): Promise<DeleteAccountCustomFilterResponse> => {
     const response = await apiClient.delete<DeleteAccountCustomFilterResponse>(
       `${CHATWOOT_BASE}/accounts/${tenantId}/custom_filters/${filterId}`,
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/chatwoot/accounts/:account_id/inbox_members */
+  createAccountInboxMembers: async (
+    accountId: string,
+    data: AccountInboxMembersRequest,
+  ): Promise<CreateAccountInboxMembersResponse> => {
+    const response = await apiClient.post<CreateAccountInboxMembersResponse>(
+      `${CHATWOOT_BASE}/accounts/${accountId}/inbox_members`,
+      data,
+    );
+    return response.data;
+  },
+
+  /** PATCH /api/v1/chatwoot/accounts/:account_id/inbox_members */
+  updateAccountInboxMembers: async (
+    accountId: string,
+    data: AccountInboxMembersRequest,
+  ): Promise<UpdateAccountInboxMembersResponse> => {
+    const response = await apiClient.patch<UpdateAccountInboxMembersResponse>(
+      `${CHATWOOT_BASE}/accounts/${accountId}/inbox_members`,
+      data,
     );
     return response.data;
   },

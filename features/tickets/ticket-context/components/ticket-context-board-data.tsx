@@ -1,15 +1,16 @@
 import { IconMoodEmpty } from "@tabler/icons-react";
-import TicketMessageInput, {
-  TicketContextFormData,
-} from "./ticket-context-message-input";
+// Context được hệ thống xử lý tự động — tạm ẩn input tạo thủ công
+// import TicketMessageInput, {
+//   TicketContextFormData,
+// } from "./ticket-context-message-input";
 import { useParams } from "next/navigation";
 import {
-  useCreateTicketContext,
+  // useCreateTicketContext,
   useGetTicketContextWithTicketIdInfinite,
 } from "@/hooks/ticket/ticket-contexts/use-ticket-context";
 import { EmptyData } from "@/components/empty-data";
-import { useMe } from "@/hooks/user/use-me";
-import { toast } from "sonner";
+// import { useMe } from "@/hooks/user/use-me";
+// import { toast } from "sonner";
 import TicketContextDisplay from "./ticket-context-display";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useRef } from "react";
@@ -82,20 +83,21 @@ export default function TicketDetailLiveChatContext({
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage, isLoading]);
 
-  const { data: meData } = useMe();
-  const { mutate: createTicketContext } = useCreateTicketContext();
+  // Context được hệ thống xử lý tự động — tạm ẩn tạo thủ công
+  // const { data: meData } = useMe();
+  // const { mutate: createTicketContext } = useCreateTicketContext();
 
-  const handleCreateContext = (data: TicketContextFormData) => {
-    if (!id) {
-      toast.error("Không tìm thấy Ticket ID");
-      return;
-    }
+  // const handleCreateContext = (data: TicketContextFormData) => {
+  //   if (!id) {
+  //     toast.error("Không tìm thấy Ticket ID");
+  //     return;
+  //   }
 
-    createTicketContext({
-      ...data,
-      ticket_id: id,
-    });
-  };
+  //   createTicketContext({
+  //     ...data,
+  //     ticket_id: id,
+  //   });
+  // };
 
   const mappedTicketContexts = ticketContexts.map((context) => ({
     id: context.id,
@@ -183,13 +185,14 @@ export default function TicketDetailLiveChatContext({
           )}
         </div>
 
-        <div className="bg-transparent border-t border-slate-200 dark:border-zinc-800">
+        {/* Context được hệ thống xử lý tự động — tạm ẩn input/select tạo thủ công */}
+        {/* <div className="bg-transparent border-t border-slate-200 dark:border-zinc-800">
           <TicketMessageInput
             onSubmit={handleCreateContext}
             tenantId={meData?.tenant_id}
             disabled={!meData?.tenant_id}
           />
-        </div>
+        </div> */}
       </div>
     </div>
   );

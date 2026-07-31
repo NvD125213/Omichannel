@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { ChannelInboxesAction } from "@/features/settings/channel/components/channel-inboxes-action";
+import { ChannelInboxesActionPatch } from "@/features/settings/channel/components/channel-inboxes-action-patch";
 
 export default function EditChannelPage({
   params,
@@ -9,5 +9,5 @@ export default function EditChannelPage({
   params: Promise<{ inboxId: string }>;
 }) {
   const { inboxId } = use(params);
-  return <ChannelInboxesAction inboxId={inboxId} />;
+  return <ChannelInboxesActionPatch inboxId={inboxId} />;
 }
