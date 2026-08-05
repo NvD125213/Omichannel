@@ -1,0 +1,236 @@
+[
+  {
+    "id": "019fa30c-6be2-7214-8378-7ed9d9e2e790",
+    "name": "view_roles",
+    "description": "Permission to view_roles",
+    "belong_to": "role"
+  },
+  {
+    "id": "019fa30c-6c1f-77f8-bc76-309dce3c40a5",
+    "name": "view_logs",
+    "description": "Permission to view_logs",
+    "belong_to": "log"
+  },
+  {
+    "id": "019fa30c-6bf5-7a31-9e95-758475adaea9",
+    "name": "view_permissions",
+    "description": "Permission to view_permissions",
+    "belong_to": "permission"
+  },
+  {
+    "id": "019fa30c-6c7c-7e32-b474-b1171fd3867f",
+    "name": "view_role_permissions_by_role_id",
+    "description": "Permission to view_role_permissions_by_role_id",
+    "belong_to": "permission"
+  },
+  {
+    "id": "019fa30c-6c25-74c6-8781-af485f792747",
+    "name": "view_levels",
+    "description": "Permission to view_levels",
+    "belong_to": "level"
+  },
+  {
+    "id": "019fa30c-6c82-76b8-a3d2-d1ce38ae4067",
+    "name": "view_tags",
+    "description": "Permission to view_tags",
+    "belong_to": "tag"
+  },
+  {
+    "id": "019fa30c-6c3d-7c38-abdb-21f472d4efad",
+    "name": "view_departments",
+    "description": "Permission to view_departments",
+    "belong_to": "department"
+  },
+  {
+    "id": "019fa30c-6c55-7361-b05c-756ada1768e1",
+    "name": "view_groups",
+    "description": "Permission to view_groups",
+    "belong_to": "group"
+  },
+  {
+    "id": "019fa30c-6bd5-735f-9af4-40e65b618eab",
+    "name": "view_user_groups",
+    "description": "Permission to view_user_groups",
+    "belong_to": "group"
+  },
+  {
+    "id": "019fa30c-6c89-73d9-816d-2ac6d6202782",
+    "name": "view_tag_by_id",
+    "description": "Permission to view_tag_by_id",
+    "belong_to": "tag"
+  },
+  {
+    "id": "019fa30c-6ca4-7306-8a78-af54bc850c4b",
+    "name": "view_tickets",
+    "description": "Permission to view_tickets",
+    "belong_to": "ticket"
+  },
+  {
+    "id": "019fa30c-6cdd-7470-a288-1ad704e88b3f",
+    "name": "view_ticket_templates",
+    "description": "Permission to view_ticket_templates",
+    "belong_to": "ticket_template"
+  },
+  {
+    "id": "019fa30c-6cf6-71f6-9ef4-562d05403741",
+    "name": "view_ticket_contexts",
+    "description": "Permission to view_ticket_contexts",
+    "belong_to": "ticket_context"
+  },
+  {
+    "id": "019fa30c-6d13-7016-9db1-0c7f453592a0",
+    "name": "view_ticket_extensions",
+    "description": "Permission to view_ticket_extensions",
+    "belong_to": "ticket_extension"
+  },
+  {
+    "id": "019fa30c-6d2d-756d-8e3e-15ebca4c65e1",
+    "name": "view_ticket_flows",
+    "description": "Permission to view_ticket_flows",
+    "belong_to": "ticket_flow"
+  },
+  {
+    "id": "019fa30c-6d38-758f-9d50-a30807b531b5",
+    "name": "view_ticket_flow_by_id",
+    "description": "Permission to view_ticket_flow_by_id",
+    "belong_to": "ticket_flow"
+  },
+  {
+    "id": "019fa30c-6d53-759a-84e9-a1df921fa050",
+    "name": "view_ticket_flow_instances",
+    "description": "Permission to view_ticket_flow_instances",
+    "belong_to": "ticket_flow_instance"
+  },
+  {
+    "id": "019fa30c-6d59-7453-995c-db4431c33c4e",
+    "name": "view_ticket_flow_instance_by_id",
+    "description": "Permission to view_ticket_flow_instance_by_id",
+    "belong_to": "ticket_flow_instance"
+  },
+  {
+    "id": "019fa30c-6bb3-7dad-b885-433c1c63ca33",
+    "name": "view_users",
+    "description": "Permission to view_users",
+    "belong_to": "user"
+  },
+  {
+    "id": "019fa30c-6cc4-754b-88d1-55e33c32af1b",
+    "name": "view_ticket_events",
+    "description": "Permission to view_ticket_events",
+    "belong_to": "ticket_event"
+  },
+  {
+    "id": "019fa30c-6d76-7abd-9114-a1debc013784",
+    "name": "view_ticket_flow_steps",
+    "description": "Permission to view_ticket_flow_steps",
+    "belong_to": "ticket_flow_step"
+  },
+  {
+    "id": "019fa30c-6d81-75c2-a49e-c9067131ed51",
+    "name": "view_ticket_flow_step_by_id",
+    "description": "Permission to view_ticket_flow_step_by_id",
+    "belong_to": "ticket_flow_step"
+  },
+  {
+    "id": "019fa30c-6da0-7e00-b4ae-b55d5c11743b",
+    "name": "view_customers",
+    "description": "Permission to view_customers",
+    "belong_to": "customer"
+  },
+  {
+    "id": "019fa30c-6da6-7a5c-9ee7-c92fdd6cd392",
+    "name": "view_customer_by_id",
+    "description": "Permission to view_customer_by_id",
+    "belong_to": "customer"
+  },
+  {
+    "id": "019fa30c-6dc1-7a4d-88ed-4188fc134b54",
+    "name": "view_customer_provided_info",
+    "description": "Permission to view_customer_provided_info",
+    "belong_to": "customer_provided_info"
+  },
+  {
+    "id": "019fa30c-6ddd-720b-84cc-10ac18423894",
+    "name": "view_tenants",
+    "description": "Permission to view_tenants",
+    "belong_to": "tenant"
+  },
+  {
+    "id": "019fa671-7edd-7cfb-b7d5-79e123584ff3",
+    "name": "view_level_by_id",
+    "description": "Permission to view_level_by_id",
+    "belong_to": "level"
+  },
+  {
+    "id": "019fa671-7f03-75cf-bef9-95d40b8205be",
+    "name": "view_group_detail_by_id",
+    "description": "Permission to view_group_detail_by_id",
+    "belong_to": "group"
+  },
+  {
+    "id": "019fcacd-1eea-7082-9e19-2f7119424dbf",
+    "name": "view_messaging_accounts",
+    "description": "Permission to view_messaging_accounts",
+    "belong_to": "messaging_account"
+  },
+  {
+    "id": "019fcacd-1f46-7560-b9f5-602d401b1adf",
+    "name": "view_messaging_inboxes",
+    "description": "Permission to view_messaging_inboxes",
+    "belong_to": "messaging_inboxes"
+  },
+  {
+    "id": "019fcacd-1f61-7bac-a193-5aab48bf49c1",
+    "name": "view_messaging_labels",
+    "description": "Permission to view_messaging_labels",
+    "belong_to": "messaging_label"
+  },
+  {
+    "id": "019fcacd-1f7d-7aca-b012-9d16db840a16",
+    "name": "view_messaging_custom_filters",
+    "description": "Permission to view_messaging_custom_filters",
+    "belong_to": "messaging_custom_filter"
+  },
+  {
+    "id": "019fa671-7ef2-7851-b396-f89358a52170",
+    "name": "view_department_by_id",
+    "description": "Permission to view_department_by_id",
+    "belong_to": "department"
+  },
+  {
+    "id": "019fa671-7efd-7f0f-bbf6-1116b4f0dd71",
+    "name": "view_group_by_id",
+    "description": "Permission to view_group_by_id",
+    "belong_to": "group"
+  },
+  {
+    "id": "019fcacd-1f15-7e69-910c-e2b2e0dc5d0a",
+    "name": "view_messaging_conversations",
+    "description": "Permission to view_messaging_conversations",
+    "belong_to": "messaging_conversation"
+  },
+  {
+    "id": "019fcacd-1f97-7677-b2ca-4598db87a713",
+    "name": "view_messaging_agents",
+    "description": "Permission to view_messaging_agents",
+    "belong_to": "messaging_agent"
+  },
+  {
+    "id": "019fcacd-1fb7-7050-9eaf-6d8a694bc563",
+    "name": "view_messaging_teams",
+    "description": "Permission to view_messaging_teams",
+    "belong_to": "messaging_team"
+  },
+  {
+    "id": "019fcacd-1fd6-79ec-8708-f7614ab9b098",
+    "name": "view_messaging_agent_bots",
+    "description": "Permission to view_messaging_agent_bots",
+    "belong_to": "messaging_agent_bot"
+  },
+  {
+    "id": "019fcacd-1fef-7953-a44c-26630a7f93eb",
+    "name": "view_messaging_users",
+    "description": "Permission to view_messaging_users",
+    "belong_to": "messaging_user"
+  }
+]

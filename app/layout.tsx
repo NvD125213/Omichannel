@@ -1,17 +1,15 @@
-import { QueryProvider } from "@/components/query-provider";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/auth-context";
-import { CallSoftphoneHost } from "@/components/call-softphone-host";
-import { CGVCallSDKProvider } from "@/components/cgv-call-sdk-provider";
-import { AUTH_NAV_RECOVERY_INLINE_SCRIPT } from "@/constants/auth-navigation";
-import { FontProvider } from "@/contexts/font-context";
 import { SocketProvider } from "@/contexts/socket-context";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Manrope, Noto_Sans } from "next/font/google";
 import NextToploader from "nextjs-toploader";
 import "./globals.css";
+import { AUTH_NAV_RECOVERY_INLINE_SCRIPT } from "@/constants/auth-navigation";
+import { FontProvider } from "@/contexts/font-context";
+import { AuthProvider } from "@/contexts/auth-context";
+import { QueryProvider } from "@/components/query-provider";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,13 +88,10 @@ export default function RootLayout({
               />
               <QueryProvider>
                 <AuthProvider>
-                  <CGVCallSDKProvider>
-                    <SocketProvider>
-                      {children}
-                      <Toaster richColors />
-                    </SocketProvider>
-                    <CallSoftphoneHost />
-                  </CGVCallSDKProvider>
+                  <SocketProvider>
+                    {children}
+                    <Toaster richColors />
+                  </SocketProvider>
                 </AuthProvider>
               </QueryProvider>
             </FontProvider>

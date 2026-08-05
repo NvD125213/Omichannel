@@ -17,6 +17,8 @@ export interface CallLog {
   recording_url: string | null;
   meta_data: Record<string, unknown> | null;
   tenant_id: string | null;
+  tenant_name?: string | null;
+  username_action_call?: string | null;
   created_at?: string;
   updated_at?: string;
 }

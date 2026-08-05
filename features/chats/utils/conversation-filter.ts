@@ -125,15 +125,15 @@ const coerceConversationRecords = (
 export const extractFilterConversationsPayload = (
   res: FilterConversationsResponse | null | undefined,
 ): Record<string, unknown>[] | null => {
-  const chatwoot = res?.data?.chatwoot;
-  if (!chatwoot) return null;
-  return coerceConversationRecords(chatwoot.payload);
+  const envelope = res?.data?.messaging ?? res?.data?.chatwoot;
+  if (!envelope) return null;
+  return coerceConversationRecords(envelope.payload);
 };
 
 export const extractFilterConversationsMeta = (
   res: FilterConversationsResponse | null | undefined,
 ): TenantConversationsListMeta | null => {
-  const meta = res?.data?.chatwoot?.meta;
+  const meta = res?.data?.messaging?.meta ?? res?.data?.chatwoot?.meta;
   if (meta && typeof meta === "object") return meta;
   return null;
 };
@@ -189,6 +189,8 @@ export const extractAccountCustomFilters = (
     coerceCustomFilterRecords(root.payload) ??
     coerceCustomFilterRecords(root.data?.custom_filters) ??
     coerceCustomFilterRecords(root.data?.payload) ??
+    coerceCustomFilterRecords(root.messaging?.custom_filters) ??
+    coerceCustomFilterRecords(root.messaging?.payload) ??
     coerceCustomFilterRecords(root.chatwoot?.custom_filters) ??
     coerceCustomFilterRecords(root.chatwoot?.payload) ??
     []

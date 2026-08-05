@@ -93,7 +93,8 @@ type ChannelDefinition = {
 
 type AgentOption = {
   id: string;
-  userId: number | null;
+  /** UUID user gắn với agent — gửi lên inbox_members.user_ids */
+  userId: string | null;
   name: string;
   email: string;
   thumbnail?: string;
@@ -202,7 +203,7 @@ function extractRecords(response: unknown): Record<string, unknown>[] {
       coerceRecords(data.agents) ??
       coerceRecords(data.inboxes) ??
       coerceRecords(
-        (data.chatwoot as Record<string, unknown> | undefined)?.payload,
+        (data.messaging as Record<string, unknown> | undefined)?.payload,
       ) ??
       []
     );
@@ -255,6 +256,13 @@ function toNumericId(value: unknown): number | null {
   if (!raw || !/^-?\d+$/.test(raw)) return null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toUuidId(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const raw = String(value).trim();
+  if (!raw || /^-?\d+$/.test(raw)) return null;
+  return raw;
 }
 
 function findNumericIdInValue(
@@ -490,11 +498,12 @@ function normalizeAgent(
   const name = String(record.available_name ?? record.name ?? "").trim();
   const email = String(record.email ?? "").trim();
   const userId =
-    toNumericId(record.user_id) ??
-    toNumericId(record.id) ??
-    toNumericId(record.account_user_id);
+    toUuidId(record.user_id) ??
+    toUuidId(record.uuid) ??
+    toUuidId(record.id) ??
+    toUuidId(record.account_user_id);
   const id =
-    (userId !== null ? String(userId) : "") ||
+    userId ||
     String(record.id ?? record.user_id ?? record.uuid ?? "").trim() ||
     email ||
     `agent-${index + 1}`;
@@ -718,14 +727,14 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
       const userIds = selectedMemberIds
         .map((selectedId) => {
           const agent = agents.find((item) => item.id === selectedId);
-          return agent?.userId ?? toNumericId(selectedId);
+          return agent?.userId ?? toUuidId(selectedId) ?? (selectedId || null);
         })
-        .filter((id): id is number => id !== null);
+        .filter((id): id is string => Boolean(id));
 
       // Luôn gọi inbox_members sau khi tạo/cập nhật kênh nếu đã chọn agent
       if (selectedMemberIds.length > 0) {
         if (userIds.length === 0) {
-          toast.error("Không lấy được user_ids hợp lệ từ danh sách agent");
+          toast.error("Không lấy được user_ids (UUID) hợp lệ từ danh sách agent");
           return false;
         }
 

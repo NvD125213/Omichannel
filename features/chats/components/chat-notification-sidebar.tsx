@@ -137,7 +137,7 @@ function extractRawLabels(
   if (!response || typeof response !== "object") return [];
   const root = response as Record<string, unknown>;
   const fromData = root.data as Record<string, unknown> | undefined;
-  const chatwoot = fromData?.chatwoot as Record<string, unknown> | undefined;
+  const chatwoot = fromData?.messaging as Record<string, unknown> | undefined;
 
   const chatwootPayloadObjects = coerceObjectArray(chatwoot?.payload);
   if (chatwootPayloadObjects) return chatwootPayloadObjects;
@@ -173,9 +173,9 @@ function extractTeams(response: unknown): TenantTeamItem[] {
   const rawTeams =
     coerceObjectArray(data.teams) ??
     coerceObjectArray(data.payload) ??
-    coerceObjectArray(data.chatwoot) ??
+    coerceObjectArray(data.messaging) ??
     coerceObjectArray(
-      (data.chatwoot as Record<string, unknown> | undefined)?.payload,
+      (data.messaging as Record<string, unknown> | undefined)?.payload,
     ) ??
     [];
 
@@ -532,8 +532,8 @@ export function ChatNotificationSidebar({
   const { data: customFiltersData, isLoading: isCustomFiltersLoading } =
     useListAccountCustomFilters(tenantId);
   const inboxPayload = (
-    inboxData?.data as { chatwoot?: { payload?: unknown } } | undefined
-  )?.chatwoot?.payload;
+    inboxData?.data as { messaging?: { payload?: unknown } } | undefined
+  )?.messaging?.payload;
   const inboxes: TenantInboxItem[] = Array.isArray(inboxPayload)
     ? (inboxPayload as TenantInboxItem[])
     : [];

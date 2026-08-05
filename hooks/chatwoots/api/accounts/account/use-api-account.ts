@@ -29,10 +29,10 @@ export const useChatwootAppAccountCreate = () => {
   return useMutation({
     mutationFn: (data: CreateAppAccountRequest) => createAppAccountApi(data),
     onSuccess: () => {
-      toast.success("Tạo tài khoản Chatwoot thành công");
+      toast.success("Tạo tài khoản message thành công");
       queryClient.invalidateQueries({ queryKey: ["chatwoot", "account"] });
     },
-    onError: (e) => toastError(e, "Có lỗi xảy ra khi tạo tài khoản Chatwoot"),
+    onError: (e) => toastError(e, "Có lỗi xảy ra khi tạo tài khoản message"),
   });
 };
 
@@ -47,10 +47,10 @@ export const useChatwootAppAccountUpdate = () => {
       data: UpdateAppAccountRequest;
     }) => updateAppAccountApi(accountId, data),
     onSuccess: (_, { accountId }) => {
-      toast.success("Cập nhật tài khoản Chatwoot thành công");
+      toast.success("Cập nhật tài khoản message thành công");
       queryClient.invalidateQueries({ queryKey: accountKey(accountId) });
     },
     onError: (e) =>
-      toastError(e, "Có lỗi xảy ra khi cập nhật tài khoản Chatwoot"),
+      toastError(e, "Có lỗi xảy ra khi cập nhật tài khoản message"),
   });
 };

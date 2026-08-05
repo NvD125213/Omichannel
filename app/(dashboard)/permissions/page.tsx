@@ -12,7 +12,9 @@ function PermissionsPageContent() {
 
 export default function PermissionsPage() {
   return (
-    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_PERMISSIONS]}>
+    <ProtectedRoute
+      requiredPermissions={[PERMISSIONS.ASSIGN_PERMISSIONS_TO_ROLE]}
+    >
       <PermissionsPageContent />
     </ProtectedRoute>
   );

@@ -73,7 +73,7 @@ const extractTenantMessagePayload = (
   const nestedPayload = coerceMessageRecords(nested?.payload);
   if (nestedPayload) return nestedPayload;
 
-  const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
+  const chatwoot = data.messaging as Record<string, unknown> | undefined;
   const chatwootPayloadDirect = coerceMessageRecords(chatwoot?.payload);
   if (chatwootPayloadDirect) return chatwootPayloadDirect;
   const chatwootData = chatwoot?.data as Record<string, unknown> | undefined;
@@ -663,11 +663,11 @@ export function MessageList({
                   }
 
                   const chatwootData =
-                    nextPageData.chatwoot &&
-                    typeof nextPageData.chatwoot === "object" &&
-                    !Array.isArray(nextPageData.chatwoot)
+                    nextPageData.messaging &&
+                    typeof nextPageData.messaging === "object" &&
+                    !Array.isArray(nextPageData.messaging)
                       ? {
-                          ...(nextPageData.chatwoot as Record<string, unknown>),
+                          ...(nextPageData.messaging as Record<string, unknown>),
                         }
                       : null;
                   if (chatwootData) {
@@ -690,7 +690,7 @@ export function MessageList({
                       chatwootData.data = chatwootNestedData;
                     }
 
-                    nextPageData.chatwoot = chatwootData;
+                    nextPageData.messaging = chatwootData;
                   }
 
                   nextPageData.messages = removeMessageFromPayload(

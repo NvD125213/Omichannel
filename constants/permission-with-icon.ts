@@ -88,6 +88,8 @@ export const PERMISSIONS = {
 
   // Groups
   VIEW_GROUPS: "view_groups",
+  VIEW_GROUP_BY_ID: "view_group_by_id",
+  VIEW_GROUP_DETAIL_BY_ID: "view_group_detail_by_id",
   CREATE_GROUP: "create_group",
   EDIT_GROUP: "edit_group",
   DELETE_GROUP: "delete_group",
@@ -96,6 +98,7 @@ export const PERMISSIONS = {
 
   // Levels
   VIEW_LEVELS: "view_levels",
+  VIEW_LEVEL_BY_ID: "view_level_by_id",
   CREATE_LEVEL: "create_level",
   EDIT_LEVEL: "edit_level",
   DELETE_LEVEL: "delete_level",
@@ -140,11 +143,78 @@ export const PERMISSIONS = {
   EDIT_CUSTOMER: "edit_customer",
   DELETE_CUSTOMER: "delete_customer",
 
+  // Customer provided info
+  VIEW_CUSTOMER_PROVIDED_INFO: "view_customer_provided_info",
+  CREATE_CUSTOMER_PROVIDED_INFO: "create_customer_provided_info",
+  EDIT_CUSTOMER_PROVIDED_INFO: "edit_customer_provided_info",
+  DELETE_CUSTOMER_PROVIDED_INFO: "delete_customer_provided_info",
+
   // Tenants (NEW)
   VIEW_TENANTS: "view_tenants",
   CREATE_TENANT: "create_tenant",
   EDIT_TENANT: "edit_tenant",
   DELETE_TENANT: "delete_tenant",
+
+  // Messaging — accounts
+  VIEW_MESSAGING_ACCOUNTS: "view_messaging_accounts",
+  CREATE_MESSAGING_ACCOUNT: "create_messaging_account",
+  EDIT_MESSAGING_ACCOUNT: "edit_messaging_account",
+  DELETE_MESSAGING_ACCOUNT: "delete_messaging_account",
+  SYNC_MESSAGING_INTEGRATION: "sync_messaging_integration",
+
+  // Messaging — conversations
+  VIEW_MESSAGING_CONVERSATIONS: "view_messaging_conversations",
+  CREATE_MESSAGING_CONVERSATION: "create_messaging_conversation",
+  EDIT_MESSAGING_CONVERSATION: "edit_messaging_conversation",
+  DELETE_MESSAGING_CONVERSATION: "delete_messaging_conversation",
+  ASSIGN_MESSAGING_CONVERSATION: "assign_messaging_conversation",
+  BULK_MESSAGING_ACTIONS: "bulk_messaging_actions",
+
+  // Messaging — messages
+  SEND_MESSAGING_MESSAGE: "send_messaging_message",
+  DELETE_MESSAGING_MESSAGE: "delete_messaging_message",
+
+  // Messaging — inboxes
+  VIEW_MESSAGING_INBOXES: "view_messaging_inboxes",
+  CREATE_MESSAGING_INBOX: "create_messaging_inbox",
+  EDIT_MESSAGING_INBOX: "edit_messaging_inbox",
+  MANAGE_MESSAGING_INBOX_MEMBERS: "manage_messaging_inbox_members",
+
+  // Messaging — labels
+  VIEW_MESSAGING_LABELS: "view_messaging_labels",
+  CREATE_MESSAGING_LABEL: "create_messaging_label",
+  DELETE_MESSAGING_LABEL: "delete_messaging_label",
+
+  // Messaging — custom filters
+  VIEW_MESSAGING_CUSTOM_FILTERS: "view_messaging_custom_filters",
+  CREATE_MESSAGING_CUSTOM_FILTER: "create_messaging_custom_filter",
+  EDIT_MESSAGING_CUSTOM_FILTER: "edit_messaging_custom_filter",
+  DELETE_MESSAGING_CUSTOM_FILTER: "delete_messaging_custom_filter",
+
+  // Messaging — agents
+  VIEW_MESSAGING_AGENTS: "view_messaging_agents",
+  CREATE_MESSAGING_AGENT: "create_messaging_agent",
+  EDIT_MESSAGING_AGENT: "edit_messaging_agent",
+  DELETE_MESSAGING_AGENT: "delete_messaging_agent",
+
+  // Messaging — teams
+  VIEW_MESSAGING_TEAMS: "view_messaging_teams",
+  CREATE_MESSAGING_TEAM: "create_messaging_team",
+  EDIT_MESSAGING_TEAM: "edit_messaging_team",
+  DELETE_MESSAGING_TEAM: "delete_messaging_team",
+  MANAGE_MESSAGING_TEAM_MEMBERS: "manage_messaging_team_members",
+
+  // Messaging — agent bots
+  VIEW_MESSAGING_AGENT_BOTS: "view_messaging_agent_bots",
+  CREATE_MESSAGING_AGENT_BOT: "create_messaging_agent_bot",
+  EDIT_MESSAGING_AGENT_BOT: "edit_messaging_agent_bot",
+  DELETE_MESSAGING_AGENT_BOT: "delete_messaging_agent_bot",
+
+  // Messaging — users
+  VIEW_MESSAGING_USERS: "view_messaging_users",
+  CREATE_MESSAGING_USER: "create_messaging_user",
+  EDIT_MESSAGING_USER: "edit_messaging_user",
+  DELETE_MESSAGING_USER: "delete_messaging_user",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -475,6 +545,16 @@ export const PERMISSIONS_META: Record<
 
   // Groups
   VIEW_GROUPS: { value: "view_groups", icon: "UsersRound", label: "Xem nhóm" },
+  VIEW_GROUP_BY_ID: {
+    value: "view_group_by_id",
+    icon: "UserSearch",
+    label: "Xem nhóm theo ID",
+  },
+  VIEW_GROUP_DETAIL_BY_ID: {
+    value: "view_group_detail_by_id",
+    icon: "UsersRound",
+    label: "Xem chi tiết nhóm",
+  },
   CREATE_GROUP: {
     value: "create_group",
     icon: "UserRoundPlus",
@@ -499,6 +579,11 @@ export const PERMISSIONS_META: Record<
 
   // Levels
   VIEW_LEVELS: { value: "view_levels", icon: "BarChart2", label: "Xem cấp độ" },
+  VIEW_LEVEL_BY_ID: {
+    value: "view_level_by_id",
+    icon: "BarChart2",
+    label: "Xem cấp độ theo ID",
+  },
   CREATE_LEVEL: {
     value: "create_level",
     icon: "BarChartPlus",
@@ -623,6 +708,28 @@ export const PERMISSIONS_META: Record<
     label: "Xoá khách hàng",
   },
 
+  // Customer provided info
+  VIEW_CUSTOMER_PROVIDED_INFO: {
+    value: "view_customer_provided_info",
+    icon: "Contact",
+    label: "Xem thông tin khách cung cấp",
+  },
+  CREATE_CUSTOMER_PROVIDED_INFO: {
+    value: "create_customer_provided_info",
+    icon: "ContactRound",
+    label: "Tạo thông tin khách cung cấp",
+  },
+  EDIT_CUSTOMER_PROVIDED_INFO: {
+    value: "edit_customer_provided_info",
+    icon: "Contact",
+    label: "Sửa thông tin khách cung cấp",
+  },
+  DELETE_CUSTOMER_PROVIDED_INFO: {
+    value: "delete_customer_provided_info",
+    icon: "ContactRound",
+    label: "Xoá thông tin khách cung cấp",
+  },
+
   // Tenants
   VIEW_TENANTS: {
     value: "view_tenants",
@@ -631,7 +738,7 @@ export const PERMISSIONS_META: Record<
   },
   CREATE_TENANT: {
     value: "create_tenant",
-    icon: "BuildingPlus",
+    icon: "Building",
     label: "Tạo tenant",
   },
   EDIT_TENANT: {
@@ -641,8 +748,233 @@ export const PERMISSIONS_META: Record<
   },
   DELETE_TENANT: {
     value: "delete_tenant",
-    icon: "BuildingX",
+    icon: "Building2",
     label: "Xoá tenant",
+  },
+
+  // Messaging — accounts
+  VIEW_MESSAGING_ACCOUNTS: {
+    value: "view_messaging_accounts",
+    icon: "MessagesSquare",
+    label: "Xem tài khoản messaging",
+  },
+  CREATE_MESSAGING_ACCOUNT: {
+    value: "create_messaging_account",
+    icon: "MessageSquarePlus",
+    label: "Tạo tài khoản messaging",
+  },
+  EDIT_MESSAGING_ACCOUNT: {
+    value: "edit_messaging_account",
+    icon: "MessageSquare",
+    label: "Sửa tài khoản messaging",
+  },
+  DELETE_MESSAGING_ACCOUNT: {
+    value: "delete_messaging_account",
+    icon: "MessageSquareOff",
+    label: "Xoá tài khoản messaging",
+  },
+  SYNC_MESSAGING_INTEGRATION: {
+    value: "sync_messaging_integration",
+    icon: "RefreshCw",
+    label: "Đồng bộ tích hợp messaging",
+  },
+
+  // Messaging — conversations
+  VIEW_MESSAGING_CONVERSATIONS: {
+    value: "view_messaging_conversations",
+    icon: "MessageCircle",
+    label: "Xem hội thoại messaging",
+  },
+  CREATE_MESSAGING_CONVERSATION: {
+    value: "create_messaging_conversation",
+    icon: "MessageCirclePlus",
+    label: "Tạo hội thoại messaging",
+  },
+  EDIT_MESSAGING_CONVERSATION: {
+    value: "edit_messaging_conversation",
+    icon: "MessageCircle",
+    label: "Sửa hội thoại messaging",
+  },
+  DELETE_MESSAGING_CONVERSATION: {
+    value: "delete_messaging_conversation",
+    icon: "MessageCircleX",
+    label: "Xoá hội thoại messaging",
+  },
+  ASSIGN_MESSAGING_CONVERSATION: {
+    value: "assign_messaging_conversation",
+    icon: "UserCheck",
+    label: "Gán hội thoại messaging",
+  },
+  BULK_MESSAGING_ACTIONS: {
+    value: "bulk_messaging_actions",
+    icon: "ListChecks",
+    label: "Thao tác hàng loạt messaging",
+  },
+
+  // Messaging — messages
+  SEND_MESSAGING_MESSAGE: {
+    value: "send_messaging_message",
+    icon: "Send",
+    label: "Gửi tin nhắn messaging",
+  },
+  DELETE_MESSAGING_MESSAGE: {
+    value: "delete_messaging_message",
+    icon: "Trash2",
+    label: "Xoá tin nhắn messaging",
+  },
+
+  // Messaging — inboxes
+  VIEW_MESSAGING_INBOXES: {
+    value: "view_messaging_inboxes",
+    icon: "Inbox",
+    label: "Xem hộp thư messaging",
+  },
+  CREATE_MESSAGING_INBOX: {
+    value: "create_messaging_inbox",
+    icon: "Inbox",
+    label: "Tạo hộp thư messaging",
+  },
+  EDIT_MESSAGING_INBOX: {
+    value: "edit_messaging_inbox",
+    icon: "Pencil",
+    label: "Sửa hộp thư messaging",
+  },
+  MANAGE_MESSAGING_INBOX_MEMBERS: {
+    value: "manage_messaging_inbox_members",
+    icon: "UserCog",
+    label: "Quản lý thành viên hộp thư",
+  },
+
+  // Messaging — labels
+  VIEW_MESSAGING_LABELS: {
+    value: "view_messaging_labels",
+    icon: "Tags",
+    label: "Xem nhãn messaging",
+  },
+  CREATE_MESSAGING_LABEL: {
+    value: "create_messaging_label",
+    icon: "Tag",
+    label: "Tạo nhãn messaging",
+  },
+  DELETE_MESSAGING_LABEL: {
+    value: "delete_messaging_label",
+    icon: "Tag",
+    label: "Xoá nhãn messaging",
+  },
+
+  // Messaging — custom filters
+  VIEW_MESSAGING_CUSTOM_FILTERS: {
+    value: "view_messaging_custom_filters",
+    icon: "Filter",
+    label: "Xem bộ lọc messaging",
+  },
+  CREATE_MESSAGING_CUSTOM_FILTER: {
+    value: "create_messaging_custom_filter",
+    icon: "Filter",
+    label: "Tạo bộ lọc messaging",
+  },
+  EDIT_MESSAGING_CUSTOM_FILTER: {
+    value: "edit_messaging_custom_filter",
+    icon: "Filter",
+    label: "Sửa bộ lọc messaging",
+  },
+  DELETE_MESSAGING_CUSTOM_FILTER: {
+    value: "delete_messaging_custom_filter",
+    icon: "FilterX",
+    label: "Xoá bộ lọc messaging",
+  },
+
+  // Messaging — agents
+  VIEW_MESSAGING_AGENTS: {
+    value: "view_messaging_agents",
+    icon: "Headset",
+    label: "Xem agent messaging",
+  },
+  CREATE_MESSAGING_AGENT: {
+    value: "create_messaging_agent",
+    icon: "UserPlus",
+    label: "Tạo agent messaging",
+  },
+  EDIT_MESSAGING_AGENT: {
+    value: "edit_messaging_agent",
+    icon: "UserCog",
+    label: "Sửa agent messaging",
+  },
+  DELETE_MESSAGING_AGENT: {
+    value: "delete_messaging_agent",
+    icon: "UserMinus",
+    label: "Xoá agent messaging",
+  },
+
+  // Messaging — teams
+  VIEW_MESSAGING_TEAMS: {
+    value: "view_messaging_teams",
+    icon: "UsersRound",
+    label: "Xem team messaging",
+  },
+  CREATE_MESSAGING_TEAM: {
+    value: "create_messaging_team",
+    icon: "Users",
+    label: "Tạo team messaging",
+  },
+  EDIT_MESSAGING_TEAM: {
+    value: "edit_messaging_team",
+    icon: "UsersRound",
+    label: "Sửa team messaging",
+  },
+  DELETE_MESSAGING_TEAM: {
+    value: "delete_messaging_team",
+    icon: "Users",
+    label: "Xoá team messaging",
+  },
+  MANAGE_MESSAGING_TEAM_MEMBERS: {
+    value: "manage_messaging_team_members",
+    icon: "UserCog",
+    label: "Quản lý thành viên team",
+  },
+
+  // Messaging — agent bots
+  VIEW_MESSAGING_AGENT_BOTS: {
+    value: "view_messaging_agent_bots",
+    icon: "Bot",
+    label: "Xem agent bot messaging",
+  },
+  CREATE_MESSAGING_AGENT_BOT: {
+    value: "create_messaging_agent_bot",
+    icon: "Bot",
+    label: "Tạo agent bot messaging",
+  },
+  EDIT_MESSAGING_AGENT_BOT: {
+    value: "edit_messaging_agent_bot",
+    icon: "Bot",
+    label: "Sửa agent bot messaging",
+  },
+  DELETE_MESSAGING_AGENT_BOT: {
+    value: "delete_messaging_agent_bot",
+    icon: "BotOff",
+    label: "Xoá agent bot messaging",
+  },
+
+  // Messaging — users
+  VIEW_MESSAGING_USERS: {
+    value: "view_messaging_users",
+    icon: "Users",
+    label: "Xem user messaging",
+  },
+  CREATE_MESSAGING_USER: {
+    value: "create_messaging_user",
+    icon: "UserPlus",
+    label: "Tạo user messaging",
+  },
+  EDIT_MESSAGING_USER: {
+    value: "edit_messaging_user",
+    icon: "UserPen",
+    label: "Sửa user messaging",
+  },
+  DELETE_MESSAGING_USER: {
+    value: "delete_messaging_user",
+    icon: "UserMinus",
+    label: "Xoá user messaging",
   },
 };
 
@@ -793,6 +1125,8 @@ export const PERMISSION_CATEGORIES: PermissionCategory[] = [
     icon: "UsersRound",
     permissions: [
       "VIEW_GROUPS",
+      "VIEW_GROUP_BY_ID",
+      "VIEW_GROUP_DETAIL_BY_ID",
       "CREATE_GROUP",
       "EDIT_GROUP",
       "DELETE_GROUP",
@@ -803,7 +1137,13 @@ export const PERMISSION_CATEGORIES: PermissionCategory[] = [
   {
     label: "Cấp độ",
     icon: "BarChart2",
-    permissions: ["VIEW_LEVELS", "CREATE_LEVEL", "EDIT_LEVEL", "DELETE_LEVEL"],
+    permissions: [
+      "VIEW_LEVELS",
+      "VIEW_LEVEL_BY_ID",
+      "CREATE_LEVEL",
+      "EDIT_LEVEL",
+      "DELETE_LEVEL",
+    ],
   },
   {
     label: "Nhãn",
@@ -820,6 +1160,84 @@ export const PERMISSION_CATEGORIES: PermissionCategory[] = [
     label: "Nhật ký",
     icon: "ScrollText",
     permissions: ["VIEW_LOGS"],
+  },
+  {
+    label: "Khách hàng",
+    icon: "Users",
+    permissions: [
+      "VIEW_CUSTOMERS",
+      "VIEW_CUSTOMER_BY_ID",
+      "CREATE_CUSTOMER",
+      "EDIT_CUSTOMER",
+      "DELETE_CUSTOMER",
+    ],
+  },
+  {
+    label: "Thông tin khách cung cấp",
+    icon: "Contact",
+    permissions: [
+      "VIEW_CUSTOMER_PROVIDED_INFO",
+      "CREATE_CUSTOMER_PROVIDED_INFO",
+      "EDIT_CUSTOMER_PROVIDED_INFO",
+      "DELETE_CUSTOMER_PROVIDED_INFO",
+    ],
+  },
+  {
+    label: "Tenant",
+    icon: "Building2",
+    permissions: [
+      "VIEW_TENANTS",
+      "CREATE_TENANT",
+      "EDIT_TENANT",
+      "DELETE_TENANT",
+    ],
+  },
+  {
+    label: "Messaging",
+    icon: "MessagesSquare",
+    permissions: [
+      "VIEW_MESSAGING_ACCOUNTS",
+      "CREATE_MESSAGING_ACCOUNT",
+      "EDIT_MESSAGING_ACCOUNT",
+      "DELETE_MESSAGING_ACCOUNT",
+      "SYNC_MESSAGING_INTEGRATION",
+      "VIEW_MESSAGING_CONVERSATIONS",
+      "CREATE_MESSAGING_CONVERSATION",
+      "EDIT_MESSAGING_CONVERSATION",
+      "DELETE_MESSAGING_CONVERSATION",
+      "ASSIGN_MESSAGING_CONVERSATION",
+      "BULK_MESSAGING_ACTIONS",
+      "SEND_MESSAGING_MESSAGE",
+      "DELETE_MESSAGING_MESSAGE",
+      "VIEW_MESSAGING_INBOXES",
+      "CREATE_MESSAGING_INBOX",
+      "EDIT_MESSAGING_INBOX",
+      "MANAGE_MESSAGING_INBOX_MEMBERS",
+      "VIEW_MESSAGING_LABELS",
+      "CREATE_MESSAGING_LABEL",
+      "DELETE_MESSAGING_LABEL",
+      "VIEW_MESSAGING_CUSTOM_FILTERS",
+      "CREATE_MESSAGING_CUSTOM_FILTER",
+      "EDIT_MESSAGING_CUSTOM_FILTER",
+      "DELETE_MESSAGING_CUSTOM_FILTER",
+      "VIEW_MESSAGING_AGENTS",
+      "CREATE_MESSAGING_AGENT",
+      "EDIT_MESSAGING_AGENT",
+      "DELETE_MESSAGING_AGENT",
+      "VIEW_MESSAGING_TEAMS",
+      "CREATE_MESSAGING_TEAM",
+      "EDIT_MESSAGING_TEAM",
+      "DELETE_MESSAGING_TEAM",
+      "MANAGE_MESSAGING_TEAM_MEMBERS",
+      "VIEW_MESSAGING_AGENT_BOTS",
+      "CREATE_MESSAGING_AGENT_BOT",
+      "EDIT_MESSAGING_AGENT_BOT",
+      "DELETE_MESSAGING_AGENT_BOT",
+      "VIEW_MESSAGING_USERS",
+      "CREATE_MESSAGING_USER",
+      "EDIT_MESSAGING_USER",
+      "DELETE_MESSAGING_USER",
+    ],
   },
   {
     label: "FAQ",

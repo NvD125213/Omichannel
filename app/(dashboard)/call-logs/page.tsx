@@ -36,12 +36,15 @@ const directionOptions: FilterOption[] = [
 
 const columnOptions: ColumnOption[] = [
   { id: "phone_number", label: "Số điện thoại" },
+  { id: "source", label: "Nguồn gọi" },
+  { id: "tenant_name", label: "Doanh nghiệp" },
+  { id: "username_action_call", label: "Người thực hiện" },
   { id: "direction", label: "Chiều gọi" },
   { id: "status", label: "Trạng thái" },
   { id: "duration", label: "Thời lượng" },
   { id: "started_at", label: "Bắt đầu" },
   { id: "ended_at", label: "Kết thúc" },
-  { id: "links", label: "Liên kết" },
+  { id: "recording_url", label: "Ghi âm" },
 ];
 
 export default function CallLogsPage() {

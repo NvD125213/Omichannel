@@ -156,12 +156,13 @@ export const sidebarData: SidebarData = {
               title: "Khách hàng tiềm năng",
               url: "/customers/leads",
               icon: UserStar,
+              permissions: [PERMISSIONS.VIEW_CUSTOMERS],
             },
             {
               title: "Quản lý tag",
               url: "/customers/tags",
               icon: IconTag,
-              permissions: [PERMISSIONS.VIEW_CUSTOMERS],
+              permissions: [PERMISSIONS.VIEW_TAGS, PERMISSIONS.VIEW_CUSTOMERS],
             },
           ],
         },
@@ -169,7 +170,7 @@ export const sidebarData: SidebarData = {
         {
           title: "Quản lý người dùng",
           icon: IconUserPlus,
-          permissions: [PERMISSIONS.VIEW_USERS],
+          permissions: [PERMISSIONS.VIEW_USERS, PERMISSIONS.VIEW_TENANTS],
           items: [
             {
               title: "Quản lý người dùng",
@@ -181,7 +182,7 @@ export const sidebarData: SidebarData = {
               title: "Quản lý doanh nghiệp",
               url: "/tenants",
               icon: IconBuildingBroadcastTower,
-              // permissions: [PERMISSIONS.VIEW_TENANTS],
+              permissions: [PERMISSIONS.VIEW_TENANTS],
             },
           ],
         },
@@ -190,7 +191,7 @@ export const sidebarData: SidebarData = {
           title: "Quản lý phòng ban",
           url: "/departments",
           icon: IconBuilding,
-          permissions: [PERMISSIONS.VIEW_DEPARTMENTS],
+          permissions: [PERMISSIONS.VIEW_DEPARTMENTS, PERMISSIONS.VIEW_GROUPS],
         },
         {
           title: "Danh sách Lead",
@@ -203,11 +204,16 @@ export const sidebarData: SidebarData = {
           url: "/chats",
           badgeColor: "green",
           icon: IconMessages,
+          permissions: [
+            PERMISSIONS.VIEW_MESSAGING_CONVERSATIONS,
+            PERMISSIONS.SEND_MESSAGING_MESSAGE,
+          ],
         },
         {
           title: "Lịch sử cuộc gọi",
           url: "/call-logs",
           icon: IconPhoneCall,
+          permissions: [PERMISSIONS.VIEW_LOGS],
         },
         // {
         //   title: "Calendar",
@@ -327,7 +333,7 @@ export const sidebarData: SidebarData = {
               title: "Phân quyền",
               url: "/permissions",
               icon: IconLock,
-              permissions: [PERMISSIONS.VIEW_PERMISSIONS],
+              permissions: [PERMISSIONS.ASSIGN_PERMISSIONS_TO_ROLE],
             },
           ],
         },

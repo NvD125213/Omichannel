@@ -134,10 +134,10 @@ export const extractCreatedMessageFromResponse = (
       record.payload,
       record.message,
       record.data,
-      record.chatwoot,
+      record.messaging,
     );
 
-    const chatwoot = record.chatwoot;
+    const chatwoot = record.messaging;
     if (chatwoot && typeof chatwoot === "object" && !Array.isArray(chatwoot)) {
       const box = chatwoot as Record<string, unknown>;
       candidates.push(box.payload, box.message, box.data);

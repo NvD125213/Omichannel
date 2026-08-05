@@ -98,7 +98,7 @@ import type {
 } from "./interface";
 
 /** Prefix khớp Postman collection "Đa kênh có chatwoot" */
-const CHATWOOT_BASE = "/chatwoot";
+const CHATWOOT_BASE = "/messaging";
 
 /**
  * Gọi API Đa kênh (proxy Chatwoot) qua `apiClient` — cùng kiểu trả về `ApiResponse<T>` như `customerService`.

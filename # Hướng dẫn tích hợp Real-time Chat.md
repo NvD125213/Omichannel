@@ -16,7 +16,7 @@ sequenceDiagram
     CW->>BE: 1. Gửi Webhook sự kiện (message_created, v.v.)
     Note over BE: 2. Ánh xạ các Agent ID gốc (số)<br/>sang UUID nội bộ của hệ thống
     BE->>Socket: 3. Đưa payload đã ánh xạ tới Socket.IO
-    Socket->>FE: 4. Phát sự kiện `chatwoot_event` đến Room `tenant:<id>`
+    Socket->>FE: 4. Phát sự kiện `messaging_event` đến Room `tenant:<id>`
     Note over FE: 5. Nhận event, append tin nhắn mới<br/>hoặc cập nhật state UI
 ```
 
@@ -68,9 +68,9 @@ socket.on("authentication_error", (error) => {
 
 ---
 
-## 3. Lắng nghe sự kiện Chatwoot (`chatwoot_event`)
+## 3. Lắng nghe sự kiện Chatwoot (`messaging_event`)
 
-Toàn bộ thông tin cập nhật từ Chatwoot sẽ được phát qua kênh sự kiện `"chatwoot_event"`. Cấu trúc gói tin nhận được:
+Toàn bộ thông tin cập nhật từ Chatwoot sẽ được phát qua kênh sự kiện `"messaging_event"`. Cấu trúc gói tin nhận được:
 
 ```json
 {
@@ -84,7 +84,7 @@ Toàn bộ thông tin cập nhật từ Chatwoot sẽ được phát qua kênh s
 ### Code mẫu xử lý sự kiện trong ứng dụng (React/Vue/JS):
 
 ```javascript
-socket.on("chatwoot_event", (data) => {
+socket.on("messaging_event", (data) => {
   const { event, payload } = data;
   console.log(`Nhận sự kiện Chatwoot real-time [${event}]:`, payload);
 

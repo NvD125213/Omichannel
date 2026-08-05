@@ -62,7 +62,7 @@ function extractRawLabels(
   if (!response || typeof response !== "object") return [];
   const root = response as Record<string, unknown>;
   const fromData = root.data as Record<string, unknown> | undefined;
-  const chatwoot = fromData?.chatwoot as Record<string, unknown> | undefined;
+  const chatwoot = fromData?.messaging as Record<string, unknown> | undefined;
 
   const chatwootPayloadObjects = coerceObjectArray(chatwoot?.payload);
   if (chatwootPayloadObjects) return chatwootPayloadObjects;
@@ -97,7 +97,7 @@ function extractAgentRecords(
     coerceRecords(data?.payload) ??
     coerceRecords(data?.agents) ??
     coerceRecords(
-      (data?.chatwoot as Record<string, unknown> | undefined)?.payload,
+      (data?.messaging as Record<string, unknown> | undefined)?.payload,
     ) ??
     null
   );
@@ -269,8 +269,8 @@ export function ChatConversationFilterForm({
 
   const inboxOptions = useMemo(() => {
     const inboxPayload = (
-      inboxData?.data as { chatwoot?: { payload?: unknown } } | undefined
-    )?.chatwoot?.payload;
+      inboxData?.data as { messaging?: { payload?: unknown } } | undefined
+    )?.messaging?.payload;
     const inboxes: TenantInboxItem[] = Array.isArray(inboxPayload)
       ? (inboxPayload as TenantInboxItem[])
       : [];

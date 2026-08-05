@@ -88,7 +88,7 @@ function extractRecords(response: unknown): Record<string, unknown>[] {
     const nested = coerceRecords(data.data);
     if (nested) return nested;
 
-    const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
+    const chatwoot = data.messaging as Record<string, unknown> | undefined;
     if (chatwoot) {
       const chatwootPayload = coerceRecords(chatwoot.payload);
       if (chatwootPayload) return chatwootPayload;
@@ -129,7 +129,7 @@ function unwrapTeamRecord(
   const candidates = [
     record.payload,
     record.team,
-    record.chatwoot,
+    record.messaging,
     record.data,
   ];
 
@@ -215,7 +215,7 @@ function extractIdFromRecord(
     if (fromNested) return fromNested;
   }
 
-  const chatwoot = record.chatwoot as Record<string, unknown> | undefined;
+  const chatwoot = record.messaging as Record<string, unknown> | undefined;
   if (chatwoot) {
     const fromChatwoot = extractIdFromRecord(chatwoot);
     if (fromChatwoot) return fromChatwoot;

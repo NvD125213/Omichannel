@@ -166,8 +166,8 @@ export interface TenantConversationsListMeta {
 }
 
 /**
- * Phần `data` trong `ApiResponse` của GET `/chatwoot/tenants/:tenant_id/conversations`.
- * Có thể trả `payload` phẳng hoặc lồng qua `data` / `chatwoot.data`.
+ * Phần `data` trong `ApiResponse` của GET `/messaging/tenants/:tenant_id/conversations`.
+ * Có thể trả `payload` phẳng hoặc lồng qua `data` / `messaging.data`.
  */
 export interface ListTenantConversationsData {
   payload?: unknown[];
@@ -176,6 +176,15 @@ export interface ListTenantConversationsData {
     payload?: unknown[];
     meta?: TenantConversationsListMeta;
   };
+  messaging?: {
+    data?: {
+      payload?: unknown[];
+      meta?: TenantConversationsListMeta;
+    };
+    payload?: unknown[];
+    meta?: TenantConversationsListMeta;
+  };
+  /** @deprecated legacy key — prefer `messaging` */
   chatwoot?: {
     data?: {
       payload?: unknown[];
@@ -296,7 +305,7 @@ export type UpdateTenantInboxResponse = ApiResponse<ChatwootJsonPayload>;
 
 export interface AccountInboxMembersRequest {
   inbox_id: number;
-  user_ids: number[];
+  user_ids: string[];
 }
 
 export type CreateAccountInboxMembersResponse =
@@ -457,7 +466,7 @@ export interface ChatwootConversationMessage {
   sender?: ChatwootContact;
 }
 
-/** Một conversation trong `data.chatwoot.payload` */
+/** Một conversation trong `data.messaging.payload` */
 export interface FilteredTenantConversation {
   meta: ChatwootConversationItemMeta;
   id: number;
@@ -494,7 +503,9 @@ export interface FilterConversationsChatwootData {
 /** Phần `data` trong `ApiResponse` của POST filter conversations */
 export interface FilterConversationsData {
   tenant_id: string;
-  chatwoot: FilterConversationsChatwootData;
+  messaging: FilterConversationsChatwootData;
+  /** @deprecated legacy key — prefer `messaging` */
+  chatwoot?: FilterConversationsChatwootData;
 }
 
 export type FilterConversationsResponse = ApiResponse<FilterConversationsData>;
@@ -531,6 +542,11 @@ export interface ListAccountCustomFiltersData {
     payload?: AccountCustomFilter[];
     custom_filters?: AccountCustomFilter[];
   };
+  messaging?: {
+    payload?: AccountCustomFilter[];
+    custom_filters?: AccountCustomFilter[];
+  };
+  /** @deprecated legacy key — prefer `messaging` */
   chatwoot?: {
     payload?: AccountCustomFilter[];
     custom_filters?: AccountCustomFilter[];

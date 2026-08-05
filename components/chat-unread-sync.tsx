@@ -29,7 +29,7 @@ const extractPayloadFromPage = (
     (data.data as Record<string, unknown> | undefined)?.payload,
   );
   if (nested) return nested;
-  const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
+  const chatwoot = data.messaging as Record<string, unknown> | undefined;
   const chatwootPayload = coerceConversationRecords(chatwoot?.payload);
   if (chatwootPayload) return chatwootPayload;
   const chatwootData = chatwoot?.data as Record<string, unknown> | undefined;

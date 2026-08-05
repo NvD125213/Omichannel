@@ -1,91 +1,199 @@
-import { PERMISSIONS } from "./permission";
-
 /**
- * Route permissions mapping
- * Định nghĩa permissions cần thiết cho từng route
+ * Map đường dẫn `(dashboard)` → quyền bắt buộc (hasAnyPermission).
+ * Đồng bộ resource VIEW/CREATE/EDIT/… với `constants/permission.ts`.
  */
-export const ROUTE_PERMISSIONS: Record<string, string[]> = {
-  // Dashboard
-  "/dashboard": [],
-  "/dashboard2": [],
-  "/payment-dashboard": [],
-  "/payment-transactions": [],
 
-  // Users
-  "/users": [PERMISSIONS.VIEW_USERS],
+import { PERMISSIONS, type Permission } from "@/constants/permission";
 
-  // Departments
-  "/departments": [PERMISSIONS.VIEW_DEPARTMENTS],
+function normalizePath(pathname: string): string {
+  const bare = pathname.split("?")[0]?.split("#")[0] ?? pathname;
+  if (bare.length > 1 && bare.endsWith("/")) return bare.slice(0, -1);
+  return bare || "/";
+}
 
-  // Roles & Permissions
-  "/roles": [PERMISSIONS.VIEW_ROLES],
-  "/permissions": [PERMISSIONS.VIEW_PERMISSIONS],
-
-  // Tickets
-  "/tickets": [PERMISSIONS.VIEW_TICKETS],
-  "/tickets/flows": [PERMISSIONS.VIEW_TICKET_FLOWS],
-  "/tickets/templates": [PERMISSIONS.VIEW_TICKET_TEMPLATES],
-
-  // Groups
-  "/groups": [PERMISSIONS.VIEW_GROUPS],
-
-  // Levels
-  "/levels": [PERMISSIONS.VIEW_LEVELS],
-
-  // Tags
-  "/tags": [PERMISSIONS.VIEW_TAGS],
-
-  // Logs
-  "/logs": [PERMISSIONS.VIEW_LOGS],
-
-  // Mail, Tasks, Chats, Calendar - không yêu cầu permissions đặc biệt
-  "/mail": [],
-  "/tasks": [],
-  "/chats": [],
-  "/calendar": [],
-
-  // Settings - không yêu cầu permissions
-  "/settings": [],
-  "/settings/account": [],
-  "/settings/appearance": [],
-  "/settings/notifications": [],
-  "/settings/display": [],
-};
-
-/**
- * Helper function để lấy permissions cần thiết cho 1 route
- * @param pathname - Đường dẫn route
- * @returns Array of permission strings hoặc undefined nếu route không yêu cầu permissions
- */
-export function getRequiredPermissions(pathname: string): string[] | undefined {
-  // Exact match
-  if (ROUTE_PERMISSIONS[pathname]) {
-    return ROUTE_PERMISSIONS[pathname];
-  }
-
-  // Check for dynamic routes - tìm route pattern phù hợp nhất
-  const matchedRoute = Object.keys(ROUTE_PERMISSIONS).find((route) => {
-    // Check if pathname starts with route (for nested routes)
-    if (pathname.startsWith(route + "/")) {
-      return true;
-    }
-    return false;
-  });
-
-  if (matchedRoute) {
-    return ROUTE_PERMISSIONS[matchedRoute];
-  }
-
-  // Không tìm thấy route config -> cho phép access (hoặc có thể return undefined)
-  return undefined;
+function matches(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}/`);
 }
 
 /**
- * Helper function để check xem route có yêu cầu permissions hay không
- * @param pathname - Đường dẫn route
- * @returns boolean
+ * Trả về danh sách quyền cần có (any-of) cho route.
+ * `null` = chỉ cần đăng nhập (không check permission).
  */
-export function isProtectedRoute(pathname: string): boolean {
-  const permissions = getRequiredPermissions(pathname);
-  return permissions !== undefined && permissions.length > 0;
+export function getRequiredPermissionsForPath(
+  pathname: string,
+): Permission[] | null {
+  const path = normalizePath(pathname);
+
+  // ── Tickets ──────────────────────────────────────────────────────────
+  if (/^\/tickets\/flows\/[^/]+\/steps$/.test(path)) {
+    return [PERMISSIONS.VIEW_TICKET_FLOW_STEPS];
+  }
+  if (matches(path, "/tickets/flows")) {
+    return [PERMISSIONS.VIEW_TICKET_FLOWS, PERMISSIONS.VIEW_TICKET_FLOW_BY_ID];
+  }
+  if (matches(path, "/tickets/templates")) {
+    return [PERMISSIONS.VIEW_TICKET_TEMPLATES];
+  }
+  if (matches(path, "/tickets/tags")) {
+    return [PERMISSIONS.VIEW_TAGS];
+  }
+  if (matches(path, "/tickets")) {
+    return [PERMISSIONS.VIEW_TICKETS];
+  }
+
+  // ── Customers ────────────────────────────────────────────────────────
+  if (matches(path, "/customers/tags")) {
+    return [PERMISSIONS.VIEW_TAGS, PERMISSIONS.VIEW_CUSTOMERS];
+  }
+  if (matches(path, "/customers/leads") || matches(path, "/lead")) {
+    return [PERMISSIONS.VIEW_CUSTOMERS];
+  }
+  if (matches(path, "/customers")) {
+    return [PERMISSIONS.VIEW_CUSTOMERS, PERMISSIONS.VIEW_CUSTOMER_BY_ID];
+  }
+
+  // ── Users / roles / permissions / tenants ────────────────────────────
+  if (matches(path, "/users")) {
+    return [PERMISSIONS.VIEW_USERS];
+  }
+  if (matches(path, "/roles")) {
+    return [PERMISSIONS.VIEW_ROLES];
+  }
+  if (matches(path, "/permissions")) {
+    return [
+      PERMISSIONS.VIEW_PERMISSIONS,
+      PERMISSIONS.VIEW_ROLE_PERMISSIONS_BY_ROLE_ID,
+      PERMISSIONS.ASSIGN_PERMISSIONS_TO_ROLE,
+    ];
+  }
+  if (matches(path, "/tenants")) {
+    return [PERMISSIONS.VIEW_TENANTS];
+  }
+
+  // ── Departments & groups ─────────────────────────────────────────────
+  if (matches(path, "/departments") && path.includes("/groups")) {
+    return [
+      PERMISSIONS.VIEW_GROUPS,
+      PERMISSIONS.VIEW_GROUP_BY_ID,
+      PERMISSIONS.VIEW_GROUP_DETAIL_BY_ID,
+      PERMISSIONS.VIEW_DEPARTMENTS,
+    ];
+  }
+  if (matches(path, "/departments")) {
+    // /departments/[id] hiện hiển thị nhóm — cho phép VIEW_DEPARTMENTS hoặc VIEW_GROUPS
+    return [
+      PERMISSIONS.VIEW_DEPARTMENTS,
+      PERMISSIONS.VIEW_DEPARTMENT_BY_ID,
+      PERMISSIONS.VIEW_GROUPS,
+    ];
+  }
+
+  // ── Messaging — chats ────────────────────────────────────────────────
+  if (matches(path, "/chats")) {
+    return [
+      PERMISSIONS.VIEW_MESSAGING_CONVERSATIONS,
+      PERMISSIONS.SEND_MESSAGING_MESSAGE,
+      PERMISSIONS.BULK_MESSAGING_ACTIONS,
+    ];
+  }
+
+  // ── Messaging — settings ─────────────────────────────────────────────
+  if (matches(path, "/settings/channel/new")) {
+    return [
+      PERMISSIONS.CREATE_MESSAGING_INBOX,
+      PERMISSIONS.VIEW_MESSAGING_INBOXES,
+    ];
+  }
+  if (
+    matches(path, "/settings/channel") &&
+    (path.includes("/edit") || /\/settings\/channel\/[^/]+/.test(path))
+  ) {
+    return [
+      PERMISSIONS.EDIT_MESSAGING_INBOX,
+      PERMISSIONS.VIEW_MESSAGING_INBOXES,
+      PERMISSIONS.MANAGE_MESSAGING_INBOX_MEMBERS,
+    ];
+  }
+  if (matches(path, "/settings/channel")) {
+    return [PERMISSIONS.VIEW_MESSAGING_INBOXES];
+  }
+
+  if (matches(path, "/settings/team/new")) {
+    return [
+      PERMISSIONS.CREATE_MESSAGING_TEAM,
+      PERMISSIONS.VIEW_MESSAGING_TEAMS,
+    ];
+  }
+  if (
+    matches(path, "/settings/team") &&
+    (path.includes("/edit") || /\/settings\/team\/[^/]+/.test(path))
+  ) {
+    return [
+      PERMISSIONS.EDIT_MESSAGING_TEAM,
+      PERMISSIONS.VIEW_MESSAGING_TEAMS,
+      PERMISSIONS.MANAGE_MESSAGING_TEAM_MEMBERS,
+    ];
+  }
+  if (matches(path, "/settings/team")) {
+    return [PERMISSIONS.VIEW_MESSAGING_TEAMS];
+  }
+
+  if (matches(path, "/settings/agent")) {
+    return [
+      PERMISSIONS.VIEW_MESSAGING_AGENTS,
+      PERMISSIONS.CREATE_MESSAGING_AGENT,
+      PERMISSIONS.EDIT_MESSAGING_AGENT,
+    ];
+  }
+
+  if (matches(path, "/settings/label")) {
+    return [
+      PERMISSIONS.VIEW_MESSAGING_LABELS,
+      PERMISSIONS.CREATE_MESSAGING_LABEL,
+      PERMISSIONS.DELETE_MESSAGING_LABEL,
+    ];
+  }
+
+  if (
+    matches(path, "/settings/agent-bot") ||
+    matches(path, "/settings/agentbots")
+  ) {
+    return [
+      PERMISSIONS.VIEW_MESSAGING_AGENT_BOTS,
+      PERMISSIONS.CREATE_MESSAGING_AGENT_BOT,
+      PERMISSIONS.EDIT_MESSAGING_AGENT_BOT,
+    ];
+  }
+
+  // Settings cá nhân / theme — auth only
+  if (matches(path, "/settings")) {
+    return null;
+  }
+
+  // ── Logs ─────────────────────────────────────────────────────────────
+  if (matches(path, "/call-logs")) {
+    return [PERMISSIONS.VIEW_LOGS];
+  }
+
+  // Dashboard overview & misc demo pages — auth only
+  if (
+    matches(path, "/dashboard") ||
+    matches(path, "/dashboard2") ||
+    matches(path, "/payment-dashboard") ||
+    matches(path, "/payment-transactions") ||
+    matches(path, "/calendar") ||
+    matches(path, "/tasks") ||
+    matches(path, "/kanban") ||
+    matches(path, "/mail") ||
+    matches(path, "/discord") ||
+    matches(path, "/help-center") ||
+    matches(path, "/pricing")
+  ) {
+    return null;
+  }
+
+  return null;
 }
+
+/** Toàn bộ permission key trong hệ thống (dùng audit / tooling). */
+export const ALL_PERMISSIONS: Permission[] = Object.values(PERMISSIONS);

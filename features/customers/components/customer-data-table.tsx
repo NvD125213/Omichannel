@@ -142,20 +142,17 @@ export function CustomerDataTable({
       ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
       : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
   };
-  const { openDialer, ready } = useCGVCallSDK();
+  const { makeCall, ready } = useCGVCallSDK();
   const { data: currentUser } = useMe();
 
   const onOpenCallDialog = (customer: Customer) => {
-    if (!ready) return;
-    openDialer({
-      phoneNumber: customer.phone,
-      userName: customer.name,
-      context: {
-        customer_id: customer.id,
-        tenant_id: customer.tenant_id,
-        user_id: currentUser?.id ?? null,
-        display_name: customer.name,
-      },
+    const phone = customer.phone?.trim();
+    if (!phone || !ready) return;
+    makeCall(phone, {
+      customer_id: customer.id,
+      tenant_id: customer.tenant_id,
+      user_id: currentUser?.id ?? null,
+      display_name: customer.name,
     });
   };
 
@@ -356,6 +353,23 @@ export function CustomerDataTable({
               <Pencil className="size-4" />
               <span className="sr-only">Sửa</span>
             </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 cursor-pointer"
+              disabled={!customer.phone?.trim() || !ready}
+              onClick={() => onOpenCallDialog(customer)}
+              title={
+                !customer.phone?.trim()
+                  ? "Chưa có số điện thoại"
+                  : !ready
+                    ? "Softphone chưa sẵn sàng"
+                    : "Liên hệ"
+              }
+            >
+              <Phone className="size-4" />
+              <span className="sr-only">Liên hệ</span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -368,14 +382,6 @@ export function CustomerDataTable({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  variant="default"
-                  className="cursor-pointer"
-                  onClick={() => onOpenCallDialog(customer)}
-                >
-                  <Phone className="size-4" />
-                  Liên hệ
-                </DropdownMenuItem>
                 <DropdownMenuItem
                   variant="destructive"
                   className="cursor-pointer"

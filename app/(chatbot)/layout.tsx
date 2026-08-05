@@ -1,4 +1,5 @@
 import AppChatbotSidebar from "@/components/app-chatbot-sidebar";
+import { CGVCallSDKProvider } from "@/components/cgv-call-sdk-provider";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { ProtectedRoute } from "@/components/protected-route";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
@@ -15,21 +16,23 @@ export default function ChatbotLayout({
 }) {
   return (
     <ProtectedRoute>
-      <ChatbotGraphGuard>
-        <SidebarConfigProvider>
-          <SidebarProvider>
-            <AppChatbotSidebar />
-            <SidebarInset className="flex h-svh min-h-0 flex-col overflow-hidden">
-              <Suspense>
-                <DashboardHeader />
-              </Suspense>
-              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden has-data-dashboard-inset-flush:p-0">
-                {children}
-              </div>
-            </SidebarInset>
-          </SidebarProvider>
-        </SidebarConfigProvider>
-      </ChatbotGraphGuard>
+      <CGVCallSDKProvider>
+        <ChatbotGraphGuard>
+          <SidebarConfigProvider>
+            <SidebarProvider>
+              <AppChatbotSidebar />
+              <SidebarInset className="flex h-svh min-h-0 flex-col overflow-hidden">
+                <Suspense>
+                  <DashboardHeader />
+                </Suspense>
+                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden has-data-dashboard-inset-flush:p-0">
+                  {children}
+                </div>
+              </SidebarInset>
+            </SidebarProvider>
+          </SidebarConfigProvider>
+        </ChatbotGraphGuard>
+      </CGVCallSDKProvider>
     </ProtectedRoute>
   );
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import { CustomerInsights } from "@/features/dashboard2/components/customer-insights";
 import { MetricsOverview } from "@/features/dashboard2/components/matrics-overview";
 import { QuickActions } from "@/features/dashboard2/components/quick-actions";
@@ -6,7 +8,11 @@ import { RevenueBreakdown } from "@/features/dashboard2/components/revenue-break
 import { SalesChart } from "@/features/dashboard2/components/sale-chart";
 import { TopProducts } from "@/features/dashboard2/components/top-products";
 
-export default function Dashboard2() {
+/**
+ * Trang overview — chỉ cần đăng nhập.
+ * Phân quyền chi tiết route được enforce bởi `DashboardPermissionGate` (layout).
+ */
+export default function DashboardPage() {
   return (
     <>
       <div className="px-4 lg:px-6 py-4 flex md:flex-row flex-col md:items-center justify-between gap-2">

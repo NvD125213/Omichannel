@@ -4,6 +4,7 @@ import type {
   ListTenantConversationMessagesResponse,
   ListTenantConversationsResponse,
 } from "@/services/chatwoot/interface";
+import { getMessagingEnvelope } from "./messaging-envelope";
 import { isActivityMessage } from "./normalize-message";
 
 const createMessagesCachePage = (
@@ -36,12 +37,12 @@ const extractPayloadFromConversationPage = (
     (data.data as Record<string, unknown> | undefined)?.payload,
   );
   if (nested) return nested;
-  const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
-  const chatwootPayload = coerceConversationRecords(chatwoot?.payload);
-  if (chatwootPayload) return chatwootPayload;
-  const chatwootData = chatwoot?.data as Record<string, unknown> | undefined;
-  const chatwootNested = coerceConversationRecords(chatwootData?.payload);
-  if (chatwootNested) return chatwootNested;
+  const messaging = getMessagingEnvelope(data);
+  const messagingPayload = coerceConversationRecords(messaging?.payload);
+  if (messagingPayload) return messagingPayload;
+  const messagingData = messaging?.data as Record<string, unknown> | undefined;
+  const messagingNested = coerceConversationRecords(messagingData?.payload);
+  if (messagingNested) return messagingNested;
   return null;
 };
 
@@ -66,13 +67,13 @@ const setPayloadOnConversationPage = (
       } as ListTenantConversationsResponse["data"],
     };
   }
-  const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
+  const chatwoot = getMessagingEnvelope(data);
   if (chatwoot && Array.isArray(chatwoot.payload)) {
     return {
       ...page,
       data: {
         ...data,
-        chatwoot: { ...chatwoot, payload },
+        messaging: { ...chatwoot, payload },
       } as ListTenantConversationsResponse["data"],
     };
   }
@@ -82,7 +83,7 @@ const setPayloadOnConversationPage = (
       ...page,
       data: {
         ...data,
-        chatwoot: { ...chatwoot, data: { ...chatwootData, payload } },
+        messaging: { ...chatwoot, data: { ...chatwootData, payload } },
       } as ListTenantConversationsResponse["data"],
     };
   }
@@ -103,12 +104,12 @@ const extractMessagePayloadFromPage = (
     (data.data as Record<string, unknown> | undefined)?.payload,
   );
   if (nested) return nested;
-  const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
-  const chatwootDirect = coerceConversationRecords(chatwoot?.payload);
-  if (chatwootDirect) return chatwootDirect;
-  const chatwootData = chatwoot?.data as Record<string, unknown> | undefined;
-  const chatwootNested = coerceConversationRecords(chatwootData?.payload);
-  if (chatwootNested) return chatwootNested;
+  const messaging = getMessagingEnvelope(data);
+  const messagingDirect = coerceConversationRecords(messaging?.payload);
+  if (messagingDirect) return messagingDirect;
+  const messagingData = messaging?.data as Record<string, unknown> | undefined;
+  const messagingNested = coerceConversationRecords(messagingData?.payload);
+  if (messagingNested) return messagingNested;
   const messages = coerceConversationRecords(data.messages);
   if (messages) return messages;
   return null;
@@ -138,13 +139,13 @@ const setPayloadOnMessagePage = (
       } as ListTenantConversationMessagesResponse["data"],
     };
   }
-  const chatwoot = data.chatwoot as Record<string, unknown> | undefined;
+  const chatwoot = getMessagingEnvelope(data);
   if (chatwoot && Array.isArray(chatwoot.payload)) {
     return {
       ...page,
       data: {
         ...data,
-        chatwoot: { ...chatwoot, payload },
+        messaging: { ...chatwoot, payload },
       } as ListTenantConversationMessagesResponse["data"],
     };
   }
@@ -154,7 +155,7 @@ const setPayloadOnMessagePage = (
       ...page,
       data: {
         ...data,
-        chatwoot: { ...chatwoot, data: { ...chatwootData, payload } },
+        messaging: { ...chatwoot, data: { ...chatwootData, payload } },
       } as ListTenantConversationMessagesResponse["data"],
     };
   }

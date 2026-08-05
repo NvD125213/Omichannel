@@ -105,7 +105,8 @@ type InboxEditFormValues = {
 
 type AgentOption = {
   id: string;
-  userId: number | null;
+  /** UUID user gắn với agent — gửi lên inbox_members.user_ids */
+  userId: string | null;
   name: string;
   email: string;
   thumbnail?: string;
@@ -139,7 +140,7 @@ function extractRecords(response: unknown): Record<string, unknown>[] {
       coerceRecords(data.agents) ??
       coerceRecords(data.inboxes) ??
       coerceRecords(
-        (data.chatwoot as Record<string, unknown> | undefined)?.payload,
+        (data.messaging as Record<string, unknown> | undefined)?.payload,
       ) ??
       []
     );
@@ -192,6 +193,14 @@ function toNumericId(value: unknown): number | null {
   if (!raw || !/^-?\d+$/.test(raw)) return null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** UUID / chuỗi id người dùng từ agents (bỏ qua id số thuần). */
+function toUuidId(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  const raw = String(value).trim();
+  if (!raw || /^-?\d+$/.test(raw)) return null;
+  return raw;
 }
 
 function isSuccessResponse(response: unknown): boolean {
@@ -318,11 +327,12 @@ function normalizeAgent(
   const name = String(record.available_name ?? record.name ?? "").trim();
   const email = String(record.email ?? "").trim();
   const userId =
-    toNumericId(record.user_id) ??
-    toNumericId(record.id) ??
-    toNumericId(record.account_user_id);
+    toUuidId(record.user_id) ??
+    toUuidId(record.uuid) ??
+    toUuidId(record.id) ??
+    toUuidId(record.account_user_id);
   const id =
-    (userId !== null ? String(userId) : "") ||
+    userId ||
     String(record.id ?? record.user_id ?? record.uuid ?? "").trim() ||
     email ||
     `agent-${index + 1}`;
@@ -487,10 +497,12 @@ export function ChannelInboxesActionPatch({
     const members = coerceRecords(record.members) ?? [];
     for (const member of members) {
       const id =
-        toNumericId(member.user_id) ??
-        toNumericId(member.id) ??
-        toNumericId(member.account_user_id);
-      if (id !== null) memberIds.add(String(id));
+        toUuidId(member.user_id) ??
+        toUuidId(member.uuid) ??
+        toUuidId(member.id) ??
+        toUuidId(member.account_user_id) ??
+        String(member.user_id ?? member.id ?? member.account_user_id ?? "").trim();
+      if (id) memberIds.add(id);
     }
     setSelectedMemberIds(Array.from(memberIds));
     setHydrated(true);
@@ -563,13 +575,12 @@ export function ChannelInboxesActionPatch({
     const userIds = selectedMemberIds
       .map((id) => {
         const agent = agents.find((item) => item.id === id);
-        return agent?.userId ?? toNumericId(id);
+        return agent?.userId ?? toUuidId(id) ?? (id || null);
       })
-      .filter((id): id is number => id !== null);
+      .filter((id): id is string => Boolean(id));
 
     if (selectedMemberIds.length > 0 && userIds.length === 0) {
-      console.log("selectedMemberIds", selectedMemberIds);
-      toast.error("Không lấy được mã người dùng hợp lệ từ danh sách nhân viên");
+      toast.error("Không lấy được UUID người dùng hợp lệ từ danh sách nhân viên");
       return;
     }
 

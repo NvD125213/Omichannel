@@ -110,7 +110,7 @@ function extractInboxRecords(response: unknown): Record<string, unknown>[] {
     coerceObjectArray(data?.payload) ??
     coerceObjectArray(data?.inboxes) ??
     coerceObjectArray(
-      (data?.chatwoot as Record<string, unknown> | undefined)?.payload,
+      (data?.messaging as Record<string, unknown> | undefined)?.payload,
     ) ??
     coerceObjectArray(data) ??
     []

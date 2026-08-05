@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { Filter, FingerprintIcon, Home } from "lucide-react";
+import React, { useState, useMemo, useCallback } from "react";
+import { FingerprintIcon, Home, Minus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -20,33 +20,65 @@ import {
 } from "@/hooks/permission/use-get-permisison";
 import { useAssignRolePermission } from "@/hooks/permission/use-action-permission";
 import { useMe } from "@/hooks/user/use-me";
-import { Minus } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { AppBreadcrumb } from "@/components/breadcrumb";
 import { EmptyData } from "@/components/empty-data";
 import { IconMoodEmpty } from "@tabler/icons-react";
+import {
+  formatActionLabel,
+  formatModelLabel,
+  groupPermissionsForMatrix,
+  sortMatrixActions,
+  type PermissionItem,
+} from "@/features/permissions/utils/permission-matrix";
+import { cn } from "@/lib/utils";
 
-interface Permission {
-  id: string;
-  name: string;
-  description: string;
-  model?: string | null;
-  belong_to?: string | null;
-}
+/** Chờ hover 3s mới hiện tooltip trên ma trận */
+const TOOLTIP_DELAY_MS = 3000;
 
-// Helper function to get the model/belong_to field
-const getPermissionModel = (p: Permission): string | null => {
-  return p.belong_to || p.model || null;
-};
+/** Khung checkbox cố định — header / hàng / ô cùng size + căn giữa */
+const CHECK_SLOT =
+  "inline-flex size-4 shrink-0 items-center justify-center leading-none [&>button]:size-4";
+
+/** Cột action: độ rộng đều, căn giữa */
+const ACTION_COL =
+  "w-[104px] min-w-[104px] max-w-[104px] p-0 align-middle text-center";
+
+/** Cột tên resource (sticky) */
+const MODEL_COL =
+  "sticky left-0 z-10 w-[220px] min-w-[220px] max-w-[220px] p-0 align-middle";
 
 type PermissionRow = {
   model: string;
-  [key: string]: Permission | string | null;
+  /** action → danh sách quyền (có thể >1 khi API trả view + view_by_id …) */
+  cells: Record<string, PermissionItem[]>;
 };
+
+function collectPermissionIds(row: PermissionRow): string[] {
+  const ids: string[] = [];
+  Object.values(row.cells).forEach((perms) => {
+    perms.forEach((p) => {
+      if (p.id) ids.push(p.id);
+    });
+  });
+  return ids;
+}
+
+function selectionState(
+  ids: string[],
+  selected: Set<string>,
+): boolean | "indeterminate" {
+  if (ids.length === 0) return false;
+  const selectedCount = ids.filter((id) => selected.has(id)).length;
+  if (selectedCount === 0) return false;
+  if (selectedCount === ids.length) return true;
+  return "indeterminate";
+}
 
 export default function PermissionsMatrix() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,13 +106,8 @@ export default function PermissionsMatrix() {
     search: debouncedRoleSearch,
   });
 
-  // Get current user for tenant_id
   const { data: currentUser } = useMe();
-
-  // Get all available permissions
   const { data: allPermissionsData } = useGetPermissions();
-
-  // Get mutation for assigning permissions
   const assignRolePermissionMutation = useAssignRolePermission();
 
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -94,90 +121,70 @@ export default function PermissionsMatrix() {
     }
   }, [roles, selectedRole]);
 
-  // Sync selectedRoles with selectedRole for permission fetching
   React.useEffect(() => {
     const rolesArray = Array.from(selectedRoles);
     if (rolesArray.length > 0 && rolesArray[0] !== selectedRole) {
-      // Take the first selected role
       setSelectedRole(rolesArray[0]);
     }
   }, [selectedRoles, selectedRole]);
 
-  // Get permissions for selected role
   const { data: rolePermissionsData } = useGetPermissionsByRole(
     selectedRole || "",
   );
 
-  // Use allPermissionsData as rawData if available, otherwise fall back to static data
-  const rawData = React.useMemo(() => {
-    if (allPermissionsData) {
-      return allPermissionsData as unknown as Record<string, Permission[]>;
+  /** API (mảng / nhóm) + fallback JSON tĩnh — luôn chuẩn hóa cùng format. */
+  const rawData = useMemo(() => {
+    if (allPermissionsData != null) {
+      return groupPermissionsForMatrix(allPermissionsData);
     }
-    return rolePermission.data as unknown as Record<string, Permission[]>;
+    return groupPermissionsForMatrix(rolePermission.data);
   }, [allPermissionsData]);
 
-  // Update selected permissions when role permissions change
   React.useEffect(() => {
-    if (rolePermissionsData) {
-      const rolePerms = rolePermissionsData as unknown as Record<
-        string,
-        Permission[]
-      >;
-      const newSelected = new Set<string>();
+    if (!rolePermissionsData) return;
 
-      // Iterate through all actions and collect permission IDs
-      Object.values(rolePerms).forEach((perms) => {
-        if (Array.isArray(perms)) {
-          perms.forEach((p) => {
-            if (p.id) {
-              newSelected.add(p.id);
-            }
-          });
-        }
+    const grouped = groupPermissionsForMatrix(rolePermissionsData);
+    const next = new Set<string>();
+    Object.values(grouped).forEach((perms) => {
+      perms.forEach((p) => {
+        if (p.id) next.add(p.id);
       });
-
-      setSelectedPermissions(newSelected);
-    }
+    });
+    setSelectedPermissions(next);
   }, [rolePermissionsData]);
 
-  const actions = useMemo(() => {
-    return Object.keys(rawData);
-  }, [rawData]);
+  const actions = useMemo(
+    () => sortMatrixActions(Object.keys(rawData)),
+    [rawData],
+  );
 
-  const actionOptions = useMemo(() => {
-    return actions.map((action) => ({
-      label: action.charAt(0).toUpperCase() + action.slice(1),
-      value: action,
-    }));
-  }, [actions]);
+  const actionOptions = useMemo(
+    () =>
+      actions.map((action) => ({
+        label: formatActionLabel(action),
+        value: action,
+      })),
+    [actions],
+  );
 
   const models = useMemo(() => {
     const modelSet = new Set<string>();
     Object.values(rawData).forEach((perms) => {
       perms.forEach((p) => {
-        const model = getPermissionModel(p);
-        if (model) {
-          modelSet.add(model);
-        }
+        if (p.model) modelSet.add(p.model);
       });
     });
-    const modelArray = Array.from(modelSet).sort();
-    return modelArray;
+    return Array.from(modelSet).sort((a, b) => a.localeCompare(b));
   }, [rawData]);
 
-  const matrixData = useMemo(() => {
+  const matrixData = useMemo<PermissionRow[]>(() => {
     return models.map((model) => {
-      const row: PermissionRow = { model };
-
+      const cells: Record<string, PermissionItem[]> = {};
       actions.forEach((action) => {
         const actionPerms = rawData[action] || [];
-        const permission = actionPerms.find(
-          (p) => getPermissionModel(p) === model,
-        );
-        row[action] = permission || null;
+        cells[action] = actionPerms.filter((p) => p.model === model);
       });
-
-      return row;
+      return { model, cells };
     });
   }, [models, actions, rawData]);
 
@@ -185,42 +192,72 @@ export default function PermissionsMatrix() {
     let filtered = matrixData;
 
     if (searchTerm) {
-      filtered = filtered.filter((row) =>
-        row.model.toLowerCase().includes(searchTerm.toLowerCase()),
+      const q = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (row) =>
+          row.model.toLowerCase().includes(q) ||
+          formatModelLabel(row.model).toLowerCase().includes(q),
       );
     }
 
     if (selectedActions.size > 0) {
-      filtered = filtered.filter((row) => {
-        return Array.from(selectedActions).some(
-          (action) => row[action] !== null,
-        );
-      });
+      filtered = filtered.filter((row) =>
+        Array.from(selectedActions).some(
+          (action) => (row.cells[action]?.length ?? 0) > 0,
+        ),
+      );
     }
 
     return filtered;
   }, [matrixData, searchTerm, selectedActions]);
 
   const togglePermission = (permissionId: string) => {
-    const newSelected = new Set(selectedPermissions);
-    if (newSelected.has(permissionId)) {
-      newSelected.delete(permissionId);
-    } else {
-      newSelected.add(permissionId);
-    }
-    setSelectedPermissions(newSelected);
+    const next = new Set(selectedPermissions);
+    if (next.has(permissionId)) next.delete(permissionId);
+    else next.add(permissionId);
+    setSelectedPermissions(next);
   };
+
+  /** Chọn / bỏ chọn 1 nhóm id (hàng hoặc cột). */
+  const togglePermissionGroup = useCallback(
+    (ids: string[], checked: boolean) => {
+      if (ids.length === 0) return;
+      setSelectedPermissions((prev) => {
+        const next = new Set(prev);
+        if (checked) {
+          ids.forEach((id) => next.add(id));
+        } else {
+          ids.forEach((id) => next.delete(id));
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const getColumnPermissionIds = useCallback(
+    (action: string) => {
+      const ids: string[] = [];
+      filteredData.forEach((row) => {
+        (row.cells[action] ?? []).forEach((p) => {
+          if (p.id) ids.push(p.id);
+        });
+      });
+      return ids;
+    },
+    [filteredData],
+  );
 
   const toggleAll = () => {
     if (selectedPermissions.size > 0) {
       setSelectedPermissions(new Set());
-    } else {
-      const allIds = new Set<string>();
-      Object.values(rawData).forEach((perms) => {
-        perms.forEach((p) => allIds.add(p.id));
-      });
-      setSelectedPermissions(allIds);
+      return;
     }
+    const allIds = new Set<string>();
+    Object.values(rawData).forEach((perms) => {
+      perms.forEach((p) => allIds.add(p.id));
+    });
+    setSelectedPermissions(allIds);
   };
 
   const roleOptions = useMemo(() => {
@@ -233,31 +270,17 @@ export default function PermissionsMatrix() {
   }, [roles]);
 
   const handleSave = () => {
-    if (!selectedRole) {
-      console.error("No role selected");
-      return;
-    }
+    if (!selectedRole || !currentUser?.tenant_id) return;
 
-    if (!currentUser?.tenant_id) {
-      console.error("No tenant_id available");
-      return;
-    }
-
-    const payload = {
+    assignRolePermissionMutation.mutate({
       role_id: selectedRole,
       permission_ids: Array.from(selectedPermissions),
       tenant_id: currentUser.tenant_id,
-    };
-
-    assignRolePermissionMutation.mutate(payload, {
-      onSuccess: () => {
-        console.log("✅ Successfully saved permissions");
-      },
     });
   };
 
   return (
-    <div className="@container/main px-4 py-4 lg:px-6 space-y-6">
+    <div className="@container/main space-y-6 px-4 py-4 lg:px-6">
       <AppBreadcrumb
         items={[
           {
@@ -289,7 +312,12 @@ export default function PermissionsMatrix() {
         isSaving={assignRolePermissionMutation.isPending}
       />
 
-      <div className="rounded-md border max-h-[calc(100vh-12rem)] overflow-auto relative">
+      <div
+        className={[
+          "relative max-h-[calc(100vh-12rem)] overflow-auto rounded-md border",
+          "[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+        ].join(" ")}
+      >
         {filteredData.length === 0 ? (
           <EmptyData
             icon={IconMoodEmpty}
@@ -301,74 +329,190 @@ export default function PermissionsMatrix() {
             onButtonClick={() => {}}
           />
         ) : (
-          <Table>
-            <TableHeader className="bg-transparent sticky top-0 z-20">
-              <TableRow className="hover:bg-transparent border-b">
-                <TableHead className="w-[200px] sticky left-0 z-20 bg-transparent font-semibold shadow-[1px_0_0_0_rgba(0,0,0,0.1)]">
-                  Quyền hạn
-                </TableHead>
-                {actions.map((action) => (
+          <TooltipProvider delayDuration={TOOLTIP_DELAY_MS}>
+            <Table
+              className="table-fixed border-collapse"
+              containerClassName="overflow-visible"
+            >
+              <TableHeader className="sticky top-0 z-20">
+                <TableRow className="border-b border-border bg-muted hover:bg-muted">
                   <TableHead
-                    key={action}
-                    className="text-center min-w-[100px] h-10 bg-transparent backdrop-blur-sm"
+                    className={cn(
+                      MODEL_COL,
+                      "z-30 h-14 bg-muted font-semibold shadow-[1px_0_0_0_rgba(0,0,0,0.08)]",
+                    )}
                   >
-                    {action.charAt(0).toUpperCase() + action.slice(1)}
+                    <div className="grid h-14 grid-cols-[1rem_minmax(0,1fr)] items-end gap-2.5 px-3 pb-2.5">
+                      {/* placeholder căn thẳng cột tick hàng */}
+                      <span className={CHECK_SLOT} aria-hidden />
+                      <span className="pb-px text-left text-sm leading-none">
+                        Danh sách quyền hạn
+                      </span>
+                    </div>
                   </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredData.map((row) => (
-                <TableRow
-                  key={row.model}
-                  className="hover:bg-transparent border-b last:border-0"
-                >
-                  <TableCell className="font-medium sticky left-0 z-10 bg-transparent shadow-[1px_0_0_0_rgba(0,0,0,0.1)] py-2">
-                    {row.model
-                      .replace(/_/g, " ")
-                      .split(" ")
-                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                      .join(" ")}
-                  </TableCell>
-
                   {actions.map((action) => {
-                    const permission = row[action] as Permission | null;
+                    const colIds = getColumnPermissionIds(action);
+                    const colState = selectionState(
+                      colIds,
+                      selectedPermissions,
+                    );
+                    const hasAny = colIds.length > 0;
 
                     return (
-                      <TableCell key={action} className="text-center p-2">
-                        <div className="flex justify-center">
-                          {permission ? (
-                            <Checkbox
-                              checked={selectedPermissions.has(permission.id)}
-                              onCheckedChange={() =>
-                                togglePermission(permission.id)
-                              }
-                              aria-label={`Select ${action} for ${row.model}`}
-                              className="h-4 w-4"
-                            />
-                          ) : (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className="h-4 w-4 ml-2 rounded border border-dashed border-muted-foreground/40
-                                  inline-flex items-center justify-center text-muted-foreground/60 cursor-default"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Không áp dụng quyền này
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                      <TableHead
+                        key={action}
+                        className={cn(ACTION_COL, "h-14 bg-muted")}
+                      >
+                        <div className="flex h-14 w-full flex-col items-center justify-end gap-1.5 px-1 pb-2.5">
+                          <span className="line-clamp-2 max-h-8 w-full text-center text-xs font-medium leading-tight">
+                            {formatActionLabel(action)}
+                          </span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className={CHECK_SLOT}>
+                                <Checkbox
+                                  checked={colState}
+                                  disabled={!hasAny}
+                                  onCheckedChange={(value) =>
+                                    togglePermissionGroup(
+                                      colIds,
+                                      value === true,
+                                    )
+                                  }
+                                  aria-label={`Chọn tất cả cột ${formatActionLabel(action)}`}
+                                  className="size-4 shadow-none"
+                                />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {hasAny
+                                ? `Chọn/bỏ chọn toàn cột «${formatActionLabel(action)}»`
+                                : "Không có quyền trong cột này"}
+                            </TooltipContent>
+                          </Tooltip>
                         </div>
-                      </TableCell>
+                      </TableHead>
                     );
                   })}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody className="bg-background dark:bg-transparent">
+                {filteredData.map((row) => {
+                  const rowIds = collectPermissionIds(row);
+                  const rowState = selectionState(rowIds, selectedPermissions);
+                  const rowHasAny = rowIds.length > 0;
+
+                  return (
+                    <TableRow
+                      key={row.model}
+                      className="border-b last:border-0 bg-background hover:bg-background dark:bg-transparent dark:hover:bg-transparent"
+                    >
+                      <TableCell
+                        className={cn(
+                          MODEL_COL,
+                          "h-11 bg-background font-medium shadow-[1px_0_0_0_rgba(0,0,0,0.08)] dark:bg-transparent dark:shadow-[1px_0_0_0_rgba(255,255,255,0.08)]",
+                        )}
+                      >
+                        <div className="grid h-11 grid-cols-[1rem_minmax(0,1fr)] items-center gap-2.5 px-3">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className={CHECK_SLOT}>
+                                <Checkbox
+                                  checked={rowState}
+                                  disabled={!rowHasAny}
+                                  onCheckedChange={(value) =>
+                                    togglePermissionGroup(
+                                      rowIds,
+                                      value === true,
+                                    )
+                                  }
+                                  aria-label={`Chọn tất cả hàng ${formatModelLabel(row.model)}`}
+                                  className="size-4 shadow-none"
+                                />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {rowHasAny
+                                ? `Chọn/bỏ chọn toàn hàng «${formatModelLabel(row.model)}»`
+                                : "Không có quyền trong hàng này"}
+                            </TooltipContent>
+                          </Tooltip>
+                          <span className="min-w-0 truncate text-left text-sm leading-none pb-0.5">
+                            {formatModelLabel(row.model)}
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      {actions.map((action) => {
+                        const perms = row.cells[action] ?? [];
+
+                        return (
+                          <TableCell
+                            key={action}
+                            className={cn(ACTION_COL, "h-11")}
+                          >
+                            <div className="flex h-11 w-full items-center justify-center gap-1">
+                              {perms.length === 0 ? (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span
+                                      className={cn(CHECK_SLOT, "relative")}
+                                    >
+                                      <Checkbox
+                                        checked={false}
+                                        disabled
+                                        aria-label="Không áp dụng quyền này"
+                                        className="size-4 border-muted-foreground/70 shadow-none disabled:cursor-default disabled:opacity-100"
+                                      />
+                                      <Minus
+                                        aria-hidden
+                                        className="pointer-events-none absolute size-2.5 text-muted-foreground"
+                                        strokeWidth={2.75}
+                                      />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Không áp dụng</TooltipContent>
+                                </Tooltip>
+                              ) : (
+                                perms.map((permission) => (
+                                  <Tooltip key={permission.id}>
+                                    <TooltipTrigger asChild>
+                                      <span className={CHECK_SLOT}>
+                                        <Checkbox
+                                          checked={selectedPermissions.has(
+                                            permission.id,
+                                          )}
+                                          onCheckedChange={() =>
+                                            togglePermission(permission.id)
+                                          }
+                                          aria-label={permission.name}
+                                          className="size-4 shadow-none"
+                                        />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p className="font-medium">
+                                        {permission.name}
+                                      </p>
+                                      {permission.description ? (
+                                        <p className="text-xs text-white/70 dark:text-black/70">
+                                          {permission.description}
+                                        </p>
+                                      ) : null}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ))
+                              )}
+                            </div>
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </TooltipProvider>
         )}
       </div>
     </div>

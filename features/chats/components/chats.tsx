@@ -679,7 +679,7 @@ const extractTenantListPayload = (
   if (flat) return flat;
   const nested = coerceConversationRecords(data.data?.payload);
   if (nested) return nested;
-  const viaChatwoot = coerceConversationRecords(data.chatwoot?.data?.payload);
+  const viaChatwoot = coerceConversationRecords(data.messaging?.data?.payload);
   if (viaChatwoot) return viaChatwoot;
   return null;
 };
@@ -712,10 +712,10 @@ const extractTenantListMeta = (
   if (data.data?.meta && typeof data.data.meta === "object")
     return data.data.meta;
   if (
-    data.chatwoot?.data?.meta &&
-    typeof data.chatwoot.data.meta === "object"
+    data.messaging?.data?.meta &&
+    typeof data.messaging.data.meta === "object"
   ) {
-    return data.chatwoot.data.meta;
+    return data.messaging.data.meta;
   }
   return null;
 };

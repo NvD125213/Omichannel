@@ -43,8 +43,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -289,7 +287,7 @@ export function LeadDataTable({
   const [internalColumnVisibility, setInternalColumnVisibility] =
     useState<VisibilityState>({});
   const { mutateAsync: patchLead } = usePatchLead();
-  const { openDialer, ready } = useCGVCallSDK();
+  const { makeCall, ready } = useCGVCallSDK();
   const { data: currentUser } = useMe();
 
   const handleOpenCall = (lead: KgLead) => {
@@ -303,14 +301,10 @@ export function LeadDataTable({
       return;
     }
 
-    openDialer({
-      phoneNumber: phone,
-      userName: lead.name || null,
-      context: {
-        tenant_id: currentUser?.tenant_id ?? null,
-        user_id: currentUser?.id ?? null,
-        display_name: lead.name || null,
-      },
+    makeCall(phone, {
+      tenant_id: currentUser?.tenant_id ?? null,
+      user_id: currentUser?.id ?? null,
+      display_name: lead.name || null,
     });
   };
 
@@ -510,6 +504,23 @@ export function LeadDataTable({
         const lead = row.original;
         return (
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 cursor-pointer"
+              disabled={!lead.phone?.trim() || !ready}
+              onClick={() => handleOpenCall(lead)}
+              title={
+                !lead.phone?.trim()
+                  ? "Chưa có số điện thoại"
+                  : !ready
+                    ? "Softphone chưa sẵn sàng"
+                    : "Liên hệ"
+              }
+            >
+              <Phone className="size-4" />
+              <span className="sr-only">Liên hệ</span>
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -522,15 +533,6 @@ export function LeadDataTable({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  disabled={!lead.phone?.trim() || !ready}
-                  onClick={() => handleOpenCall(lead)}
-                >
-                  <Phone className="size-4" />
-                  Liên hệ
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 {LEAD_ACTION_OPTIONS.map((option) => {
                   const isCurrent = lead.status === option.value;
                   const ActionIcon = option.icon;

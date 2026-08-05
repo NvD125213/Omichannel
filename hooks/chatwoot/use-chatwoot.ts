@@ -52,7 +52,7 @@ import { useChatStore } from "@/features/chats/utils/use-chat";
 import { chatwootService } from "@/services/chatwoot/service";
 import { extractFilterConversationsPayload } from "@/features/chats/utils/conversation-filter";
 
-/** Query keys — Đa kênh `/api/v1/chatwoot` (tách biệt hooks `chatwoots` gọi trực tiếp Chatwoot) */
+/** Query keys — Đa kênh `/api/v1/messaging` */
 export const chatwootOmniKeys = {
   all: ["omni-chatwoot"] as const,
   agentBotsAll: () => [...chatwootOmniKeys.all, "agent-bots"] as const,
@@ -286,15 +286,14 @@ export const useListTenantConversationMessages = (
       ),
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       const data = lastPage?.data as Record<string, unknown> | undefined;
+      const messaging =
+        (data?.messaging as Record<string, unknown> | undefined) ??
+        (data?.chatwoot as Record<string, unknown> | undefined);
       const payloadCandidate =
         data?.payload ??
         (data?.data as Record<string, unknown> | undefined)?.payload ??
-        (data?.chatwoot as Record<string, unknown> | undefined)?.payload ??
-        (
-          (data?.chatwoot as Record<string, unknown> | undefined)?.data as
-            | Record<string, unknown>
-            | undefined
-        )?.payload ??
+        messaging?.payload ??
+        (messaging?.data as Record<string, unknown> | undefined)?.payload ??
         data?.messages;
       if (!Array.isArray(payloadCandidate) || payloadCandidate.length < 20) {
         return undefined;
@@ -388,14 +387,14 @@ export const useListTenantConversations = (
       }),
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       const data = lastPage?.data as Record<string, unknown> | undefined;
+      const messaging =
+        (data?.messaging as Record<string, unknown> | undefined) ??
+        (data?.chatwoot as Record<string, unknown> | undefined);
       const payloadCandidate =
         data?.payload ??
         (data?.data as Record<string, unknown> | undefined)?.payload ??
-        (
-          (data?.chatwoot as Record<string, unknown> | undefined)?.data as
-            | Record<string, unknown>
-            | undefined
-        )?.payload;
+        (messaging?.data as Record<string, unknown> | undefined)?.payload ??
+        messaging?.payload;
       if (!Array.isArray(payloadCandidate) || payloadCandidate.length === 0) {
         return undefined;
       }
@@ -466,7 +465,7 @@ export const useProvisionChatwootAccount = () => {
       chatwootService.provisionChatwootAccount(data),
     onSuccess: (res, variables) => {
       if (res.status_code === 200 || res.status_code === 201) {
-        toast.success(res.message || "Tạo tài khoản Chatwoot thành công");
+        toast.success(res.message || "Tạo tài khoản message thành công");
         queryClient.invalidateQueries({ queryKey: chatwootOmniKeys.all });
         if (variables.tenant_id) {
           queryClient.invalidateQueries({
@@ -474,13 +473,13 @@ export const useProvisionChatwootAccount = () => {
           });
         }
       } else {
-        toast.error(res.message || "Không thể tạo tài khoản Chatwoot");
+        toast.error(res.message || "Không thể tạo tài khoản message");
       }
     },
     onError: (error: unknown) => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Có lỗi khi tạo tài khoản Chatwoot";
+          ?.data?.message || "Có lỗi khi tạo tài khoản message";
       toast.error(msg);
     },
   });
@@ -499,18 +498,18 @@ export const useUpdateTenantChatwootAccount = () => {
     }) => chatwootService.updateTenantChatwootAccount(tenantId, data),
     onSuccess: (res, variables) => {
       if (res.status_code === 200) {
-        toast.success(res.message || "Cập nhật tài khoản Chatwoot thành công");
+        toast.success(res.message || "Cập nhật tài khoản message thành công");
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.tenantAccount(variables.tenantId),
         });
       } else {
-        toast.error(res.message || "Không thể cập nhật tài khoản Chatwoot");
+        toast.error(res.message || "Không thể cập nhật tài khoản message");
       }
     },
     onError: (error: unknown) => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Có lỗi khi cập nhật tài khoản Chatwoot";
+          ?.data?.message || "Có lỗi khi cập nhật tài khoản message";
       toast.error(msg);
     },
   });
@@ -524,19 +523,19 @@ export const useDeleteTenantChatwootAccount = () => {
       chatwootService.deleteTenantChatwootAccount(tenantId),
     onSuccess: (res, tenantId) => {
       if (res.status_code === 200) {
-        toast.success(res.message || "Xóa tài khoản Chatwoot thành công");
+        toast.success(res.message || "Xóa tài khoản message thành công");
         queryClient.removeQueries({
           queryKey: chatwootOmniKeys.tenantAccount(tenantId),
         });
         queryClient.invalidateQueries({ queryKey: chatwootOmniKeys.all });
       } else {
-        toast.error(res.message || "Không thể xóa tài khoản Chatwoot");
+        toast.error(res.message || "Không thể xóa tài khoản message");
       }
     },
     onError: (error: unknown) => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Có lỗi khi xóa tài khoản Chatwoot";
+          ?.data?.message || "Có lỗi khi xóa tài khoản message";
       toast.error(msg);
     },
   });
@@ -1765,18 +1764,18 @@ export const useCreateChatwootUser = () => {
     }) => chatwootService.createChatwootUser(userId, data),
     onSuccess: (res, variables) => {
       if (res.status_code === 200 || res.status_code === 201) {
-        toast.success(res.message || "Tạo Chatwoot user thành công");
+        toast.success(res.message || "Tạo message user thành công");
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.user(variables.userId),
         });
       } else {
-        toast.error(res.message || "Tạo Chatwoot user thất bại");
+        toast.error(res.message || "Tạo message user thất bại");
       }
     },
     onError: (error: unknown) => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Có lỗi khi tạo Chatwoot user";
+          ?.data?.message || "Có lỗi khi tạo message user";
       toast.error(msg);
     },
   });
@@ -1795,7 +1794,7 @@ export const useUpdateChatwootUser = () => {
     }) => chatwootService.updateChatwootUser(userId, data),
     onSuccess: (res, variables) => {
       if (res.status_code === 200) {
-        toast.success(res.message || "Cập nhật Chatwoot user thành công");
+        toast.success(res.message || "Cập nhật message user thành công");
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.user(variables.userId),
         });
@@ -1803,13 +1802,13 @@ export const useUpdateChatwootUser = () => {
           queryKey: chatwootOmniKeys.userSsoLink(variables.userId),
         });
       } else {
-        toast.error(res.message || "Cập nhật Chatwoot user thất bại");
+        toast.error(res.message || "Cập nhật message user thất bại");
       }
     },
     onError: (error: unknown) => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Có lỗi khi cập nhật Chatwoot user";
+          ?.data?.message || "Có lỗi khi cập nhật message user";
       toast.error(msg);
     },
   });
@@ -1822,19 +1821,19 @@ export const useDeleteChatwootUser = () => {
     mutationFn: (userId: string) => chatwootService.deleteChatwootUser(userId),
     onSuccess: (res, userId) => {
       if (res.status_code === 200) {
-        toast.success(res.message || "Xóa Chatwoot user thành công");
+        toast.success(res.message || "Xóa message user thành công");
         queryClient.removeQueries({ queryKey: chatwootOmniKeys.user(userId) });
         queryClient.removeQueries({
           queryKey: chatwootOmniKeys.userSsoLink(userId),
         });
       } else {
-        toast.error(res.message || "Xóa Chatwoot user thất bại");
+        toast.error(res.message || "Xóa message user thất bại");
       }
     },
     onError: (error: unknown) => {
       const msg =
         (error as { response?: { data?: { message?: string } } })?.response
-          ?.data?.message || "Có lỗi khi xóa Chatwoot user";
+          ?.data?.message || "Có lỗi khi xóa message user";
       toast.error(msg);
     },
   });

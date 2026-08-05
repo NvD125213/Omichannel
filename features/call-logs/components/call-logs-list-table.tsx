@@ -18,15 +18,15 @@ import {
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ClipboardList,
   ExternalLink,
+  Eye,
   Phone,
+  PhoneCall,
+  UserRound,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import {
-  NumberParam,
-  useQueryParam,
-  withDefault,
-} from "use-query-params";
+import { NumberParam, useQueryParam, withDefault } from "use-query-params";
 import { IconMoodEmpty } from "@tabler/icons-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { CallLog, Pagination } from "@/services/call-logs/service";
 import { convertDateTime } from "@/utils/convert-time";
+import { CallLogDetail } from "./call-log-detail";
 import { CallLogsListPagination } from "./call-logs-list-pagination";
 
 interface CallLogsListTableProps {
@@ -57,7 +58,7 @@ interface CallLogsListTableProps {
 
 function formatDuration(seconds: number | null | undefined) {
   if (seconds === null || seconds === undefined || Number.isNaN(seconds)) {
-    return "—";
+    return null;
   }
   const total = Math.max(0, Math.floor(seconds));
   const hrs = Math.floor(total / 3600);
@@ -102,10 +103,38 @@ function getStatusClassName(status: string | null | undefined) {
   if (["ringing", "in_progress", "busy", "calling"].includes(value)) {
     return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300";
   }
-  if (["missed", "failed", "no_answer", "cancelled", "canceled"].includes(value)) {
+  if (
+    ["missed", "failed", "no_answer", "cancelled", "canceled"].includes(value)
+  ) {
     return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300";
   }
   return "bg-muted text-muted-foreground";
+}
+
+/** Ticket ưu tiên hơn customer; không có cả hai = cuộc gọi tự do */
+function getCallSourceMeta(log: CallLog) {
+  if (log.ticket_id) {
+    return {
+      label: "Ticket",
+      className:
+        "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-300",
+      icon: ClipboardList,
+    };
+  }
+  if (log.customer_id) {
+    return {
+      label: "Khách hàng",
+      className:
+        "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300",
+      icon: UserRound,
+    };
+  }
+  return {
+    label: "Tự do",
+    className:
+      "border-border bg-muted/60 text-muted-foreground dark:bg-muted/30",
+    icon: PhoneCall,
+  };
 }
 
 function formatDateTimeCell(value: string | null | undefined) {
@@ -143,6 +172,13 @@ export function CallLogsListTable({
   const [internalColumnVisibility, setInternalColumnVisibility] =
     useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
+
+  const openDetail = (log: CallLog) => {
+    setSelectedLog(log);
+    setDetailOpen(true);
+  };
 
   const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
   const setColumnVisibility = (
@@ -191,15 +227,51 @@ export function CallLogsListTable({
       {
         accessorKey: "phone_number",
         header: "Số điện thoại",
+        cell: ({ row }) => (
+          <span className="font-medium tabular-nums">
+            {row.original.phone_number || "—"}
+          </span>
+        ),
+      },
+      {
+        id: "source",
+        header: "Nguồn gọi",
+        enableSorting: false,
         cell: ({ row }) => {
-          const log = row.original;
+          const meta = getCallSourceMeta(row.original);
+          const Icon = meta.icon;
           return (
-            <div className="flex min-w-40 flex-col">
-              <span className="font-medium">{log.phone_number || "—"}</span>
-              <span className="truncate text-xs text-muted-foreground">
-                {log.sip_call_id || "Không có SIP ID"}
-              </span>
-            </div>
+            <Badge
+              variant="outline"
+              className={cn("gap-1 font-medium", meta.className)}
+            >
+              <Icon className="size-3.5" />
+              {meta.label}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "tenant_name",
+        header: "Doanh nghiệp",
+        cell: ({ row }) => {
+          const name = row.original.tenant_name?.trim();
+          return name ? (
+            <span className="text-sm">{name}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
+      },
+      {
+        accessorKey: "username_action_call",
+        header: "Người thực hiện",
+        cell: ({ row }) => {
+          const name = row.original.username_action_call?.trim();
+          return name ? (
+            <span className="text-sm">{name}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
           );
         },
       },
@@ -228,7 +300,10 @@ export function CallLogsListTable({
           return (
             <Badge
               variant="outline"
-              className={cn("font-medium capitalize", getStatusClassName(status))}
+              className={cn(
+                "font-medium capitalize",
+                getStatusClassName(status),
+              )}
             >
               {status || "Không rõ"}
             </Badge>
@@ -238,11 +313,17 @@ export function CallLogsListTable({
       {
         accessorKey: "duration",
         header: "Thời lượng",
-        cell: ({ row }) => (
-          <span className="tabular-nums text-sm">
-            {formatDuration(row.original.duration)}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const label = formatDuration(row.original.duration);
+          if (!label) {
+            return <span className="text-sm text-muted-foreground">—</span>;
+          }
+          return (
+            <span className="text-sm font-medium tabular-nums text-foreground">
+              {label}
+            </span>
+          );
+        },
       },
       {
         accessorKey: "started_at",
@@ -255,50 +336,46 @@ export function CallLogsListTable({
         cell: ({ row }) => formatDateTimeCell(row.original.ended_at),
       },
       {
-        id: "links",
-        header: "Liên kết",
+        accessorKey: "recording_url",
+        header: "Ghi âm",
         enableSorting: false,
         cell: ({ row }) => {
-          const { ticket_id, customer_id, recording_url } = row.original;
+          const url = row.original.recording_url?.trim();
+          if (!url) {
+            return <span className="text-muted-foreground">—</span>;
+          }
           return (
-            <div className="flex min-w-36 flex-col gap-1 text-xs">
-              {ticket_id ? (
-                <span className="truncate text-muted-foreground">
-                  Ticket:{" "}
-                  <span className="font-medium text-foreground">
-                    {ticket_id.slice(0, 8)}…
-                  </span>
-                </span>
-              ) : null}
-              {customer_id ? (
-                <span className="truncate text-muted-foreground">
-                  KH:{" "}
-                  <span className="font-medium text-foreground">
-                    {customer_id.slice(0, 8)}…
-                  </span>
-                </span>
-              ) : null}
-              {recording_url ? (
-                <Button
-                  asChild
-                  variant="link"
-                  className="h-auto justify-start p-0 text-xs"
-                >
-                  <a
-                    href={recording_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="size-3.5" />
-                    Nghe ghi âm
-                  </a>
-                </Button>
-              ) : !ticket_id && !customer_id ? (
-                <span className="text-muted-foreground">—</span>
-              ) : null}
-            </div>
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 px-2.5 text-xs font-medium"
+            >
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="size-3.5 shrink-0" />
+                Nghe ghi âm
+              </a>
+            </Button>
           );
         },
+      },
+      {
+        id: "actions",
+        header: "Hành động",
+        enableSorting: false,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 cursor-pointer"
+            onClick={() => openDetail(row.original)}
+            title="Xem chi tiết"
+          >
+            <Eye className="size-4" />
+            <span className="sr-only">Xem chi tiết</span>
+          </Button>
+        ),
       },
     ],
     [],
@@ -414,6 +491,15 @@ export function CallLogsListTable({
         currentPageSize={pageSize}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
+      />
+
+      <CallLogDetail
+        callLog={selectedLog}
+        open={detailOpen}
+        onOpenChange={(next) => {
+          setDetailOpen(next);
+          if (!next) setSelectedLog(null);
+        }}
       />
     </div>
   );

@@ -81,18 +81,18 @@ function extractBotRecords(
   if (nestedPayload) return nestedPayload;
 
   const chatwootPayload = coerceRecords(
-    (data?.chatwoot as Record<string, unknown> | undefined)?.payload,
+    (data?.messaging as Record<string, unknown> | undefined)?.payload,
   );
   if (chatwootPayload) return chatwootPayload;
 
   const chatwootAgentBots = coerceRecords(
-    (data?.chatwoot as Record<string, unknown> | undefined)?.agent_bots,
+    (data?.messaging as Record<string, unknown> | undefined)?.agent_bots,
   );
   if (chatwootAgentBots) return chatwootAgentBots;
 
   const chatwootNestedAgentBots = coerceRecords(
     (
-      (data?.chatwoot as Record<string, unknown> | undefined)?.data as
+      (data?.messaging as Record<string, unknown> | undefined)?.data as
         | Record<string, unknown>
         | undefined
     )?.agent_bots,

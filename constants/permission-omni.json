@@ -1,0 +1,395 @@
+[
+  {
+    "name": "edit_roles"
+  },
+  {
+    "name": "view_roles"
+  },
+  {
+    "name": "delete_roles"
+  },
+  {
+    "name": "create_roles"
+  },
+  {
+    "name": "view_logs"
+  },
+  {
+    "name": "view_permissions"
+  },
+  {
+    "name": "edit_permissions"
+  },
+  {
+    "name": "delete_permissions"
+  },
+  {
+    "name": "create_permissions"
+  },
+  {
+    "name": "view_role_permissions_by_role_id"
+  },
+  {
+    "name": "view_levels"
+  },
+  {
+    "name": "assign_permissions_to_role"
+  },
+  {
+    "name": "view_tags"
+  },
+  {
+    "name": "create_level"
+  },
+  {
+    "name": "edit_level"
+  },
+  {
+    "name": "view_departments"
+  },
+  {
+    "name": "create_department"
+  },
+  {
+    "name": "edit_department"
+  },
+  {
+    "name": "delete_department"
+  },
+  {
+    "name": "view_groups"
+  },
+  {
+    "name": "create_group"
+  },
+  {
+    "name": "edit_group"
+  },
+  {
+    "name": "delete_group"
+  },
+  {
+    "name": "delete_permission_from_role"
+  },
+  {
+    "name": "view_tag_by_id"
+  },
+  {
+    "name": "create_tag"
+  },
+  {
+    "name": "edit_tag"
+  },
+  {
+    "name": "view_tickets"
+  },
+  {
+    "name": "create_ticket"
+  },
+  {
+    "name": "edit_ticket"
+  },
+  {
+    "name": "delete_ticket"
+  },
+  {
+    "name": "assign_ticket"
+  },
+  {
+    "name": "view_ticket_templates"
+  },
+  {
+    "name": "create_ticket_template"
+  },
+  {
+    "name": "edit_ticket_template"
+  },
+  {
+    "name": "delete_ticket_template"
+  },
+  {
+    "name": "view_ticket_contexts"
+  },
+  {
+    "name": "create_ticket_context"
+  },
+  {
+    "name": "edit_ticket_context"
+  },
+  {
+    "name": "delete_ticket_context"
+  },
+  {
+    "name": "view_ticket_extensions"
+  },
+  {
+    "name": "create_ticket_extension"
+  },
+  {
+    "name": "edit_ticket_extension"
+  },
+  {
+    "name": "delete_ticket_extension"
+  },
+  {
+    "name": "view_ticket_flows"
+  },
+  {
+    "name": "view_ticket_flow_by_id"
+  },
+  {
+    "name": "create_ticket_flow"
+  },
+  {
+    "name": "edit_ticket_flow"
+  },
+  {
+    "name": "delete_ticket_flow"
+  },
+  {
+    "name": "view_ticket_flow_instances"
+  },
+  {
+    "name": "view_ticket_flow_instance_by_id"
+  },
+  {
+    "name": "create_ticket_flow_instance"
+  },
+  {
+    "name": "view_user_groups"
+  },
+  {
+    "name": "assign_user_to_group"
+  },
+  {
+    "name": "delete_user_group"
+  },
+  {
+    "name": "view_users"
+  },
+  {
+    "name": "current_user"
+  },
+  {
+    "name": "delete_users"
+  },
+  {
+    "name": "create_users"
+  },
+  {
+    "name": "edit_users"
+  },
+  {
+    "name": "delete_level"
+  },
+  {
+    "name": "delete_tag"
+  },
+  {
+    "name": "view_ticket_events"
+  },
+  {
+    "name": "create_ticket_event"
+  },
+  {
+    "name": "edit_ticket_event"
+  },
+  {
+    "name": "delete_ticket_event"
+  },
+  {
+    "name": "edit_ticket_flow_instance"
+  },
+  {
+    "name": "delete_ticket_flow_instance"
+  },
+  {
+    "name": "view_ticket_flow_steps"
+  },
+  {
+    "name": "view_ticket_flow_step_by_id"
+  },
+  {
+    "name": "create_ticket_flow_step"
+  },
+  {
+    "name": "edit_ticket_flow_step"
+  },
+  {
+    "name": "delete_ticket_flow_step"
+  },
+  {
+    "name": "view_customers"
+  },
+  {
+    "name": "view_customer_by_id"
+  },
+  {
+    "name": "create_customer"
+  },
+  {
+    "name": "edit_customer"
+  },
+  {
+    "name": "delete_customer"
+  },
+  {
+    "name": "view_customer_provided_info"
+  },
+  {
+    "name": "create_customer_provided_info"
+  },
+  {
+    "name": "edit_customer_provided_info"
+  },
+  {
+    "name": "delete_customer_provided_info"
+  },
+  {
+    "name": "view_tenants"
+  },
+  {
+    "name": "create_tenant"
+  },
+  {
+    "name": "edit_tenant"
+  },
+  {
+    "name": "delete_tenant"
+  },
+  {
+    "name": "view_level_by_id"
+  },
+  {
+    "name": "view_department_by_id"
+  },
+  {
+    "name": "view_group_by_id"
+  },
+  {
+    "name": "view_group_detail_by_id"
+  },
+  {
+    "name": "view_messaging_accounts"
+  },
+  {
+    "name": "create_messaging_account"
+  },
+  {
+    "name": "edit_messaging_account"
+  },
+  {
+    "name": "delete_messaging_account"
+  },
+  {
+    "name": "sync_messaging_integration"
+  },
+  {
+    "name": "view_messaging_conversations"
+  },
+  {
+    "name": "create_messaging_conversation"
+  },
+  {
+    "name": "edit_messaging_conversation"
+  },
+  {
+    "name": "delete_messaging_conversation"
+  },
+  {
+    "name": "send_messaging_message"
+  },
+  {
+    "name": "delete_messaging_message"
+  },
+  {
+    "name": "assign_messaging_conversation"
+  },
+  {
+    "name": "view_messaging_inboxes"
+  },
+  {
+    "name": "create_messaging_inbox"
+  },
+  {
+    "name": "edit_messaging_inbox"
+  },
+  {
+    "name": "manage_messaging_inbox_members"
+  },
+  {
+    "name": "view_messaging_labels"
+  },
+  {
+    "name": "create_messaging_label"
+  },
+  {
+    "name": "delete_messaging_label"
+  },
+  {
+    "name": "bulk_messaging_actions"
+  },
+  {
+    "name": "view_messaging_custom_filters"
+  },
+  {
+    "name": "create_messaging_custom_filter"
+  },
+  {
+    "name": "edit_messaging_custom_filter"
+  },
+  {
+    "name": "delete_messaging_custom_filter"
+  },
+  {
+    "name": "view_messaging_agents"
+  },
+  {
+    "name": "create_messaging_agent"
+  },
+  {
+    "name": "edit_messaging_agent"
+  },
+  {
+    "name": "delete_messaging_agent"
+  },
+  {
+    "name": "view_messaging_teams"
+  },
+  {
+    "name": "create_messaging_team"
+  },
+  {
+    "name": "edit_messaging_team"
+  },
+  {
+    "name": "delete_messaging_team"
+  },
+  {
+    "name": "manage_messaging_team_members"
+  },
+  {
+    "name": "view_messaging_agent_bots"
+  },
+  {
+    "name": "create_messaging_agent_bot"
+  },
+  {
+    "name": "edit_messaging_agent_bot"
+  },
+  {
+    "name": "delete_messaging_agent_bot"
+  },
+  {
+    "name": "view_messaging_users"
+  },
+  {
+    "name": "create_messaging_user"
+  },
+  {
+    "name": "edit_messaging_user"
+  },
+  {
+    "name": "delete_messaging_user"
+  }
+]

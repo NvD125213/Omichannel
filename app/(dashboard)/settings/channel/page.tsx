@@ -14,7 +14,7 @@ export default function ChannelPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Quản lý kênh</h2>
           <p className="text-sm text-muted-foreground">
-            Xem và cấu hình các kênh (inbox) đã kết nối với Chatwoot.
+            Xem và cấu hình các kênh (inbox) đã cấu hình.
           </p>
         </div>
         <Button onClick={() => router.push("/settings/channel/new")}>

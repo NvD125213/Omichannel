@@ -117,8 +117,8 @@ export function InboxesAnalytics() {
   const { data, isLoading } = useListTenantInboxes(tenantId);
 
   const inboxPayload = (
-    data?.data as { chatwoot?: { payload?: unknown } } | undefined
-  )?.chatwoot?.payload;
+    data?.data as { messaging?: { payload?: unknown } } | undefined
+  )?.messaging?.payload;
   const inboxes: TenantInboxItem[] = useMemo(
     () =>
       Array.isArray(inboxPayload) ? (inboxPayload as TenantInboxItem[]) : [],

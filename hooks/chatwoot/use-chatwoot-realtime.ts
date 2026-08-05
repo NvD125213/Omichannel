@@ -78,10 +78,6 @@ export function useChatwootRealtime({
       timers.set(conversationId, timer);
     };
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("[chatwoot-realtime] listening chatwoot_event", { tenantId });
-    }
-
     const handleMessageCreated = (messagePayload: Record<string, unknown>) => {
       const conversationId = getConversationIdFromPayload(messagePayload);
       if (!conversationId) return;
@@ -285,7 +281,7 @@ export function useChatwootRealtime({
     };
 
     const socketEventNames = [
-      "chatwoot_event",
+      "messaging_event",
       "message",
       "conversation",
     ] as const;

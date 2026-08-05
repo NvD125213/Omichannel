@@ -1,15 +1,21 @@
 /**
  * Permission Constants
- * Danh sách toàn bộ permission key trong hệ thống
+ * Đồng bộ với `constants/permission-omni.json`
  */
 
 export const PERMISSIONS = {
   // Customers
   VIEW_CUSTOMERS: "view_customers",
   VIEW_CUSTOMER_BY_ID: "view_customer_by_id",
-  CREATE_CUSTOMERS: "create_customers",
-  EDIT_CUSTOMERS: "edit_customers",
-  DELETE_CUSTOMERS: "delete_customers",
+  CREATE_CUSTOMER: "create_customer",
+  EDIT_CUSTOMER: "edit_customer",
+  DELETE_CUSTOMER: "delete_customer",
+
+  // Customer provided info
+  VIEW_CUSTOMER_PROVIDED_INFO: "view_customer_provided_info",
+  CREATE_CUSTOMER_PROVIDED_INFO: "create_customer_provided_info",
+  EDIT_CUSTOMER_PROVIDED_INFO: "edit_customer_provided_info",
+  DELETE_CUSTOMER_PROVIDED_INFO: "delete_customer_provided_info",
 
   // Users
   VIEW_USERS: "view_users",
@@ -95,6 +101,8 @@ export const PERMISSIONS = {
 
   // Groups
   VIEW_GROUPS: "view_groups",
+  VIEW_GROUP_BY_ID: "view_group_by_id",
+  VIEW_GROUP_DETAIL_BY_ID: "view_group_detail_by_id",
   CREATE_GROUP: "create_group",
   EDIT_GROUP: "edit_group",
   DELETE_GROUP: "delete_group",
@@ -103,6 +111,7 @@ export const PERMISSIONS = {
 
   // Levels
   VIEW_LEVELS: "view_levels",
+  VIEW_LEVEL_BY_ID: "view_level_by_id",
   CREATE_LEVEL: "create_level",
   EDIT_LEVEL: "edit_level",
   DELETE_LEVEL: "delete_level",
@@ -122,6 +131,67 @@ export const PERMISSIONS = {
 
   // Logs
   VIEW_LOGS: "view_logs",
+
+  // Messaging — accounts
+  VIEW_MESSAGING_ACCOUNTS: "view_messaging_accounts",
+  CREATE_MESSAGING_ACCOUNT: "create_messaging_account",
+  EDIT_MESSAGING_ACCOUNT: "edit_messaging_account",
+  DELETE_MESSAGING_ACCOUNT: "delete_messaging_account",
+  SYNC_MESSAGING_INTEGRATION: "sync_messaging_integration",
+
+  // Messaging — conversations
+  VIEW_MESSAGING_CONVERSATIONS: "view_messaging_conversations",
+  CREATE_MESSAGING_CONVERSATION: "create_messaging_conversation",
+  EDIT_MESSAGING_CONVERSATION: "edit_messaging_conversation",
+  DELETE_MESSAGING_CONVERSATION: "delete_messaging_conversation",
+  ASSIGN_MESSAGING_CONVERSATION: "assign_messaging_conversation",
+  BULK_MESSAGING_ACTIONS: "bulk_messaging_actions",
+
+  // Messaging — messages
+  SEND_MESSAGING_MESSAGE: "send_messaging_message",
+  DELETE_MESSAGING_MESSAGE: "delete_messaging_message",
+
+  // Messaging — inboxes
+  VIEW_MESSAGING_INBOXES: "view_messaging_inboxes",
+  CREATE_MESSAGING_INBOX: "create_messaging_inbox",
+  EDIT_MESSAGING_INBOX: "edit_messaging_inbox",
+  MANAGE_MESSAGING_INBOX_MEMBERS: "manage_messaging_inbox_members",
+
+  // Messaging — labels
+  VIEW_MESSAGING_LABELS: "view_messaging_labels",
+  CREATE_MESSAGING_LABEL: "create_messaging_label",
+  DELETE_MESSAGING_LABEL: "delete_messaging_label",
+
+  // Messaging — custom filters
+  VIEW_MESSAGING_CUSTOM_FILTERS: "view_messaging_custom_filters",
+  CREATE_MESSAGING_CUSTOM_FILTER: "create_messaging_custom_filter",
+  EDIT_MESSAGING_CUSTOM_FILTER: "edit_messaging_custom_filter",
+  DELETE_MESSAGING_CUSTOM_FILTER: "delete_messaging_custom_filter",
+
+  // Messaging — agents
+  VIEW_MESSAGING_AGENTS: "view_messaging_agents",
+  CREATE_MESSAGING_AGENT: "create_messaging_agent",
+  EDIT_MESSAGING_AGENT: "edit_messaging_agent",
+  DELETE_MESSAGING_AGENT: "delete_messaging_agent",
+
+  // Messaging — teams
+  VIEW_MESSAGING_TEAMS: "view_messaging_teams",
+  CREATE_MESSAGING_TEAM: "create_messaging_team",
+  EDIT_MESSAGING_TEAM: "edit_messaging_team",
+  DELETE_MESSAGING_TEAM: "delete_messaging_team",
+  MANAGE_MESSAGING_TEAM_MEMBERS: "manage_messaging_team_members",
+
+  // Messaging — agent bots
+  VIEW_MESSAGING_AGENT_BOTS: "view_messaging_agent_bots",
+  CREATE_MESSAGING_AGENT_BOT: "create_messaging_agent_bot",
+  EDIT_MESSAGING_AGENT_BOT: "edit_messaging_agent_bot",
+  DELETE_MESSAGING_AGENT_BOT: "delete_messaging_agent_bot",
+
+  // Messaging — users
+  VIEW_MESSAGING_USERS: "view_messaging_users",
+  CREATE_MESSAGING_USER: "create_messaging_user",
+  EDIT_MESSAGING_USER: "edit_messaging_user",
+  DELETE_MESSAGING_USER: "delete_messaging_user",
 } as const;
 
 /**

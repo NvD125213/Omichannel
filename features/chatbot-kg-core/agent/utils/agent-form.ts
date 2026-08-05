@@ -217,7 +217,7 @@ function buildAgentConfig(form: AgentFormState): AgentConfig {
       required_contact_fields: form.requiredContactFields,
       service_suggestions: parseListInput(form.serviceSuggestions),
     },
-    chatwoot: {},
+    messaging: {},
   };
 }
 

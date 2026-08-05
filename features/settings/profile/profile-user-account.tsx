@@ -96,6 +96,7 @@ export default function SettingsProfilePage() {
     <ContentSection
       title="Hồ sơ người dùng"
       desc="Đây là các thông tin cá nhân trên hệ thống của bạn."
+      innerClassName="lg:max-w-4xl"
     >
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-4">
