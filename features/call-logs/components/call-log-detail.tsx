@@ -1,17 +1,7 @@
 "use client";
 
-import {
-  Building2,
-  ClipboardList,
-  ExternalLink,
-  Loader2,
-  Phone,
-  User,
-  UserRound,
-} from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,9 +16,9 @@ import { useGetCallLogById } from "@/hooks/call-logs/use-call-logs";
 import { useGetCustomerById } from "@/hooks/customer/use-customer";
 import { useGetTicketById } from "@/hooks/ticket/ticket-list/use-ticket-list";
 import { useGetTenants } from "@/hooks/tenant/use-get-tenant";
+import { useListUser } from "@/hooks/user/use-list-user";
 import { cn } from "@/lib/utils";
 import type { CallLog } from "@/services/call-logs/service";
-import { getUserByIdApi } from "@/services/user/get-user-by-id";
 import { convertDateTime } from "@/utils/convert-time";
 
 interface CallLogDetailProps {
@@ -67,7 +57,51 @@ function directionLabel(direction: string | null | undefined) {
   return direction || "Không rõ";
 }
 
-function DetailRow({
+function sourceLabel(source: string | null | undefined) {
+  const value = String(source ?? "")
+    .trim()
+    .toLowerCase();
+  if (!value) return "—";
+  if (value === "web") return "Web";
+  return value;
+}
+
+function statusTone(status: string | null | undefined) {
+  const value = String(status ?? "").toLowerCase();
+  if (["answered", "completed", "success", "ended"].includes(value)) {
+    return "bg-primary/10 text-primary";
+  }
+  if (["ringing", "in_progress", "busy", "calling"].includes(value)) {
+    return "bg-secondary text-secondary-foreground";
+  }
+  if (
+    ["missed", "failed", "no_answer", "cancelled", "canceled"].includes(value)
+  ) {
+    return "bg-destructive/10 text-destructive";
+  }
+  return "bg-muted text-muted-foreground";
+}
+
+function Tag({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium tracking-wide uppercase",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Field({
   label,
   value,
   className,
@@ -77,46 +111,52 @@ function DetailRow({
   className?: string;
 }) {
   return (
-    <div className={cn("grid gap-0.5", className)}>
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="break-words text-sm text-foreground">{value}</div>
+    <div className={cn("flex flex-col gap-1", className)}>
+      <label className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+        {label}
+      </label>
+      <div className="min-h-9 rounded-md border border-border bg-background px-3 py-2 text-sm leading-snug text-foreground">
+        {value ?? "—"}
+      </div>
     </div>
   );
 }
 
-function SectionCard({
+function Section({
   title,
-  icon: Icon,
   loading,
   empty,
   emptyText,
   children,
 }: {
   title: string;
-  icon: React.ComponentType<{ className?: string }>;
   loading?: boolean;
   empty?: boolean;
   emptyText?: string;
   children?: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-border/70 bg-background p-4">
+    <section className="rounded-md border border-border bg-card p-4">
       <div className="mb-3 flex items-center gap-2">
-        <Icon className="size-4 text-muted-foreground" />
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <span className="h-3.5 w-0.5 rounded-sm bg-primary" />
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">
+          {title}
+        </h3>
       </div>
+
       {loading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-4 w-1/2" />
-          <Skeleton className="h-4 w-3/4" />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Skeleton className="h-14 w-full rounded-md" />
+          <Skeleton className="h-14 w-full rounded-md" />
+          <Skeleton className="h-14 w-full rounded-md" />
+          <Skeleton className="h-14 w-full rounded-md" />
         </div>
       ) : empty ? (
         <p className="text-sm text-muted-foreground">
           {emptyText || "Không có thông tin"}
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{children}</div>
       )}
     </section>
   );
@@ -135,7 +175,6 @@ export function CallLogDetail({
   );
   const log = detailRes?.data ?? callLog;
 
-  // Ưu tiên user_id từ API chi tiết, rồi tới bản ghi list
   const ticketId = open ? (log?.ticket_id ?? callLog?.ticket_id ?? "") : "";
   const customerId = open
     ? (log?.customer_id ?? callLog?.customer_id ?? "")
@@ -153,113 +192,141 @@ export function CallLogDetail({
     { enabled: open && !!tenantId },
   );
   const {
-    data: user,
+    data: usersData,
     isLoading: isLoadingUser,
     isError: isUserError,
-  } = useQuery({
-    queryKey: ["user-by-id", userId],
-    queryFn: () => getUserByIdApi(userId),
-    enabled: open && !!userId,
-  });
+  } = useListUser(
+    { id: userId || undefined, page: 1, page_size: 1 },
+    { enabled: open && !!userId },
+  );
 
   const ticket = ticketRes?.data;
   const customer = customerRes?.data;
   const tenant = tenantData?.items?.[0];
+  const user = usersData?.data?.items?.[0];
+  const recordingUrl = log?.recording_url?.trim();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[min(90vh,820px)] w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
-        <DialogHeader className="shrink-0 border-b px-6 py-5 text-left">
-          <DialogTitle className="flex items-center gap-2">
-            <Phone className="size-5 text-primary" />
-            Chi tiết cuộc gọi
-          </DialogTitle>
-          <DialogDescription className="font-mono text-xs tabular-nums">
-            {log?.sip_call_id || "—"}
+      <DialogContent className="flex max-h-[min(90vh,860px)] w-full flex-col gap-0 overflow-hidden rounded-lg border border-border bg-background p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 space-y-0 border-b border-border px-5 py-3.5 text-left">
+          <DialogDescription className="sr-only">
+            Thông tin cuộc gọi và dữ liệu liên quan.
           </DialogDescription>
+
+          {log ? (
+            <div className="space-y-2.5 pr-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <DialogTitle className="text-base font-semibold tracking-tight text-foreground">
+                  {log.phone_number || "Chi tiết cuộc gọi"}
+                </DialogTitle>
+                <Tag className="bg-primary/10 text-primary">
+                  {directionLabel(log.direction)}
+                </Tag>
+                <Tag className={statusTone(log.status)}>
+                  {log.status || "Không rõ"}
+                </Tag>
+                <Tag className="bg-muted text-muted-foreground">
+                  {sourceLabel(log.source)}
+                </Tag>
+              </div>
+
+              <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                <div className="flex items-baseline gap-1.5">
+                  <dt>Thời lượng</dt>
+                  <dd className="font-medium text-foreground tabular-nums">
+                    {formatDuration(log.duration)}
+                  </dd>
+                </div>
+                <div className="hidden h-3 w-px bg-border sm:block" />
+                <div className="flex items-baseline gap-1.5">
+                  <dt>Billsec</dt>
+                  <dd className="font-medium text-foreground tabular-nums">
+                    {formatDuration(log.billsec)}
+                  </dd>
+                </div>
+                <div className="hidden h-3 w-px bg-border sm:block" />
+                <div className="flex items-baseline gap-1.5">
+                  <dt>Nghe máy</dt>
+                  <dd className="font-medium text-foreground tabular-nums">
+                    {formatDateTime(log.answered_at)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          ) : (
+            <DialogTitle className="text-base font-semibold tracking-tight text-foreground">
+              Chi tiết cuộc gọi
+            </DialogTitle>
+          )}
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
           {isLoadingCall && !log ? (
             <div className="flex items-center justify-center py-16">
-              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              <Loader2 className="size-6 animate-spin text-muted-foreground" />
             </div>
           ) : log ? (
             <>
-              <SectionCard title="Cuộc gọi" icon={Phone}>
-                <DetailRow
-                  label="Số điện thoại"
-                  value={log.phone_number || "—"}
-                />
-                <DetailRow
+              <Section title="Cuộc gọi">
+                <Field label="Số điện thoại" value={log.phone_number || "—"} />
+                <Field label="Hotline" value={log.hotline || "—"} />
+                <Field label="Từ số" value={log.from_number || "—"} />
+                <Field label="Đến số" value={log.to_number || "—"} />
+                <Field
                   label="Chiều gọi"
                   value={directionLabel(log.direction)}
                 />
-                <DetailRow
+                <Field
                   label="Trạng thái"
                   value={
-                    <Badge variant="outline" className="capitalize">
+                    <Tag className={statusTone(log.status)}>
                       {log.status || "Không rõ"}
-                    </Badge>
+                    </Tag>
                   }
                 />
-                <DetailRow
+                <Field
                   label="Thời lượng"
-                  value={
-                    <span className="tabular-nums">
-                      {formatDuration(log.duration)}
-                    </span>
-                  }
+                  value={formatDuration(log.duration)}
                 />
-                <DetailRow
-                  label="Bắt đầu"
-                  value={formatDateTime(log.started_at)}
+                <Field label="Billsec" value={formatDuration(log.billsec)} />
+                <Field label="Bắt đầu" value={formatDateTime(log.started_at)} />
+                <Field
+                  label="Nghe máy"
+                  value={formatDateTime(log.answered_at)}
                 />
-                <DetailRow
-                  label="Kết thúc"
-                  value={formatDateTime(log.ended_at)}
-                />
-                <DetailRow
+                <Field label="Kết thúc" value={formatDateTime(log.ended_at)} />
+                <Field
                   label="Người thực hiện"
                   value={log.username_action_call?.trim() || "—"}
                 />
-                <DetailRow
+                <Field label="Kênh" value={sourceLabel(log.source)} />
+                <Field
+                  label="Doanh nghiệp"
+                  value={log.tenant_name?.trim() || "—"}
+                />
+                <Field
                   label="Ghi âm"
+                  className="sm:col-span-2"
                   value={
-                    log.recording_url?.trim() ? (
-                      <Button
-                        asChild
-                        variant="link"
-                        className="h-auto p-0 text-sm"
+                    recordingUrl ? (
+                      <audio
+                        controls
+                        preload="none"
+                        className="h-9 w-full"
+                        src={recordingUrl}
                       >
-                        <a
-                          href={log.recording_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <ExternalLink className="size-3.5" />
-                          Nghe ghi âm
-                        </a>
-                      </Button>
+                        Trình duyệt không hỗ trợ phát audio.
+                      </audio>
                     ) : (
                       "—"
                     )
                   }
                 />
-                <DetailRow
-                  label="SIP Call ID"
-                  value={
-                    <span className="break-all font-mono text-xs">
-                      {log.sip_call_id}
-                    </span>
-                  }
-                  className="sm:col-span-2"
-                />
-              </SectionCard>
+              </Section>
 
-              <SectionCard
+              <Section
                 title="Ticket"
-                icon={ClipboardList}
                 loading={!!ticketId && isLoadingTicket}
                 empty={!ticketId || !ticket}
                 emptyText={
@@ -268,23 +335,27 @@ export function CallLogDetail({
                     : "Không liên kết ticket"
                 }
               >
-                <DetailRow label="Mã" value={ticket?.code || "—"} />
-                <DetailRow label="Tiêu đề" value={ticket?.title || "—"} />
-                <DetailRow label="Trạng thái" value={ticket?.status || "—"} />
-                <DetailRow label="Ưu tiên" value={ticket?.priority || "—"} />
-                <DetailRow
+                <Field label="Mã" value={ticket?.code || "—"} />
+                <Field label="Trạng thái" value={ticket?.status || "—"} />
+                <Field
+                  label="Tiêu đề"
+                  value={ticket?.title || "—"}
+                  className="sm:col-span-2"
+                />
+                <Field label="Ưu tiên" value={ticket?.priority || "—"} />
+                <Field
                   label="Người tạo"
                   value={ticket?.created_by_name || "—"}
                 />
-                <DetailRow
+                <Field
                   label="Người xử lý"
                   value={ticket?.assigned_to_name || "—"}
+                  className="sm:col-span-2"
                 />
-              </SectionCard>
+              </Section>
 
-              <SectionCard
+              <Section
                 title="Khách hàng"
-                icon={UserRound}
                 loading={!!customerId && isLoadingCustomer}
                 empty={!customerId || !customer}
                 emptyText={
@@ -293,10 +364,10 @@ export function CallLogDetail({
                     : "Không liên kết khách hàng"
                 }
               >
-                <DetailRow label="Tên" value={customer?.name || "—"} />
-                <DetailRow label="Số điện thoại" value={customer?.phone || "—"} />
-                <DetailRow label="Email" value={customer?.email || "—"} />
-                <DetailRow
+                <Field label="Tên" value={customer?.name || "—"} />
+                <Field label="Số điện thoại" value={customer?.phone || "—"} />
+                <Field label="Email" value={customer?.email || "—"} />
+                <Field
                   label="Trạng thái"
                   value={
                     customer
@@ -306,30 +377,26 @@ export function CallLogDetail({
                       : "—"
                   }
                 />
-              </SectionCard>
+              </Section>
 
-              <SectionCard
+              <Section
                 title="Người dùng"
-                icon={User}
                 loading={!!userId && isLoadingUser}
                 empty={!userId || !user}
                 emptyText={
                   !userId
-                    ? "Không có user_id gắn với cuộc gọi"
+                    ? "Không có người dùng gắn với cuộc gọi"
                     : isUserError
                       ? "Lỗi khi tải thông tin người dùng"
                       : "Không tải được thông tin người dùng"
                 }
               >
-                <DetailRow label="Username" value={user?.username || "—"} />
-                <DetailRow label="Họ tên" value={user?.fullname || "—"} />
-                <DetailRow label="Email" value={user?.email || "—"} />
-                <DetailRow label="Vai trò" value={user?.role || "—"} />
-                <DetailRow
-                  label="Cấp bậc"
-                  value={user?.level || "—"}
-                />
-                <DetailRow
+                <Field label="Username" value={user?.username || "—"} />
+                <Field label="Họ tên" value={user?.fullname || "—"} />
+                <Field label="Email" value={user?.email || "—"} />
+                <Field label="Vai trò" value={user?.role || "—"} />
+                <Field label="Cấp bậc" value={user?.level || "—"} />
+                <Field
                   label="Trạng thái"
                   value={
                     user
@@ -339,15 +406,12 @@ export function CallLogDetail({
                       : "—"
                   }
                 />
-              </SectionCard>
+              </Section>
 
-              <SectionCard
+              <Section
                 title="Doanh nghiệp"
-                icon={Building2}
                 loading={!!tenantId && isLoadingTenant}
-                empty={
-                  !isLoadingTenant && !tenant && !log.tenant_name?.trim()
-                }
+                empty={!isLoadingTenant && !tenant && !log.tenant_name?.trim()}
                 emptyText={
                   tenantId
                     ? "Không tải được thông tin doanh nghiệp"
@@ -356,34 +420,70 @@ export function CallLogDetail({
               >
                 {tenant ? (
                   <>
-                    <DetailRow label="Tên" value={tenant.name || "—"} />
-                    <DetailRow
-                      label="Mô tả"
-                      value={tenant.description || "—"}
-                    />
-                    <DetailRow
+                    <Field label="Tên" value={tenant.name || "—"} />
+                    <Field
                       label="Trạng thái"
                       value={
-                        tenant.is_active === 1
-                          ? "Hoạt động"
-                          : "Không hoạt động"
+                        tenant.is_active === 1 ? "Hoạt động" : "Không hoạt động"
                       }
+                    />
+                    <Field
+                      label="Mô tả"
+                      value={tenant.description || "—"}
+                      className="sm:col-span-2"
                     />
                   </>
                 ) : log.tenant_name?.trim() ? (
-                  <DetailRow label="Tên" value={log.tenant_name} />
+                  <Field
+                    label="Tên"
+                    value={log.tenant_name}
+                    className="sm:col-span-2"
+                  />
                 ) : null}
-              </SectionCard>
+              </Section>
+
+              <Section
+                title="Metadata"
+                empty={
+                  !log.meta_data || Object.keys(log.meta_data).length === 0
+                }
+                emptyText="Không có metadata"
+              >
+                <Field
+                  label="Trạng thái SIP"
+                  value={String(log.meta_data?.status ?? "—")}
+                />
+                <Field
+                  label="Ứng dụng"
+                  value={String(log.meta_data?.application ?? "—")}
+                />
+                <Field
+                  label="Domain"
+                  value={String(log.meta_data?.domain ?? "—")}
+                />
+                <Field
+                  label="Mã phản hồi"
+                  value={String(log.meta_data?.code ?? "—")}
+                />
+                <Field
+                  label="Hangup disposition"
+                  value={String(log.meta_data?.sip_hangup_disposition ?? "—")}
+                  className="sm:col-span-2"
+                />
+              </Section>
             </>
           ) : (
-            <p className="py-12 text-center text-sm text-muted-foreground">
+            <p className="py-14 text-center text-sm text-muted-foreground">
               Không có dữ liệu cuộc gọi
             </p>
           )}
         </div>
 
-        <DialogFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="shrink-0 border-t border-border px-5 py-3 sm:justify-end">
+          <Button
+            className="rounded-md bg-primary px-4 text-primary-foreground hover:bg-primary/90 active:scale-[0.98]"
+            onClick={() => onOpenChange(false)}
+          >
             Đóng
           </Button>
         </DialogFooter>

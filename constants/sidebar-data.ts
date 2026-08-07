@@ -29,6 +29,7 @@ import {
   IconUser,
   IconMessageCircle,
   IconPhoneCall,
+  IconHeadset,
 } from "@tabler/icons-react";
 import {
   AudioWaveform,
@@ -213,6 +214,12 @@ export const sidebarData: SidebarData = {
           title: "Lịch sử cuộc gọi",
           url: "/call-logs",
           icon: IconPhoneCall,
+          permissions: [PERMISSIONS.VIEW_LOGS],
+        },
+        {
+          title: "3CX Webclient",
+          url: "/3cx",
+          icon: IconHeadset,
           permissions: [PERMISSIONS.VIEW_LOGS],
         },
         // {

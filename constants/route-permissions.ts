@@ -170,8 +170,8 @@ export function getRequiredPermissionsForPath(
     return null;
   }
 
-  // ── Logs ─────────────────────────────────────────────────────────────
-  if (matches(path, "/call-logs")) {
+  // ── Logs / VoIP ──────────────────────────────────────────────────────
+  if (matches(path, "/call-logs") || matches(path, "/3cx")) {
     return [PERMISSIONS.VIEW_LOGS];
   }
 

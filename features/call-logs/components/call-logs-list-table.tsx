@@ -19,10 +19,12 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ClipboardList,
-  ExternalLink,
+  EllipsisVertical,
   Eye,
+  ListTree,
   Phone,
   PhoneCall,
+  TimerReset,
   UserRound,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -32,6 +34,14 @@ import { IconMoodEmpty } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyData } from "@/components/empty-data";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -137,6 +147,13 @@ function getCallSourceMeta(log: CallLog) {
   };
 }
 
+function getCallSourceChannel(source: string | null | undefined) {
+  const value = String(source ?? "").trim().toLowerCase();
+  if (!value) return "—";
+  if (value === "web") return "Web";
+  return value;
+}
+
 function formatDateTimeCell(value: string | null | undefined) {
   if (!value) {
     return <span className="text-muted-foreground">—</span>;
@@ -152,6 +169,60 @@ function formatDateTimeCell(value: string | null | undefined) {
   } catch {
     return <span className="text-sm">{value}</span>;
   }
+}
+
+function formatEventTime(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    return convertDateTime(value, "short").datetime;
+  } catch {
+    return value;
+  }
+}
+
+/** Timeline event suy ra từ dữ liệu call log hiện có */
+function getCallEvents(log: CallLog) {
+  const events: { label: string; time: string | null; detail?: string }[] = [];
+
+  if (log.started_at) {
+    events.push({
+      label: "Bắt đầu cuộc gọi",
+      time: formatEventTime(log.started_at),
+    });
+  }
+  if (log.answered_at) {
+    events.push({
+      label: "Nghe máy",
+      time: formatEventTime(log.answered_at),
+    });
+  }
+  if (log.ended_at) {
+    events.push({
+      label: "Kết thúc cuộc gọi",
+      time: formatEventTime(log.ended_at),
+      detail: log.status ? `Trạng thái: ${log.status}` : undefined,
+    });
+  }
+
+  const hangup = log.meta_data?.sip_hangup_disposition;
+  if (typeof hangup === "string" && hangup.trim()) {
+    events.push({
+      label: "Hangup disposition",
+      time: null,
+      detail: hangup,
+    });
+  }
+
+  const metaStatus = log.meta_data?.status;
+  if (typeof metaStatus === "string" && metaStatus.trim()) {
+    events.push({
+      label: "Trạng thái SIP",
+      time: null,
+      detail: metaStatus,
+    });
+  }
+
+  return events;
 }
 
 export function CallLogsListTable({
@@ -228,9 +299,20 @@ export function CallLogsListTable({
         accessorKey: "phone_number",
         header: "Số điện thoại",
         cell: ({ row }) => (
-          <span className="font-medium tabular-nums">
-            {row.original.phone_number || "—"}
-          </span>
+          <div className="flex min-w-40 flex-col gap-1">
+            <span className="font-medium tabular-nums">
+              {row.original.phone_number || "—"}
+            </span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{getCallSourceChannel(row.original.source)}</span>
+              {row.original.hotline ? (
+                <>
+                  <span className="text-border">•</span>
+                  <span className="tabular-nums">{row.original.hotline}</span>
+                </>
+              ) : null}
+            </div>
+          </div>
         ),
       },
       {
@@ -319,9 +401,10 @@ export function CallLogsListTable({
             return <span className="text-sm text-muted-foreground">—</span>;
           }
           return (
-            <span className="text-sm font-medium tabular-nums text-foreground">
+            <div className="inline-flex min-w-22 items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-sm font-medium tabular-nums text-foreground">
+              <TimerReset className="size-3.5 text-muted-foreground" />
               {label}
-            </span>
+            </div>
           );
         },
       },
@@ -345,17 +428,14 @@ export function CallLogsListTable({
             return <span className="text-muted-foreground">—</span>;
           }
           return (
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 px-2.5 text-xs font-medium"
+            <audio
+              controls
+              preload="none"
+              className="h-9 w-80 max-w-full"
+              src={url}
             >
-              <a href={url} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="size-3.5 shrink-0" />
-                Nghe ghi âm
-              </a>
-            </Button>
+              Trình duyệt không hỗ trợ phát audio.
+            </audio>
           );
         },
       },
@@ -364,18 +444,70 @@ export function CallLogsListTable({
         header: "Hành động",
         enableSorting: false,
         enableHiding: false,
-        cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 cursor-pointer"
-            onClick={() => openDetail(row.original)}
-            title="Xem chi tiết"
-          >
-            <Eye className="size-4" />
-            <span className="sr-only">Xem chi tiết</span>
-          </Button>
-        ),
+        cell: ({ row }) => {
+          const events = getCallEvents(row.original);
+          return (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 cursor-pointer"
+                onClick={() => openDetail(row.original)}
+                title="Xem chi tiết"
+              >
+                <Eye className="size-4" />
+                <span className="sr-only">Xem chi tiết</span>
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 cursor-pointer"
+                  >
+                    <EllipsisVertical className="size-4" />
+                    <span className="sr-only">Hành động</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuLabel className="flex items-center gap-2">
+                    <ListTree className="size-3.5" />
+                    Danh sách event
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {events.length === 0 ? (
+                    <DropdownMenuItem disabled>
+                      Chưa có event
+                    </DropdownMenuItem>
+                  ) : (
+                    events.map((event, index) => (
+                      <DropdownMenuItem
+                        key={`${event.label}-${index}`}
+                        className="cursor-default flex-col items-start gap-0.5 py-2"
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        <span className="text-sm font-medium text-foreground">
+                          {event.label}
+                        </span>
+                        {event.time ? (
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {event.time}
+                          </span>
+                        ) : null}
+                        {event.detail ? (
+                          <span className="text-xs text-muted-foreground">
+                            {event.detail}
+                          </span>
+                        ) : null}
+                      </DropdownMenuItem>
+                    ))
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
       },
     ],
     [],
@@ -418,7 +550,7 @@ export function CallLogsListTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="overflow-hidden rounded-2xl border border-border/70 bg-background shadow-sm">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -472,7 +604,7 @@ export function CallLogsListTable({
                   <EmptyData
                     icon={IconMoodEmpty}
                     title="Chưa có lịch sử cuộc gọi."
-                    description="Hãy thử đổi bộ lọc hoặc tìm theo số điện thoại / SIP call ID."
+                    description="Hãy thử đổi bộ lọc hoặc tìm theo số điện thoại."
                     showButton={false}
                     buttonText=""
                     onButtonClick={() => null}

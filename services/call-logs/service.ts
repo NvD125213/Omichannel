@@ -5,17 +5,24 @@ export type CallDirection = "inbound" | "outbound" | string;
 export interface CallLog {
   id?: string;
   sip_call_id: string;
+  provider_call_id?: string | null;
   phone_number: string;
+  from_number?: string | null;
+  to_number?: string | null;
+  hotline?: string | null;
   customer_id: string | null;
   ticket_id: string | null;
   user_id: string | null;
   direction: CallDirection | null;
   status: string | null;
   started_at: string | null;
+  answered_at?: string | null;
   ended_at: string | null;
   duration: number | null;
+  billsec?: number | null;
   recording_url: string | null;
   meta_data: Record<string, unknown> | null;
+  source?: string | null;
   tenant_id: string | null;
   tenant_name?: string | null;
   username_action_call?: string | null;
@@ -25,28 +32,44 @@ export interface CallLog {
 
 export interface CreateCallLogRequest {
   sip_call_id: string;
-  phone_number: string;
+  provider_call_id?: string | null;
+  phone_number?: string;
+  from_number?: string | null;
+  to_number?: string | null;
+  hotline?: string | null;
   customer_id?: string | null;
   ticket_id?: string | null;
   user_id?: string | null;
   direction?: CallDirection | null;
   status?: string | null;
   started_at?: string | null;
+  answered_at?: string | null;
   ended_at?: string | null;
   duration?: number | null;
+  billsec?: number | null;
   recording_url?: string | null;
   meta_data?: Record<string, unknown> | null;
+  source?: string | null;
   tenant_id?: string | null;
 }
 
 export interface UpdateCallLogRequest {
+  phone_number?: string | null;
+  from_number?: string | null;
+  to_number?: string | null;
+  hotline?: string | null;
+  tenant_id?: string | null;
   customer_id?: string | null;
   ticket_id?: string | null;
   user_id?: string | null;
+  direction?: CallDirection | null;
   status?: string | null;
+  source?: string | null;
   started_at?: string | null;
+  answered_at?: string | null;
   ended_at?: string | null;
   duration?: number | null;
+  billsec?: number | null;
   recording_url?: string | null;
   meta_data?: Record<string, unknown> | null;
 }
@@ -76,10 +99,11 @@ export interface GetCallLogsParams {
   customer_id?: string;
 }
 
-export type GetCallLogsResponse = ApiResponse<{
-  items: CallLog[];
-  pagination: Pagination;
-}>;
+export type GetCallLogsResponse = ApiResponse<
+  Pagination & {
+    items: CallLog[];
+  }
+>;
 
 export type GetCallLogByIdResponse = ApiResponse<CallLog>;
 

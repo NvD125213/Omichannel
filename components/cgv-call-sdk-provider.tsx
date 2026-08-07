@@ -11,20 +11,16 @@ import React, {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import {
-  useCreateCallLog,
-  useUpdateCallLog,
-} from "@/hooks/call-logs/use-call-logs";
+import { useCreateCallLog } from "@/hooks/call-logs/use-call-logs";
 import { useMe } from "@/hooks/user/use-me";
-import type {
-  CreateCallLogRequest,
-  UpdateCallLogRequest,
-} from "@/services/call-logs/service";
+import type { CreateCallLogRequest } from "@/services/call-logs/service";
+import { enableSoftphoneCornerDrag } from "@/components/softphone/widget-corner-drag";
 
 declare global {
   interface Window {
     /** Phải khớp modifiers với `components/softphone/telesip-sdk.tsx` (không dùng `?`). */
     CGVSDK: any;
+    currentSipCallId?: string;
   }
 }
 
@@ -37,14 +33,6 @@ export interface MakeCallContext {
   tenant_id?: string | null;
   user_id?: string | null;
   display_name?: string | null;
-}
-
-interface ActiveCallState {
-  sip_call_id: string;
-  phone_number: string;
-  started_at: string;
-  answered_at?: string;
-  direction: CallDirection;
 }
 
 export interface CallSession {
@@ -78,7 +66,10 @@ const CGVCallSDKContext = createContext<CGVCallSDKContextType | undefined>(
   undefined,
 );
 
-const SIP_DOMAIN = "gtg.vn";
+const SIP_DOMAIN = "demo.cgv.vn";
+const SIP_EXTENSION = "101";
+const SIP_PASSWORD = "ldCGV%2025!!!";
+const WS_SERVER = "wss://cgvcall.mobilesip.vn:7444";
 const SDK_SCRIPT = "https://sdk.telesip.vn/public/sdk.v2.min.js";
 const SDK_STYLES = "https://sdk.telesip.vn/public/styles.css";
 const TEARDOWN_GRACE_MS = 800;
@@ -91,33 +82,27 @@ let teardownTimer: ReturnType<typeof setTimeout> | null = null;
 let scriptLoadPromise: Promise<void> | null = null;
 
 type CreateMutate = (data: CreateCallLogRequest) => void;
-type UpdateMutate = (vars: {
-  sipCallId: string;
-  data: UpdateCallLogRequest;
-}) => void;
 
 const bridges: {
   createMutate: CreateMutate | null;
-  updateMutate: UpdateMutate | null;
   currentUser: { id?: string; tenant_id?: string | null } | null | undefined;
-  pendingContext: MakeCallContext | null;
-  activeCall: ActiveCallState | null;
   setCallSession: Dispatch<SetStateAction<CallSession>> | null;
 } = {
   createMutate: null,
-  updateMutate: null,
   currentUser: null,
-  pendingContext: null,
-  activeCall: null,
   setCallSession: null,
 };
 
-function isValidSipCallId(callId?: string | null): boolean {
-  return !!callId && callId !== "Unknown";
+/** Bump khi đổi voiceDelegate — ép recreate SDK (tránh HMR giữ callback cũ). */
+const VOICE_DELEGATE_BUILD = 5;
+
+function createSipCallId(): string {
+  return crypto.randomUUID();
 }
 
 function ensureSdkStyles() {
   if (typeof document === "undefined") return;
+  document.getElementById("cgv-sdk-style-overrides")?.remove();
   if (document.querySelector(`link[href="${SDK_STYLES}"]`)) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
@@ -164,144 +149,41 @@ function emitSession(updater: SetStateAction<CallSession>) {
   }
 }
 
+/** Chỉ cập nhật UI session — không tạo/sửa call log ở đây. */
 function buildVoiceDelegate() {
   return {
-    onCallCreated: (phone: string, meta?: { callId?: string }) => {
-      const sipCallId = meta?.callId;
-      if (!isValidSipCallId(sipCallId)) return;
-
-      const ctx = bridges.pendingContext;
-      const user = bridges.currentUser;
-      const startedAt = new Date().toISOString();
-      const phoneNumber = phone || "";
-
-      bridges.activeCall = {
-        sip_call_id: sipCallId!,
-        phone_number: phoneNumber,
-        started_at: startedAt,
-        direction: "outbound",
-      };
-
+    onCallCreated: (phone: string) => {
       emitSession((prev) => ({
         status: "connecting",
         direction: "outbound",
-        phoneNumber: phoneNumber || prev.phoneNumber,
-        displayName: ctx?.display_name ?? prev.displayName,
+        phoneNumber: phone || prev.phoneNumber,
+        displayName: prev.displayName,
         muted: false,
         connectedAt: null,
       }));
-
-      if (bridges.createMutate) {
-        bridges.createMutate({
-          sip_call_id: sipCallId!,
-          phone_number: phoneNumber,
-          customer_id: ctx?.customer_id ?? null,
-          ticket_id: ctx?.ticket_id ?? null,
-          user_id: ctx?.user_id ?? user?.id ?? null,
-          tenant_id: ctx?.tenant_id ?? user?.tenant_id ?? null,
-          direction: "outbound",
-          status: "ringing",
-          started_at: startedAt,
-        });
-      }
-
-      bridges.pendingContext = null;
     },
 
-    onCallReceived: (phone: string, meta?: { callId?: string }) => {
-      const sipCallId = meta?.callId;
-      if (!isValidSipCallId(sipCallId)) return;
-
-      const user = bridges.currentUser;
-      const startedAt = new Date().toISOString();
-      const phoneNumber = phone || "";
-
-      bridges.activeCall = {
-        sip_call_id: sipCallId!,
-        phone_number: phoneNumber,
-        started_at: startedAt,
-        direction: "inbound",
-      };
-
+    onCallReceived: (phone: string) => {
       emitSession({
         status: "ringing",
         direction: "inbound",
-        phoneNumber,
+        phoneNumber: phone || "",
         displayName: null,
         muted: false,
         connectedAt: null,
       });
-
-      if (bridges.createMutate) {
-        bridges.createMutate({
-          sip_call_id: sipCallId!,
-          phone_number: phoneNumber,
-          customer_id: null,
-          ticket_id: null,
-          user_id: user?.id ?? null,
-          tenant_id: user?.tenant_id ?? null,
-          direction: "inbound",
-          status: "ringing",
-          started_at: startedAt,
-        });
-      }
     },
 
-    onCallAnswered: (phone: string, meta?: { callId?: string }) => {
-      const active = bridges.activeCall;
-      const sipCallId = meta?.callId || active?.sip_call_id;
-      if (!isValidSipCallId(sipCallId)) return;
-
-      const answeredAt = new Date().toISOString();
-      if (active && active.sip_call_id === sipCallId) {
-        active.answered_at = answeredAt;
-      }
-
+    onCallAnswered: (phone: string) => {
       emitSession((prev) => ({
         ...prev,
         status: "connected",
         phoneNumber: phone || prev.phoneNumber,
         connectedAt: Date.now(),
       }));
-
-      if (bridges.updateMutate) {
-        bridges.updateMutate({
-          sipCallId: sipCallId!,
-          data: { status: "answered" },
-        });
-      }
     },
 
     onCallHangup: () => {
-      const active = bridges.activeCall;
-      if (active?.sip_call_id) {
-        const endedAt = new Date();
-        const endedAtIso = endedAt.toISOString();
-        const durationBase = active.answered_at
-          ? new Date(active.answered_at)
-          : null;
-        const duration = durationBase
-          ? Math.max(
-              0,
-              Math.round((endedAt.getTime() - durationBase.getTime()) / 1000),
-            )
-          : 0;
-        const status = active.answered_at ? "completed" : "missed";
-
-        if (bridges.updateMutate) {
-          bridges.updateMutate({
-            sipCallId: active.sip_call_id,
-            data: {
-              status,
-              ended_at: endedAtIso,
-              duration,
-            },
-          });
-        }
-      }
-
-      bridges.activeCall = null;
-      bridges.pendingContext = null;
       emitSession(IDLE_SESSION);
     },
 
@@ -358,25 +240,55 @@ function loadSdkScript(): Promise<void> {
 }
 
 function ensureSharedSdk(): any {
-  if (sharedSdk) return sharedSdk;
   if (typeof window === "undefined" || !window.CGVSDK) return null;
+
+  const prevBuild = (
+    window as Window & { __CGV_VOICE_DELEGATE_BUILD__?: number }
+  ).__CGV_VOICE_DELEGATE_BUILD__;
+  if (sharedSdk && prevBuild !== VOICE_DELEGATE_BUILD) {
+    destroySharedSdk();
+  }
+
+  if (sharedSdk) return sharedSdk;
 
   ensureSdkStyles();
 
   sharedSdk = new window.CGVSDK(
     SIP_DOMAIN,
     process.env.NEXT_PUBLIC_SIP_USERNAME,
-    "3001",
+    SIP_EXTENSION,
     buildVoiceDelegate(),
     {
       enableWidget: true,
       sipOnly: true,
       sipDomain: SIP_DOMAIN,
-      wsServer: process.env.NEXT_PUBLIC_WS_SERVER,
-      sipPassword: process.env.NEXT_PUBLIC_SIP_PASSWORD,
+      wsServer: WS_SERVER,
+      sipPassword: SIP_PASSWORD,
     },
   );
+
+  if (typeof sharedSdk.call === "function") {
+    const originalCall = sharedSdk.call.bind(sharedSdk);
+    sharedSdk.call = (number: string, options?: Record<string, unknown>) => {
+      const nextOptions = {
+        ...(options ?? {}),
+        params: {
+          ...(((options ?? {}).params as Record<string, unknown> | undefined) ??
+            {}),
+          callId:
+            ((options ?? {}).params as Record<string, unknown> | undefined)
+              ?.callId ?? window.currentSipCallId,
+        },
+      };
+
+      return originalCall(number, nextOptions);
+    };
+  }
+
   sharedReady = true;
+  (
+    window as Window & { __CGV_VOICE_DELEGATE_BUILD__?: number }
+  ).__CGV_VOICE_DELEGATE_BUILD__ = VOICE_DELEGATE_BUILD;
   return sharedSdk;
 }
 
@@ -384,8 +296,6 @@ function destroySharedSdk() {
   teardownSdkInstance(sharedSdk);
   sharedSdk = null;
   sharedReady = false;
-  bridges.activeCall = null;
-  bridges.pendingContext = null;
   removeOrphanedWidgetDom();
 }
 
@@ -416,33 +326,22 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
 
   const { data: currentUser } = useMe();
   const createCallLog = useCreateCallLog();
-  const updateCallLog = useUpdateCallLog();
 
   const sdkRef = useRef<any>(sharedSdk);
 
-  // Bridge chỉ cập nhật trong effect — React Compiler cấm ghi module-scope khi render
   useEffect(() => {
     bridges.createMutate = (data) => {
       createCallLog.mutate(data);
-    };
-    bridges.updateMutate = (vars) => {
-      updateCallLog.mutate(vars);
     };
     bridges.currentUser = currentUser;
     bridges.setCallSession = setCallSession;
 
     return () => {
-      // Tránh gọi setState của instance đã unmount trong grace period
       if (bridges.setCallSession === setCallSession) {
         bridges.setCallSession = null;
       }
     };
-  }, [
-    createCallLog.mutate,
-    updateCallLog.mutate,
-    currentUser,
-    setCallSession,
-  ]);
+  }, [createCallLog, currentUser, setCallSession]);
 
   useEffect(() => {
     sdkRef.current = sdk;
@@ -453,8 +352,12 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
 
     mountCount += 1;
     cancelPendingTeardown();
+    if (typeof document !== "undefined") {
+      document.getElementById("cgv-sdk-style-overrides")?.remove();
+    }
 
     if (sharedSdk) {
+      ensureSharedSdk();
       setSdk(sharedSdk);
       setReady(true);
       sdkRef.current = sharedSdk;
@@ -500,6 +403,11 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!ready) return;
+    return enableSoftphoneCornerDrag();
+  }, [ready]);
+
   const showWidget = useCallback(() => {
     const instance = sdkRef.current ?? sharedSdk;
     if (!instance) return;
@@ -516,26 +424,39 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
       if (!instance || !phone?.trim()) return;
 
       const user = bridges.currentUser;
-      bridges.pendingContext = {
-        customer_id: context?.customer_id ?? null,
-        ticket_id: context?.ticket_id ?? null,
-        tenant_id: context?.tenant_id ?? user?.tenant_id ?? null,
-        user_id: context?.user_id ?? user?.id ?? null,
-        display_name: context?.display_name ?? null,
-      };
+      const phoneNumber = phone.trim();
+      const sipCallId = createSipCallId();
+      const customer_id = context?.customer_id ?? null;
+      const ticket_id = context?.ticket_id ?? null;
+      const user_id = context?.user_id ?? user?.id ?? null;
 
       setCallSession({
         status: "connecting",
         direction: "outbound",
-        phoneNumber: phone.trim(),
+        phoneNumber,
         displayName: context?.display_name ?? null,
         muted: false,
         connectedAt: null,
       });
 
+      // Chỉ tạo call log 1 lần lúc nhấn gọi
+      if (bridges.createMutate) {
+        bridges.createMutate({
+          sip_call_id: sipCallId,
+          phone_number: phoneNumber,
+          user_id,
+          customer_id,
+          ticket_id,
+        });
+      }
+
       showWidget();
       if (typeof instance.call === "function") {
-        instance.call(phone.trim(), {
+        window.currentSipCallId = sipCallId;
+        instance.call(phoneNumber, {
+          params: {
+            callId: sipCallId,
+          },
           extraHeaders: [
             "CALL-FROM: CGVSDK",
             `Route: <sip:${SIP_DOMAIN};lr;sipml5-outbound;transport=udp>`,

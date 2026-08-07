@@ -1,0 +1,23 @@
+services:
+  omichannel:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: omichannel
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      PM2_APP_NAME: omichannel
+      HUSKY: "0"
+      NEXT_TELEMETRY_DISABLED: "1"
+    restart: unless-stopped
+    # Persist PM2 dump / logs nếu cần
+    volumes:
+      - omichannel-logs:/app/logs
+
+volumes:
+  omichannel-logs:

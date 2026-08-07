@@ -36,8 +36,8 @@ export const metadata: Metadata = {
   title: "Hệ thống OMNI HUB",
   description: "Bảng quản trị hệ thống đa kênh OMNI HUB của CGV Telecom",
   icons: {
-    icon: [{ url: "/icon", type: "image/png", sizes: "32x32" }],
-    apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
+    icon: [{ url: "/icon.png", type: "image/png", sizes: "32x32" }],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
 };
 

@@ -272,3 +272,102 @@
     animation: shine 5s linear infinite;
   }
 }
+
+/* Softphone widget — unlayered so it beats TeleSIP styles.css */
+#pwBackground,
+#pwBackground * {
+  cursor: grab !important;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Center is an <img> inside <a id="pwButton"> — native image/link drag
+   steals the gesture, so only the blue ring seemed draggable. */
+#pwBackground img,
+#pwBackground-drag-ghost img {
+  pointer-events: none !important;
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+}
+
+#pwBackground a,
+#pwBackground-drag-ghost a {
+  -webkit-user-drag: none !important;
+  user-drag: none !important;
+}
+
+#pwBackground {
+  transition:
+    top 0.2s ease,
+    left 0.2s ease,
+    right 0.2s ease,
+    bottom 0.2s ease;
+}
+
+#pwBackground.is-dragging,
+#pwBackground.is-dragging *,
+#pwBackground-drag-ghost,
+#pwBackground-drag-ghost * {
+  cursor: grabbing !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+#pwBackground.is-dragging {
+  z-index: 100000;
+}
+
+#ppContainer {
+  transition:
+    top 0.2s ease,
+    left 0.2s ease,
+    right 0.2s ease,
+    bottom 0.2s ease;
+}
+
+#pwBackground[data-softphone-corner="bottom-right"],
+#ppContainer[data-softphone-corner="bottom-right"] {
+  top: auto !important;
+  left: auto !important;
+  right: 10px !important;
+  bottom: 10px !important;
+}
+
+#pwBackground[data-softphone-corner="bottom-left"],
+#ppContainer[data-softphone-corner="bottom-left"] {
+  top: auto !important;
+  right: auto !important;
+  left: 10px !important;
+  bottom: 10px !important;
+}
+
+#pwBackground[data-softphone-corner="top-right"],
+#ppContainer[data-softphone-corner="top-right"] {
+  bottom: auto !important;
+  left: auto !important;
+  right: 10px !important;
+  top: 10px !important;
+}
+
+#pwBackground[data-softphone-corner="top-left"],
+#ppContainer[data-softphone-corner="top-left"] {
+  bottom: auto !important;
+  right: auto !important;
+  left: 10px !important;
+  top: 10px !important;
+}
+
+.pp-panel-heading {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+
+#ppDialPad .pp-number-input-wrapper {
+  padding-right: 0 !important;
+}
+
+.pp-circle-button {
+  width: 42px !important;
+  height: 42px !important;
+}

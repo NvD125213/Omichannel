@@ -2,23 +2,33 @@ FROM node:20-bullseye-slim
 
 WORKDIR /app
 
-# pkill (procps) needed for killing old Next processes
+# procps: tiện debug; ca-certificates: HTTPS khi npm
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends procps \
-  && rm -rf /var/lib/apt/lists/*
+  && apt-get install -y --no-install-recommends procps ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
+  && npm install -g pm2@latest
 
-# Install dependencies first for better layer cache
-COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+ENV NODE_ENV=production
+ENV HUSKY=0
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PORT=3000
 
-# Copy source code
+# Copy file cấu hình phụ thuộc trước để tận dụng layer cache
+COPY package.json package-lock.json* ./
+COPY ecosystem.config.cjs ./
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+  && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+  && mkdir -p /app/logs \
+  && npm i \
+  && (npm audit fix || true)
+
+# Source code (build chạy lại trong entrypoint khi container start/redeploy)
 COPY . .
+RUN mkdir -p /app/logs \
+  && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 
-# Startup flow:
-# 1) build project
-# 2) kill old next processes (if any)
-# 3) start with nohup + disown
-# 4) tail log to keep container alive
-CMD ["bash", "-lc", "set -e; set -m; echo '[1/4] Build project'; npm run build; echo '[2/4] Kill old Next.js process'; pkill -f 'next' || true; echo '[3/4] Start Next.js with nohup'; nohup npm run start > /app/nohup.out 2>&1 & disown || true; echo '[4/4] Follow logs'; tail -f /app/nohup.out"]
+ENTRYPOINT ["docker-entrypoint.sh"]

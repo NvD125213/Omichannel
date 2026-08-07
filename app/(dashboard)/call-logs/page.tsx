@@ -74,7 +74,14 @@ export default function CallLogsPage() {
   });
 
   const callLogs: CallLog[] = data?.data?.items ?? [];
-  const pagination = data?.data?.pagination;
+  const pagination = data?.data
+    ? {
+        total: data.data.total,
+        page: data.data.page,
+        page_size: data.data.page_size,
+        total_pages: data.data.total_pages,
+      }
+    : undefined;
 
   const handleSearchChange = (value: string) => {
     setQuery({ search: value || undefined, page: 1 });
