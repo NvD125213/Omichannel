@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   callLogService,
   type CreateCallLogRequest,
+  type GetCallLogEventsParams,
   type GetCallLogsParams,
   type UpdateCallLogRequest,
 } from "@/services/call-logs/service";
 
 const QUERY_KEY = "call-logs";
+const EVENTS_QUERY_KEY = "call-log-events";
 
 export const useGetCallLogs = (params?: GetCallLogsParams, enabled = true) => {
   return useQuery({
@@ -22,6 +24,31 @@ export const useGetCallLogById = (sipCallId: string, enabled = true) => {
     queryKey: [QUERY_KEY, sipCallId],
     queryFn: () => callLogService.getCallLogById(sipCallId),
     enabled: enabled && !!sipCallId,
+  });
+};
+
+export const useGetCallLogEvents = (
+  sipCallId: string,
+  params?: GetCallLogEventsParams,
+  enabled = true,
+) => {
+  return useQuery({
+    queryKey: [EVENTS_QUERY_KEY, sipCallId, params],
+    queryFn: () => callLogService.getCallLogEvents(sipCallId, params),
+    enabled: enabled && !!sipCallId,
+    placeholderData: (previousData) => previousData,
+  });
+};
+
+export const useGetCallLogEventById = (
+  sipCallId: string,
+  eventId: string,
+  enabled = true,
+) => {
+  return useQuery({
+    queryKey: [EVENTS_QUERY_KEY, sipCallId, eventId],
+    queryFn: () => callLogService.getCallLogEventById(sipCallId, eventId),
+    enabled: enabled && !!sipCallId && !!eventId,
   });
 };
 
@@ -55,6 +82,9 @@ export const useUpdateCallLog = () => {
         queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
         queryClient.invalidateQueries({
           queryKey: [QUERY_KEY, variables.sipCallId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: [EVENTS_QUERY_KEY, variables.sipCallId],
         });
       }
     },

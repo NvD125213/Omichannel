@@ -30,7 +30,6 @@ import {
 import { useMemo, useState } from "react";
 import { NumberParam, useQueryParam, withDefault } from "use-query-params";
 import { IconMoodEmpty } from "@tabler/icons-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,8 +37,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyData } from "@/components/empty-data";
@@ -56,6 +53,7 @@ import { cn } from "@/lib/utils";
 import type { CallLog, Pagination } from "@/services/call-logs/service";
 import { convertDateTime } from "@/utils/convert-time";
 import { CallLogDetail } from "./call-log-detail";
+import { CallLogEvent } from "./call-log-event";
 import { CallLogsListPagination } from "./call-logs-list-pagination";
 
 interface CallLogsListTableProps {
@@ -148,7 +146,9 @@ function getCallSourceMeta(log: CallLog) {
 }
 
 function getCallSourceChannel(source: string | null | undefined) {
-  const value = String(source ?? "").trim().toLowerCase();
+  const value = String(source ?? "")
+    .trim()
+    .toLowerCase();
   if (!value) return "—";
   if (value === "web") return "Web";
   return value;
@@ -171,60 +171,6 @@ function formatDateTimeCell(value: string | null | undefined) {
   }
 }
 
-function formatEventTime(value: string | null | undefined) {
-  if (!value) return null;
-  try {
-    return convertDateTime(value, "short").datetime;
-  } catch {
-    return value;
-  }
-}
-
-/** Timeline event suy ra từ dữ liệu call log hiện có */
-function getCallEvents(log: CallLog) {
-  const events: { label: string; time: string | null; detail?: string }[] = [];
-
-  if (log.started_at) {
-    events.push({
-      label: "Bắt đầu cuộc gọi",
-      time: formatEventTime(log.started_at),
-    });
-  }
-  if (log.answered_at) {
-    events.push({
-      label: "Nghe máy",
-      time: formatEventTime(log.answered_at),
-    });
-  }
-  if (log.ended_at) {
-    events.push({
-      label: "Kết thúc cuộc gọi",
-      time: formatEventTime(log.ended_at),
-      detail: log.status ? `Trạng thái: ${log.status}` : undefined,
-    });
-  }
-
-  const hangup = log.meta_data?.sip_hangup_disposition;
-  if (typeof hangup === "string" && hangup.trim()) {
-    events.push({
-      label: "Hangup disposition",
-      time: null,
-      detail: hangup,
-    });
-  }
-
-  const metaStatus = log.meta_data?.status;
-  if (typeof metaStatus === "string" && metaStatus.trim()) {
-    events.push({
-      label: "Trạng thái SIP",
-      time: null,
-      detail: metaStatus,
-    });
-  }
-
-  return events;
-}
-
 export function CallLogsListTable({
   callLogs,
   pagination,
@@ -244,11 +190,17 @@ export function CallLogsListTable({
     useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [detailOpen, setDetailOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
 
   const openDetail = (log: CallLog) => {
     setSelectedLog(log);
     setDetailOpen(true);
+  };
+
+  const openEvents = (log: CallLog) => {
+    setSelectedLog(log);
+    setEventsOpen(true);
   };
 
   const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
@@ -401,7 +353,7 @@ export function CallLogsListTable({
             return <span className="text-sm text-muted-foreground">—</span>;
           }
           return (
-            <div className="inline-flex min-w-22 items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-sm font-medium tabular-nums text-foreground">
+            <div className="inline-flex min-w-20 items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-sm font-medium tabular-nums text-foreground">
               <TimerReset className="size-3.5 text-muted-foreground" />
               {label}
             </div>
@@ -425,13 +377,17 @@ export function CallLogsListTable({
         cell: ({ row }) => {
           const url = row.original.recording_url?.trim();
           if (!url) {
-            return <span className="text-muted-foreground">—</span>;
+            return (
+              <span className="text-muted-foreground text-sm px-1 italic">
+                Không có ghi âm
+              </span>
+            );
           }
           return (
             <audio
               controls
-              preload="none"
-              className="h-9 w-80 max-w-full"
+              preload="metadata"
+              className="h-9 min-w-60 w-full"
               src={url}
             >
               Trình duyệt không hỗ trợ phát audio.
@@ -445,7 +401,6 @@ export function CallLogsListTable({
         enableSorting: false,
         enableHiding: false,
         cell: ({ row }) => {
-          const events = getCallEvents(row.original);
           return (
             <div className="flex items-center gap-2">
               <Button
@@ -470,39 +425,11 @@ export function CallLogsListTable({
                     <span className="sr-only">Hành động</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-72">
-                  <DropdownMenuLabel className="flex items-center gap-2">
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => openEvents(row.original)}>
                     <ListTree className="size-3.5" />
-                    Danh sách event
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {events.length === 0 ? (
-                    <DropdownMenuItem disabled>
-                      Chưa có event
-                    </DropdownMenuItem>
-                  ) : (
-                    events.map((event, index) => (
-                      <DropdownMenuItem
-                        key={`${event.label}-${index}`}
-                        className="cursor-default flex-col items-start gap-0.5 py-2"
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        <span className="text-sm font-medium text-foreground">
-                          {event.label}
-                        </span>
-                        {event.time ? (
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            {event.time}
-                          </span>
-                        ) : null}
-                        {event.detail ? (
-                          <span className="text-xs text-muted-foreground">
-                            {event.detail}
-                          </span>
-                        ) : null}
-                      </DropdownMenuItem>
-                    ))
-                  )}
+                    Danh sách sự kiện
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -630,7 +557,17 @@ export function CallLogsListTable({
         open={detailOpen}
         onOpenChange={(next) => {
           setDetailOpen(next);
-          if (!next) setSelectedLog(null);
+          if (!next && !eventsOpen) setSelectedLog(null);
+        }}
+      />
+
+      <CallLogEvent
+        sipCallId={selectedLog?.sip_call_id ?? null}
+        phoneNumber={selectedLog?.phone_number}
+        open={eventsOpen}
+        onOpenChange={(next) => {
+          setEventsOpen(next);
+          if (!next && !detailOpen) setSelectedLog(null);
         }}
       />
     </div>

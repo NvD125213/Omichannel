@@ -1,27 +1,85 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   createTenantApi,
   deleteTenantApi,
+  getTenantByIdApi,
   getTenantsApi,
   updateTenantApi,
   type CreateTenantRequest,
+  type Tenant,
+  type TenantListData,
   type TenantQueryParams,
   type TenantResponseApi,
   type UpdateTenantRequest,
+  isTenantDetail,
+  isTenantListData,
 } from "@/services/tenant/get-tenant";
 
-export const useGetTenants = (
+type UseGetTenantsOptions = { enabled?: boolean };
+
+/** Khi truyền `id` → `data` API là 1 tenant object */
+export function useGetTenants(
+  params: { id: string } & Omit<TenantQueryParams, "id">,
+  options?: UseGetTenantsOptions,
+): UseQueryResult<Tenant | undefined, Error>;
+
+/** List tenants (pagination + items) */
+export function useGetTenants(
+  params: Omit<TenantQueryParams, "id"> & { id?: undefined },
+  options?: UseGetTenantsOptions,
+): UseQueryResult<TenantListData | undefined, Error>;
+
+export function useGetTenants(
   params: TenantQueryParams,
-  options?: { enabled?: boolean },
-) => {
+  options?: UseGetTenantsOptions,
+): UseQueryResult<Tenant | TenantListData | undefined, Error> {
+  const byId = typeof params.id === "string" && params.id.length > 0;
+
   return useQuery({
     queryKey: ["tenants", params],
     queryFn: () => getTenantsApi(params),
     staleTime: 5 * 60 * 1000,
     retry: false,
-    select: (data: TenantResponseApi) => data.data,
     enabled: options?.enabled,
+    select: (res: TenantResponseApi) => {
+      const data = res.data;
+      if (byId) {
+        if (isTenantDetail(data)) return data;
+        if (isTenantListData(data)) return data.items[0] as Tenant | undefined;
+        return undefined;
+      }
+      if (isTenantListData(data)) return data;
+      if (isTenantDetail(data)) {
+        return {
+          total: 1,
+          page: 1,
+          page_size: 1,
+          total_pages: 1,
+          items: [data],
+        } satisfies TenantListData;
+      }
+      return undefined;
+    },
+  });
+}
+
+export const useGetTenantById = (
+  id: string,
+  options?: { enabled?: boolean },
+) => {
+  return useQuery({
+    queryKey: ["tenant", id],
+    queryFn: () => getTenantByIdApi(id),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    enabled: options?.enabled ?? !!id,
+    select: (res) => res.data,
   });
 };
 

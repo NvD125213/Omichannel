@@ -71,6 +71,7 @@ export interface UpdateCallLogRequest {
   duration?: number | null;
   billsec?: number | null;
   recording_url?: string | null;
+  provider_call_id?: string | null;
   meta_data?: Record<string, unknown> | null;
 }
 
@@ -99,6 +100,57 @@ export interface GetCallLogsParams {
   customer_id?: string;
 }
 
+/** Call event (raw webhook timeline) — GET /call-logs/:sip_call_id/events */
+export interface CallLogEventPayload {
+  code?: number;
+  state?: string;
+  status?: string;
+  domain?: string;
+  billsec?: number;
+  call_id?: string;
+  hotline?: string;
+  duration?: number;
+  direction?: string;
+  lead_uuid?: string;
+  to_number?: string;
+  from_number?: string;
+  application?: string;
+  domain_name?: string;
+  domain_uuid?: string;
+  sip_call_id?: string;
+  campaign_uuid?: string;
+  recording_url?: string;
+  time_started?: string;
+  time_answered?: string;
+  time_ended?: string;
+  press_key?: string;
+  receive_dest?: string;
+  ref_id?: string;
+  sip_hangup_disposition?: string;
+  [key: string]: unknown;
+}
+
+export interface CallLogEvent {
+  id: string;
+  call_log_id: string;
+  tenant_id: string;
+  sip_call_id: string;
+  provider_call_id: string | null;
+  state: string;
+  application: string | null;
+  event_at: string;
+  received_at: string;
+  payload: CallLogEventPayload | null;
+  idempotency_key: string;
+}
+
+export interface GetCallLogEventsParams {
+  page?: number;
+  page_size?: number;
+  /** ringing | answered | hangup | cdr | ... */
+  state?: string;
+}
+
 export type GetCallLogsResponse = ApiResponse<
   Pagination & {
     items: CallLog[];
@@ -110,6 +162,16 @@ export type GetCallLogByIdResponse = ApiResponse<CallLog>;
 export type CreateCallLogResponse = ApiResponse<CallLog>;
 
 export type UpdateCallLogResponse = ApiResponse<CallLog>;
+
+export type GetCallLogEventsResponse = ApiResponse<
+  Pagination & {
+    sip_call_id: string;
+    call_log_id: string;
+    items: CallLogEvent[];
+  }
+>;
+
+export type GetCallLogEventByIdResponse = ApiResponse<CallLogEvent>;
 
 export const callLogService = {
   /** GET /api/v1/call-logs — danh sách cuộc gọi (phân trang + lọc) */
@@ -151,6 +213,29 @@ export const callLogService = {
     const response = await apiClient.put<UpdateCallLogResponse>(
       `/call-logs/${encodeURIComponent(sipCallId)}`,
       data,
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/call-logs/:sip_call_id/events — timeline events của cuộc gọi */
+  getCallLogEvents: async (
+    sipCallId: string,
+    params?: GetCallLogEventsParams,
+  ): Promise<GetCallLogEventsResponse> => {
+    const response = await apiClient.get<GetCallLogEventsResponse>(
+      `/call-logs/${encodeURIComponent(sipCallId)}/events`,
+      { params },
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/call-logs/:sip_call_id/events/:event_id — chi tiết 1 event */
+  getCallLogEventById: async (
+    sipCallId: string,
+    eventId: string,
+  ): Promise<GetCallLogEventByIdResponse> => {
+    const response = await apiClient.get<GetCallLogEventByIdResponse>(
+      `/call-logs/${encodeURIComponent(sipCallId)}/events/${encodeURIComponent(eventId)}`,
     );
     return response.data;
   },

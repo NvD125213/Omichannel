@@ -1,7 +1,9 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { Building2, Loader2, Mail, User } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,9 +18,9 @@ import { useGetCallLogById } from "@/hooks/call-logs/use-call-logs";
 import { useGetCustomerById } from "@/hooks/customer/use-customer";
 import { useGetTicketById } from "@/hooks/ticket/ticket-list/use-ticket-list";
 import { useGetTenants } from "@/hooks/tenant/use-get-tenant";
-import { useListUser } from "@/hooks/user/use-list-user";
 import { cn } from "@/lib/utils";
 import type { CallLog } from "@/services/call-logs/service";
+import { getUserByIdApi } from "@/services/user/get-user-by-id";
 import { convertDateTime } from "@/utils/convert-time";
 
 interface CallLogDetailProps {
@@ -69,20 +71,215 @@ function sourceLabel(source: string | null | undefined) {
 function statusTone(status: string | null | undefined) {
   const value = String(status ?? "").toLowerCase();
   if (["answered", "completed", "success", "ended"].includes(value)) {
-    return "bg-primary/10 text-primary";
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300";
   }
   if (["ringing", "in_progress", "busy", "calling"].includes(value)) {
-    return "bg-secondary text-secondary-foreground";
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300";
   }
   if (
     ["missed", "failed", "no_answer", "cancelled", "canceled"].includes(value)
   ) {
-    return "bg-destructive/10 text-destructive";
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300";
   }
-  return "bg-muted text-muted-foreground";
+  return "border-border bg-muted/60 text-muted-foreground";
 }
 
-function Tag({
+function directionTone(direction: string | null | undefined) {
+  const value = String(direction ?? "").toLowerCase();
+  if (value === "inbound") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300";
+  }
+  if (value === "outbound") {
+    return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-300";
+  }
+  return "border-border bg-muted/60 text-muted-foreground";
+}
+
+function sourceTone(source: string | null | undefined) {
+  const value = String(source ?? "")
+    .trim()
+    .toLowerCase();
+  if (value === "web") {
+    return "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-300";
+  }
+  if (!value) return "border-border bg-muted/60 text-muted-foreground";
+  return "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300";
+}
+
+function priorityTone(priority: string | null | undefined) {
+  const value = String(priority ?? "").toLowerCase();
+  if (["urgent", "critical", "high", "cao", "khẩn cấp"].includes(value)) {
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300";
+  }
+  if (["medium", "normal", "trung bình"].includes(value)) {
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300";
+  }
+  if (["low", "thấp"].includes(value)) {
+    return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-300";
+  }
+  if (!value) return "border-border bg-muted/60 text-muted-foreground";
+  return "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-300";
+}
+
+function activeTone(active: boolean) {
+  return active
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300"
+    : "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300";
+}
+
+const RESPONSE_CODE_META: Record<string, { label: string; className: string }> =
+  {
+    "200": {
+      label: "OK",
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+    },
+    "201": {
+      label: "Created",
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+    },
+    "202": {
+      label: "Accepted",
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+    },
+    "204": {
+      label: "No Content",
+      className:
+        "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+    },
+    "400": {
+      label: "Bad Request",
+      className:
+        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    "401": {
+      label: "Unauthorized",
+      className:
+        "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/40 dark:text-orange-300",
+    },
+    "403": {
+      label: "Forbidden",
+      className:
+        "border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-900/50 dark:bg-orange-950/40 dark:text-orange-300",
+    },
+    "404": {
+      label: "Not Found",
+      className:
+        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    "408": {
+      label: "Timeout",
+      className:
+        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    "422": {
+      label: "Unprocessable",
+      className:
+        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    "429": {
+      label: "Too Many Requests",
+      className:
+        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    "480": {
+      label: "Temporarily Unavailable",
+      className:
+        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    "486": {
+      label: "Busy Here",
+      className:
+        "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+    },
+    "487": {
+      label: "Request Terminated",
+      className:
+        "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300",
+    },
+    "500": {
+      label: "Server Error",
+      className:
+        "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300",
+    },
+    "502": {
+      label: "Bad Gateway",
+      className:
+        "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300",
+    },
+    "503": {
+      label: "Service Unavailable",
+      className:
+        "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300",
+    },
+    "504": {
+      label: "Gateway Timeout",
+      className:
+        "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300",
+    },
+  };
+
+function responseCodeMeta(code: unknown) {
+  if (code === null || code === undefined || code === "") {
+    return {
+      code: "—",
+      label: null as string | null,
+      className: "border-border bg-muted/60 text-muted-foreground",
+    };
+  }
+
+  const codeStr = String(code).trim();
+  const known = RESPONSE_CODE_META[codeStr];
+  if (known) {
+    return { code: codeStr, label: known.label, className: known.className };
+  }
+
+  const numeric = Number(codeStr);
+  if (!Number.isNaN(numeric)) {
+    if (numeric >= 200 && numeric < 300) {
+      return {
+        code: codeStr,
+        label: "Success",
+        className:
+          "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300",
+      };
+    }
+    if (numeric >= 300 && numeric < 400) {
+      return {
+        code: codeStr,
+        label: "Redirect",
+        className:
+          "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-300",
+      };
+    }
+    if (numeric >= 400 && numeric < 500) {
+      return {
+        code: codeStr,
+        label: "Client Error",
+        className:
+          "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300",
+      };
+    }
+    if (numeric >= 500) {
+      return {
+        code: codeStr,
+        label: "Server Error",
+        className:
+          "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300",
+      };
+    }
+  }
+
+  return {
+    code: codeStr,
+    label: null as string | null,
+    className: "border-border bg-muted/60 text-muted-foreground",
+  };
+}
+
+function SoftBadge({
   children,
   className,
 }: {
@@ -90,15 +287,32 @@ function Tag({
   className?: string;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium tracking-wide uppercase",
-        className,
-      )}
+    <Badge
+      variant="outline"
+      className={cn("rounded-md font-semibold capitalize", className)}
     >
       {children}
-    </span>
+    </Badge>
   );
+}
+
+function EmphValue({
+  children,
+  tone = "primary",
+}: {
+  children: React.ReactNode;
+  tone?: "primary" | "duration" | "phone" | "muted";
+}) {
+  const toneClass =
+    tone === "phone"
+      ? "font-semibold tabular-nums tracking-tight"
+      : tone === "duration"
+        ? "font-semibold tabular-nums tracking-tight text-violet-700 dark:text-violet-300"
+        : tone === "muted"
+          ? "text-muted-foreground"
+          : "font-semibold tracking-tight text-foreground";
+
+  return <span className={toneClass}>{children ?? "—"}</span>;
 }
 
 function Field({
@@ -115,7 +329,7 @@ function Field({
       <label className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
         {label}
       </label>
-      <div className="min-h-9 rounded-md border border-border bg-background px-3 py-2 text-sm leading-snug text-foreground">
+      <div className="flex min-h-9 items-center rounded-md border border-border bg-background px-3 py-2 text-sm leading-snug text-foreground">
         {value ?? "—"}
       </div>
     </div>
@@ -187,78 +401,35 @@ export function CallLogDetail({
   );
   const { data: customerRes, isLoading: isLoadingCustomer } =
     useGetCustomerById(customerId || "");
-  const { data: tenantData, isLoading: isLoadingTenant } = useGetTenants(
-    { id: tenantId || undefined, page: 1, page_size: 1 },
+  const { data: tenant, isLoading: isLoadingTenant } = useGetTenants(
+    { id: tenantId || "__skip__" },
     { enabled: open && !!tenantId },
   );
   const {
-    data: usersData,
+    data: user,
     isLoading: isLoadingUser,
     isError: isUserError,
-  } = useListUser(
-    { id: userId || undefined, page: 1, page_size: 1 },
-    { enabled: open && !!userId },
-  );
+  } = useQuery({
+    queryKey: ["user-by-id", userId],
+    queryFn: () => getUserByIdApi(userId),
+    enabled: open && !!userId,
+  });
 
   const ticket = ticketRes?.data;
   const customer = customerRes?.data;
-  const tenant = tenantData?.items?.[0];
-  const user = usersData?.data?.items?.[0];
   const recordingUrl = log?.recording_url?.trim();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[min(90vh,860px)] w-full flex-col gap-0 overflow-hidden rounded-lg border border-border bg-background p-0 sm:max-w-2xl">
         <DialogHeader className="shrink-0 space-y-0 border-b border-border px-5 py-3.5 text-left">
-          <DialogDescription className="sr-only">
-            Thông tin cuộc gọi và dữ liệu liên quan.
+          <DialogTitle className="text-base font-semibold tracking-tight text-foreground">
+            Chi tiết cuộc gọi
+          </DialogTitle>
+          <DialogDescription className="text-sm text-muted-foreground mr-8">
+            Xem thông tin chi tiết của cuộc gọi bao gồm thời gian, trạng thái,
+            số điện thoại và các dữ liệu liên quan.
           </DialogDescription>
-
-          {log ? (
-            <div className="space-y-2.5 pr-6">
-              <div className="flex flex-wrap items-center gap-2">
-                <DialogTitle className="text-base font-semibold tracking-tight text-foreground">
-                  {log.phone_number || "Chi tiết cuộc gọi"}
-                </DialogTitle>
-                <Tag className="bg-primary/10 text-primary">
-                  {directionLabel(log.direction)}
-                </Tag>
-                <Tag className={statusTone(log.status)}>
-                  {log.status || "Không rõ"}
-                </Tag>
-                <Tag className="bg-muted text-muted-foreground">
-                  {sourceLabel(log.source)}
-                </Tag>
-              </div>
-
-              <dl className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                <div className="flex items-baseline gap-1.5">
-                  <dt>Thời lượng</dt>
-                  <dd className="font-medium text-foreground tabular-nums">
-                    {formatDuration(log.duration)}
-                  </dd>
-                </div>
-                <div className="hidden h-3 w-px bg-border sm:block" />
-                <div className="flex items-baseline gap-1.5">
-                  <dt>Billsec</dt>
-                  <dd className="font-medium text-foreground tabular-nums">
-                    {formatDuration(log.billsec)}
-                  </dd>
-                </div>
-                <div className="hidden h-3 w-px bg-border sm:block" />
-                <div className="flex items-baseline gap-1.5">
-                  <dt>Nghe máy</dt>
-                  <dd className="font-medium text-foreground tabular-nums">
-                    {formatDateTime(log.answered_at)}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          ) : (
-            <DialogTitle className="text-base font-semibold tracking-tight text-foreground">
-              Chi tiết cuộc gọi
-            </DialogTitle>
-          )}
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
@@ -269,27 +440,64 @@ export function CallLogDetail({
           ) : log ? (
             <>
               <Section title="Cuộc gọi">
-                <Field label="Số điện thoại" value={log.phone_number || "—"} />
-                <Field label="Hotline" value={log.hotline || "—"} />
-                <Field label="Từ số" value={log.from_number || "—"} />
-                <Field label="Đến số" value={log.to_number || "—"} />
+                <Field
+                  label="Số điện thoại"
+                  value={
+                    <EmphValue tone="phone">
+                      {log.phone_number || "—"}
+                    </EmphValue>
+                  }
+                />
+                <Field
+                  label="Hotline"
+                  value={
+                    <EmphValue tone="phone">{log.hotline || "—"}</EmphValue>
+                  }
+                />
+                <Field
+                  label="Từ số"
+                  value={
+                    <EmphValue tone="phone">{log.from_number || "—"}</EmphValue>
+                  }
+                />
+                <Field
+                  label="Đến số"
+                  value={
+                    <EmphValue tone="phone">{log.to_number || "—"}</EmphValue>
+                  }
+                />
                 <Field
                   label="Chiều gọi"
-                  value={directionLabel(log.direction)}
+                  value={
+                    <SoftBadge className={directionTone(log.direction)}>
+                      {directionLabel(log.direction)}
+                    </SoftBadge>
+                  }
                 />
                 <Field
                   label="Trạng thái"
                   value={
-                    <Tag className={statusTone(log.status)}>
+                    <SoftBadge className={statusTone(log.status)}>
                       {log.status || "Không rõ"}
-                    </Tag>
+                    </SoftBadge>
                   }
                 />
                 <Field
                   label="Thời lượng"
-                  value={formatDuration(log.duration)}
+                  value={
+                    <EmphValue tone="duration">
+                      {formatDuration(log.duration)}
+                    </EmphValue>
+                  }
                 />
-                <Field label="Billsec" value={formatDuration(log.billsec)} />
+                <Field
+                  label="Billsec"
+                  value={
+                    <EmphValue tone="duration">
+                      {formatDuration(log.billsec)}
+                    </EmphValue>
+                  }
+                />
                 <Field label="Bắt đầu" value={formatDateTime(log.started_at)} />
                 <Field
                   label="Nghe máy"
@@ -298,12 +506,29 @@ export function CallLogDetail({
                 <Field label="Kết thúc" value={formatDateTime(log.ended_at)} />
                 <Field
                   label="Người thực hiện"
-                  value={log.username_action_call?.trim() || "—"}
+                  value={
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold tracking-tight text-foreground">
+                      <User className="size-3.5 text-muted-foreground" />
+                      {log.username_action_call?.trim() || "—"}
+                    </span>
+                  }
                 />
-                <Field label="Kênh" value={sourceLabel(log.source)} />
+                <Field
+                  label="Kênh"
+                  value={
+                    <SoftBadge className={sourceTone(log.source)}>
+                      {sourceLabel(log.source)}
+                    </SoftBadge>
+                  }
+                />
                 <Field
                   label="Doanh nghiệp"
-                  value={log.tenant_name?.trim() || "—"}
+                  value={
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold tracking-tight text-foreground">
+                      <Building2 className="size-3.5 text-muted-foreground" />
+                      {log.tenant_name?.trim() || "—"}
+                    </span>
+                  }
                 />
                 <Field
                   label="Ghi âm"
@@ -312,7 +537,7 @@ export function CallLogDetail({
                     recordingUrl ? (
                       <audio
                         controls
-                        preload="none"
+                        preload="metadata" // Đổi từ "none" thành "metadata"
                         className="h-9 w-full"
                         src={recordingUrl}
                       >
@@ -335,21 +560,40 @@ export function CallLogDetail({
                     : "Không liên kết ticket"
                 }
               >
-                <Field label="Mã" value={ticket?.code || "—"} />
-                <Field label="Trạng thái" value={ticket?.status || "—"} />
+                <Field
+                  label="Mã"
+                  value={<EmphValue>{ticket?.code || "—"}</EmphValue>}
+                />
+                <Field
+                  label="Trạng thái"
+                  value={
+                    <SoftBadge className={statusTone(ticket?.status)}>
+                      {ticket?.status || "—"}
+                    </SoftBadge>
+                  }
+                />
                 <Field
                   label="Tiêu đề"
                   value={ticket?.title || "—"}
                   className="sm:col-span-2"
                 />
-                <Field label="Ưu tiên" value={ticket?.priority || "—"} />
+                <Field
+                  label="Ưu tiên"
+                  value={
+                    <SoftBadge className={priorityTone(ticket?.priority)}>
+                      {ticket?.priority || "—"}
+                    </SoftBadge>
+                  }
+                />
                 <Field
                   label="Người tạo"
                   value={ticket?.created_by_name || "—"}
                 />
                 <Field
                   label="Người xử lý"
-                  value={ticket?.assigned_to_name || "—"}
+                  value={
+                    <EmphValue>{ticket?.assigned_to_name || "—"}</EmphValue>
+                  }
                   className="sm:col-span-2"
                 />
               </Section>
@@ -364,17 +608,35 @@ export function CallLogDetail({
                     : "Không liên kết khách hàng"
                 }
               >
-                <Field label="Tên" value={customer?.name || "—"} />
-                <Field label="Số điện thoại" value={customer?.phone || "—"} />
-                <Field label="Email" value={customer?.email || "—"} />
+                <Field
+                  label="Tên"
+                  value={<EmphValue>{customer?.name || "—"}</EmphValue>}
+                />
+                <Field
+                  label="Số điện thoại"
+                  value={
+                    <EmphValue tone="phone">{customer?.phone || "—"}</EmphValue>
+                  }
+                />
+                <Field
+                  label="Email"
+                  value={
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold tracking-tight text-foreground">
+                      <Mail className="size-3.5 text-muted-foreground" />
+                      {customer?.email || "—"}
+                    </span>
+                  }
+                />
                 <Field
                   label="Trạng thái"
                   value={
-                    customer
-                      ? customer.is_active
-                        ? "Hoạt động"
-                        : "Không hoạt động"
-                      : "—"
+                    customer ? (
+                      <SoftBadge className={activeTone(!!customer.is_active)}>
+                        {customer.is_active ? "Hoạt động" : "Không hoạt động"}
+                      </SoftBadge>
+                    ) : (
+                      "—"
+                    )
                   }
                 />
               </Section>
@@ -391,19 +653,59 @@ export function CallLogDetail({
                       : "Không tải được thông tin người dùng"
                 }
               >
-                <Field label="Username" value={user?.username || "—"} />
-                <Field label="Họ tên" value={user?.fullname || "—"} />
-                <Field label="Email" value={user?.email || "—"} />
-                <Field label="Vai trò" value={user?.role || "—"} />
-                <Field label="Cấp bậc" value={user?.level || "—"} />
+                <Field
+                  label="Username"
+                  value={
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold tracking-tight text-foreground">
+                      <User className="size-3.5 text-muted-foreground" />
+                      {user?.username || "—"}
+                    </span>
+                  }
+                />
+                <Field
+                  label="Họ tên"
+                  value={
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold tracking-tight text-foreground">
+                      <User className="size-3.5 text-muted-foreground" />
+                      {user?.fullname || "—"}
+                    </span>
+                  }
+                />
+                <Field
+                  label="Email"
+                  value={
+                    <span className="inline-flex items-center gap-1 text-sm font-semibold tracking-tight text-foreground">
+                      <Mail className="size-3.5 text-muted-foreground" />
+                      {user?.email || "—"}
+                    </span>
+                  }
+                />
+                <Field
+                  label="Vai trò"
+                  value={
+                    <SoftBadge className="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-900/50 dark:bg-violet-950/40 dark:text-violet-300">
+                      {user?.role || "—"}
+                    </SoftBadge>
+                  }
+                />
+                <Field
+                  label="Cấp bậc"
+                  value={
+                    <SoftBadge className="border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-300">
+                      {user?.level || "—"}
+                    </SoftBadge>
+                  }
+                />
                 <Field
                   label="Trạng thái"
                   value={
-                    user
-                      ? user.is_active === 1
-                        ? "Hoạt động"
-                        : "Không hoạt động"
-                      : "—"
+                    user ? (
+                      <SoftBadge className={activeTone(user.is_active === 1)}>
+                        {user.is_active === 1 ? "Hoạt động" : "Không hoạt động"}
+                      </SoftBadge>
+                    ) : (
+                      "—"
+                    )
                   }
                 />
               </Section>
@@ -420,11 +722,20 @@ export function CallLogDetail({
               >
                 {tenant ? (
                   <>
-                    <Field label="Tên" value={tenant.name || "—"} />
+                    <Field
+                      label="Tên"
+                      value={<EmphValue>{tenant.name || "—"}</EmphValue>}
+                    />
                     <Field
                       label="Trạng thái"
                       value={
-                        tenant.is_active === 1 ? "Hoạt động" : "Không hoạt động"
+                        <SoftBadge
+                          className={activeTone(tenant.is_active === 1)}
+                        >
+                          {tenant.is_active === 1
+                            ? "Hoạt động"
+                            : "Không hoạt động"}
+                        </SoftBadge>
                       }
                     />
                     <Field
@@ -436,7 +747,7 @@ export function CallLogDetail({
                 ) : log.tenant_name?.trim() ? (
                   <Field
                     label="Tên"
-                    value={log.tenant_name}
+                    value={<EmphValue>{log.tenant_name}</EmphValue>}
                     className="sm:col-span-2"
                   />
                 ) : null}
@@ -451,23 +762,64 @@ export function CallLogDetail({
               >
                 <Field
                   label="Trạng thái SIP"
-                  value={String(log.meta_data?.status ?? "—")}
+                  value={
+                    <SoftBadge
+                      className={statusTone(
+                        String(log.meta_data?.status ?? ""),
+                      )}
+                    >
+                      {String(log.meta_data?.status ?? "—")}
+                    </SoftBadge>
+                  }
                 />
                 <Field
                   label="Ứng dụng"
-                  value={String(log.meta_data?.application ?? "—")}
+                  value={
+                    <SoftBadge className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-950/40 dark:text-blue-300">
+                      {String(log.meta_data?.application ?? "—")}
+                    </SoftBadge>
+                  }
                 />
                 <Field
                   label="Domain"
-                  value={String(log.meta_data?.domain ?? "—")}
+                  value={
+                    <EmphValue>
+                      {String(log.meta_data?.domain ?? "—")}
+                    </EmphValue>
+                  }
                 />
                 <Field
                   label="Mã phản hồi"
-                  value={String(log.meta_data?.code ?? "—")}
+                  value={(() => {
+                    const meta = responseCodeMeta(log.meta_data?.code);
+                    return (
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
+                        <SoftBadge
+                          className={cn(
+                            "tabular-nums normal-case",
+                            meta.className,
+                          )}
+                        >
+                          {meta.code}
+                        </SoftBadge>
+                        {meta.label ? (
+                          <SoftBadge
+                            className={cn("normal-case", meta.className)}
+                          >
+                            {meta.label}
+                          </SoftBadge>
+                        ) : null}
+                      </span>
+                    );
+                  })()}
                 />
                 <Field
                   label="Hangup disposition"
-                  value={String(log.meta_data?.sip_hangup_disposition ?? "—")}
+                  value={
+                    <SoftBadge className="border-border bg-muted/60 text-foreground">
+                      {String(log.meta_data?.sip_hangup_disposition ?? "—")}
+                    </SoftBadge>
+                  }
                   className="sm:col-span-2"
                 />
               </Section>

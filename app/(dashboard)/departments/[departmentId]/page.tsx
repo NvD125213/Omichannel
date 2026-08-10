@@ -165,7 +165,7 @@ function DepartmentDetailPageContent({
   // Get dữ liệu từ tennant
   const { data: tenant, isLoading: isLoadingTenant } = useGetTenants(
     {
-      id: department?.tenant_id,
+      id: department?.tenant_id || "__skip__",
     },
     {
       enabled: !!department?.tenant_id,
