@@ -13,7 +13,9 @@ import React, {
 } from "react";
 import { useCreateCallLog } from "@/hooks/call-logs/use-call-logs";
 import { useMe } from "@/hooks/user/use-me";
+import { useGetMyWebcall } from "@/hooks/user/use-get-my-webcall";
 import type { CreateCallLogRequest } from "@/services/call-logs/service";
+import type { UserWebcallConfig } from "@/services/user/user-current";
 import { enableSoftphoneCornerDrag } from "@/components/softphone/widget-corner-drag";
 
 declare global {
@@ -66,20 +68,28 @@ const CGVCallSDKContext = createContext<CGVCallSDKContextType | undefined>(
   undefined,
 );
 
-const SIP_DOMAIN = "demo.cgv.vn";
-const SIP_EXTENSION = "101";
-const SIP_PASSWORD = "ldCGV%2025!!!";
-const WS_SERVER = "wss://cgvcall.mobilesip.vn:7444";
 const SDK_SCRIPT = "https://sdk.telesip.vn/public/sdk.v2.min.js";
 const SDK_STYLES = "https://sdk.telesip.vn/public/styles.css";
 const TEARDOWN_GRACE_MS = 800;
+/** Chờ trước khi mở widget / cho phép show — tránh alert/dialog từ SDK lúc boot. */
+const WIDGET_BOOT_DELAY_MS = 2000;
+
+/** Bump khi đổi voiceDelegate — ép recreate SDK (tránh HMR giữ callback cũ). */
+const VOICE_DELEGATE_BUILD = 6;
 
 // singleton
 let sharedSdk: any = null;
 let sharedReady = false;
+let sharedWebcall: UserWebcallConfig | null = null;
+let sharedWebcallKey: string | null = null;
+/** Widget chỉ được show sau delay boot. */
+let sharedWidgetUnlocked = false;
 let mountCount = 0;
 let teardownTimer: ReturnType<typeof setTimeout> | null = null;
+let widgetUnlockTimer: ReturnType<typeof setTimeout> | null = null;
 let scriptLoadPromise: Promise<void> | null = null;
+/** Action chờ chạy sau khi hết delay boot (vd. makeCall sớm). */
+let pendingAfterUnlock: (() => void) | null = null;
 
 type CreateMutate = (data: CreateCallLogRequest) => void;
 
@@ -87,14 +97,119 @@ const bridges: {
   createMutate: CreateMutate | null;
   currentUser: { id?: string; tenant_id?: string | null } | null | undefined;
   setCallSession: Dispatch<SetStateAction<CallSession>> | null;
+  onWidgetUnlocked: (() => void) | null;
 } = {
   createMutate: null,
   currentUser: null,
   setCallSession: null,
+  onWidgetUnlocked: null,
 };
 
-/** Bump khi đổi voiceDelegate — ép recreate SDK (tránh HMR giữ callback cũ). */
-const VOICE_DELEGATE_BUILD = 5;
+type WindowDialogFns = {
+  alert: typeof window.alert;
+  confirm: typeof window.confirm;
+  prompt: typeof window.prompt;
+};
+
+let suppressedDialogs: WindowDialogFns | null = null;
+
+function isWebcallUsable(
+  webcall?: UserWebcallConfig | null,
+): webcall is UserWebcallConfig {
+  if (!webcall) return false;
+  const enabled =
+    webcall.enable_widget === true || webcall.webphone_enabled === true;
+  if (!enabled) return false;
+  return Boolean(
+    webcall.sip_domain &&
+    webcall.sip_extension &&
+    webcall.sip_password &&
+    webcall.ws_server,
+  );
+}
+
+function webcallFingerprint(webcall: UserWebcallConfig): string {
+  return [
+    webcall.sip_domain,
+    webcall.sip_username,
+    webcall.sip_extension,
+    webcall.sip_password,
+    webcall.ws_server,
+    webcall.enable_widget,
+    webcall.sip_only,
+    webcall.api_key,
+    webcall.webphone_enabled,
+  ].join("|");
+}
+
+function suppressWindowDialogs() {
+  if (typeof window === "undefined" || suppressedDialogs) return;
+  suppressedDialogs = {
+    alert: window.alert.bind(window),
+    confirm: window.confirm.bind(window),
+    prompt: window.prompt.bind(window),
+  };
+  window.alert = () => undefined;
+  window.confirm = () => false;
+  window.prompt = () => null;
+}
+
+function restoreWindowDialogs() {
+  if (typeof window === "undefined" || !suppressedDialogs) return;
+  window.alert = suppressedDialogs.alert;
+  window.confirm = suppressedDialogs.confirm;
+  window.prompt = suppressedDialogs.prompt;
+  suppressedDialogs = null;
+}
+
+function hideWidgetInstance(instance: any) {
+  if (!instance) return;
+  try {
+    if (typeof instance.hide === "function") instance.hide();
+    else if (typeof instance.closeWidget === "function") instance.closeWidget();
+  } catch {}
+}
+
+function showWidgetInstance(instance: any) {
+  if (!instance) return;
+  if (typeof document !== "undefined") {
+    for (const id of ["pwBackground", "ppContainer"]) {
+      const el = document.getElementById(id);
+      if (!(el instanceof HTMLElement)) continue;
+      el.style.removeProperty("display");
+      el.style.removeProperty("visibility");
+      el.style.removeProperty("pointer-events");
+    }
+  }
+  try {
+    if (typeof instance.show === "function") instance.show();
+    else if (typeof instance.openWidget === "function") instance.openWidget();
+  } catch {}
+}
+
+function cancelWidgetUnlockTimer() {
+  if (widgetUnlockTimer != null) {
+    clearTimeout(widgetUnlockTimer);
+    widgetUnlockTimer = null;
+  }
+}
+
+function scheduleWidgetUnlock() {
+  cancelWidgetUnlockTimer();
+  sharedWidgetUnlocked = false;
+  suppressWindowDialogs();
+  hideWidgetInstance(sharedSdk);
+
+  widgetUnlockTimer = setTimeout(() => {
+    widgetUnlockTimer = null;
+    sharedWidgetUnlocked = true;
+    restoreWindowDialogs();
+    bridges.onWidgetUnlocked?.();
+    const pending = pendingAfterUnlock;
+    pendingAfterUnlock = null;
+    pending?.();
+  }, WIDGET_BOOT_DELAY_MS);
+}
 
 function createSipCallId(): string {
   return crypto.randomUUID();
@@ -122,9 +237,23 @@ function teardownSdkInstance(instance: any) {
   } catch {}
 }
 
+function hideWidgetDom() {
+  if (typeof document === "undefined") return;
+  for (const id of ["pwBackground", "ppContainer", "pwBackground-drag-ghost"]) {
+    const el = document.getElementById(id);
+    if (!(el instanceof HTMLElement)) continue;
+    el.style.setProperty("display", "none", "important");
+    el.style.setProperty("visibility", "hidden", "important");
+    el.style.setProperty("pointer-events", "none", "important");
+  }
+}
+
 function removeOrphanedWidgetDom() {
   if (typeof document === "undefined") return;
   const selectors = [
+    "#pwBackground",
+    "#ppContainer",
+    "#pwBackground-drag-ghost",
     "#cgv-widget",
     "#cgv-sdk-widget",
     ".cgv-widget",
@@ -193,10 +322,16 @@ function buildVoiceDelegate() {
   };
 }
 
-function loadSdkScript(): Promise<void> {
+function applySdkApiKey(apiKey?: string | null) {
+  if (typeof window === "undefined" || !window.CGVSDK) return;
+  window.CGVSDK.k =
+    apiKey || process.env.NEXT_PUBLIC_CGV_API_KEY || window.CGVSDK.k;
+}
+
+function loadSdkScript(apiKey?: string | null): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
   if (window.CGVSDK) {
-    window.CGVSDK.k = process.env.NEXT_PUBLIC_CGV_API_KEY;
+    applySdkApiKey(apiKey);
     return Promise.resolve();
   }
   if (scriptLoadPromise) return scriptLoadPromise;
@@ -208,16 +343,14 @@ function loadSdkScript(): Promise<void> {
 
     if (existing) {
       existing.addEventListener("load", () => {
-        if (window.CGVSDK) {
-          window.CGVSDK.k = process.env.NEXT_PUBLIC_CGV_API_KEY;
-        }
+        applySdkApiKey(apiKey);
         resolve();
       });
       existing.addEventListener("error", () =>
         reject(new Error("Failed to load CGV SDK")),
       );
       if (window.CGVSDK) {
-        window.CGVSDK.k = process.env.NEXT_PUBLIC_CGV_API_KEY;
+        applySdkApiKey(apiKey);
         resolve();
       }
       return;
@@ -227,9 +360,7 @@ function loadSdkScript(): Promise<void> {
     script.src = SDK_SCRIPT;
     script.async = true;
     script.onload = () => {
-      if (window.CGVSDK) {
-        window.CGVSDK.k = process.env.NEXT_PUBLIC_CGV_API_KEY;
-      }
+      applySdkApiKey(apiKey);
       resolve();
     };
     script.onerror = () => reject(new Error("Failed to load CGV SDK"));
@@ -239,31 +370,44 @@ function loadSdkScript(): Promise<void> {
   return scriptLoadPromise;
 }
 
-function ensureSharedSdk(): any {
+function ensureSharedSdk(webcall: UserWebcallConfig): any {
   if (typeof window === "undefined" || !window.CGVSDK) return null;
+  if (!isWebcallUsable(webcall)) return null;
 
+  const nextKey = webcallFingerprint(webcall);
   const prevBuild = (
     window as Window & { __CGV_VOICE_DELEGATE_BUILD__?: number }
   ).__CGV_VOICE_DELEGATE_BUILD__;
-  if (sharedSdk && prevBuild !== VOICE_DELEGATE_BUILD) {
+
+  if (
+    sharedSdk &&
+    (prevBuild !== VOICE_DELEGATE_BUILD || sharedWebcallKey !== nextKey)
+  ) {
     destroySharedSdk();
   }
 
   if (sharedSdk) return sharedSdk;
 
   ensureSdkStyles();
+  applySdkApiKey(webcall.api_key);
+
+  const sipDomain = String(webcall.sip_domain);
+  const sipUsername = String(webcall.sip_username || webcall.sip_extension);
+  const sipExtension = String(webcall.sip_extension);
+  const sipPassword = String(webcall.sip_password);
+  const wsServer = String(webcall.ws_server);
 
   sharedSdk = new window.CGVSDK(
-    SIP_DOMAIN,
-    process.env.NEXT_PUBLIC_SIP_USERNAME,
-    SIP_EXTENSION,
+    sipDomain,
+    sipUsername,
+    sipExtension,
     buildVoiceDelegate(),
     {
-      enableWidget: true,
-      sipOnly: true,
-      sipDomain: SIP_DOMAIN,
-      wsServer: WS_SERVER,
-      sipPassword: SIP_PASSWORD,
+      enableWidget: webcall.enable_widget !== false,
+      sipOnly: webcall.sip_only !== false,
+      sipDomain,
+      wsServer,
+      sipPassword,
     },
   );
 
@@ -285,17 +429,28 @@ function ensureSharedSdk(): any {
     };
   }
 
+  sharedWebcall = webcall;
+  sharedWebcallKey = nextKey;
   sharedReady = true;
   (
     window as Window & { __CGV_VOICE_DELEGATE_BUILD__?: number }
   ).__CGV_VOICE_DELEGATE_BUILD__ = VOICE_DELEGATE_BUILD;
+
+  scheduleWidgetUnlock();
   return sharedSdk;
 }
 
 function destroySharedSdk() {
+  cancelWidgetUnlockTimer();
+  restoreWindowDialogs();
+  sharedWidgetUnlocked = false;
+  pendingAfterUnlock = null;
+  sharedWebcall = null;
+  sharedWebcallKey = null;
   teardownSdkInstance(sharedSdk);
   sharedSdk = null;
   sharedReady = false;
+  hideWidgetDom();
   removeOrphanedWidgetDom();
 }
 
@@ -322,9 +477,13 @@ export function CGVCallSDKProvider({
 function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
   const [sdk, setSdk] = useState<any>(() => sharedSdk);
   const [ready, setReady] = useState<boolean>(() => sharedReady);
+  const [widgetUnlocked, setWidgetUnlocked] = useState<boolean>(
+    () => sharedWidgetUnlocked,
+  );
   const [callSession, setCallSession] = useState<CallSession>(IDLE_SESSION);
 
   const { data: currentUser } = useMe();
+  const { data: webcall } = useGetMyWebcall();
   const createCallLog = useCreateCallLog();
 
   const sdkRef = useRef<any>(sharedSdk);
@@ -335,10 +494,14 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
     };
     bridges.currentUser = currentUser;
     bridges.setCallSession = setCallSession;
+    bridges.onWidgetUnlocked = () => setWidgetUnlocked(true);
 
     return () => {
       if (bridges.setCallSession === setCallSession) {
         bridges.setCallSession = null;
+      }
+      if (bridges.onWidgetUnlocked) {
+        bridges.onWidgetUnlocked = null;
       }
     };
   }, [createCallLog, currentUser, setCallSession]);
@@ -347,53 +510,28 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
     sdkRef.current = sdk;
   }, [sdk]);
 
+  // Lifecycle mount — ẩn/destroy khi rời (dashboard)/(chatbot)
   useEffect(() => {
-    let cancelled = false;
-
     mountCount += 1;
     cancelPendingTeardown();
     if (typeof document !== "undefined") {
       document.getElementById("cgv-sdk-style-overrides")?.remove();
     }
 
-    if (sharedSdk) {
-      ensureSharedSdk();
-      setSdk(sharedSdk);
-      setReady(true);
-      sdkRef.current = sharedSdk;
-    }
-
-    async function boot() {
-      try {
-        await loadSdkScript();
-        if (cancelled) return;
-        const instance = ensureSharedSdk();
-        if (cancelled || !instance) return;
-        setSdk(instance);
-        setReady(true);
-        sdkRef.current = instance;
-      } catch {
-        if (!cancelled) {
-          setReady(false);
-        }
-      }
-    }
-
-    if (!sharedSdk) {
-      void boot();
-    }
-
     return () => {
-      cancelled = true;
       mountCount = Math.max(0, mountCount - 1);
 
       if (mountCount === 0) {
+        hideWidgetInstance(sharedSdk);
+        hideWidgetDom();
+
         cancelPendingTeardown();
         teardownTimer = setTimeout(() => {
           if (mountCount === 0) {
             destroySharedSdk();
             setSdk(null);
             setReady(false);
+            setWidgetUnlocked(false);
             setCallSession(IDLE_SESSION);
             sdkRef.current = null;
           }
@@ -403,20 +541,58 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // Boot / recreate SDK từ GET /user/webcall
   useEffect(() => {
-    if (!ready) return;
+    let cancelled = false;
+
+    if (!isWebcallUsable(webcall)) {
+      if (sharedSdk) {
+        destroySharedSdk();
+        setSdk(null);
+        setReady(false);
+        setWidgetUnlocked(false);
+        sdkRef.current = null;
+      }
+      return;
+    }
+
+    async function boot(config: UserWebcallConfig) {
+      try {
+        suppressWindowDialogs();
+        await loadSdkScript(config.api_key);
+        if (cancelled) return;
+        const instance = ensureSharedSdk(config);
+        if (cancelled || !instance) return;
+        setSdk(instance);
+        setReady(true);
+        setWidgetUnlocked(sharedWidgetUnlocked);
+        sdkRef.current = instance;
+      } catch {
+        if (!cancelled) {
+          setReady(false);
+          restoreWindowDialogs();
+        }
+      }
+    }
+
+    void boot(webcall);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [webcall]);
+
+  useEffect(() => {
+    if (!ready || !widgetUnlocked) return;
     return enableSoftphoneCornerDrag();
-  }, [ready]);
+  }, [ready, widgetUnlocked]);
 
   const showWidget = useCallback(() => {
+    if (!sharedWidgetUnlocked && !widgetUnlocked) return;
     const instance = sdkRef.current ?? sharedSdk;
     if (!instance) return;
-    if (typeof instance.show === "function") {
-      instance.show();
-    } else if (typeof instance.openWidget === "function") {
-      instance.openWidget();
-    }
-  }, []);
+    showWidgetInstance(instance);
+  }, [widgetUnlocked]);
 
   const makeCall = useCallback(
     (phone: string, context?: MakeCallContext) => {
@@ -429,6 +605,7 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
       const customer_id = context?.customer_id ?? null;
       const ticket_id = context?.ticket_id ?? null;
       const user_id = context?.user_id ?? user?.id ?? null;
+      const sipDomain = sharedWebcall?.sip_domain;
 
       setCallSession({
         status: "connecting",
@@ -439,8 +616,8 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
         connectedAt: null,
       });
 
-      // Chỉ tạo call log 1 lần lúc nhấn gọi
-      if (bridges.createMutate) {
+      // Chỉ tạo call log 1 lần lúc nhấn gọi (nếu tenant bật)
+      if (bridges.createMutate && sharedWebcall?.call_log_enabled !== false) {
         bridges.createMutate({
           sip_call_id: sipCallId,
           phone_number: phoneNumber,
@@ -450,20 +627,31 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
         });
       }
 
-      showWidget();
-      if (typeof instance.call === "function") {
-        window.currentSipCallId = sipCallId;
-        instance.call(phoneNumber, {
-          params: {
-            callId: sipCallId,
-          },
-          extraHeaders: [
-            "CALL-FROM: CGVSDK",
-            `Route: <sip:${SIP_DOMAIN};lr;sipml5-outbound;transport=udp>`,
-          ],
-          earlyMedia: true,
-        });
+      const startCall = () => {
+        showWidget();
+        if (typeof instance.call === "function") {
+          window.currentSipCallId = sipCallId;
+          instance.call(phoneNumber, {
+            params: {
+              callId: sipCallId,
+            },
+            extraHeaders: [
+              "CALL-FROM: CGVSDK",
+              ...(sipDomain
+                ? [`Route: <sip:${sipDomain};lr;sipml5-outbound;transport=udp>`]
+                : []),
+            ],
+            earlyMedia: true,
+          });
+        }
+      };
+
+      if (!sharedWidgetUnlocked) {
+        pendingAfterUnlock = startCall;
+        return;
       }
+
+      startCall();
     },
     [showWidget],
   );

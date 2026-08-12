@@ -2,15 +2,32 @@ import {
   createUserApi,
   updateUserApi,
   deleteUserApi,
+  type CreateUserPayload,
+  type UpdateUserPayload,
 } from "@/services/user/action-user";
+import type { UserFormValues } from "@/features/users/utils/schema";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+function toCreateUserPayload(data: UserFormValues): CreateUserPayload {
+  const { id: _id, is_active: _isActive, ...payload } = data;
+  return payload;
+}
+
+function toUpdateUserPayload(data: UserFormValues): UpdateUserPayload {
+  const { id: _id, password, ...rest } = data;
+  return {
+    ...rest,
+    ...(password ? { password } : {}),
+  };
+}
 
 export function useCreateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createUserApi,
+    mutationFn: (data: UserFormValues) =>
+      createUserApi(toCreateUserPayload(data)),
     onSuccess: (response) => {
       // response là AxiosResponse, data thật sự nằm trong response.data
       console.log("Tạo thành công user:", response.data);
@@ -32,7 +49,12 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: updateUserApi,
+    mutationFn: (data: UserFormValues) => {
+      if (!data.id) {
+        throw new Error("Thiếu id người dùng");
+      }
+      return updateUserApi(data.id, toUpdateUserPayload(data));
+    },
     onSuccess: (response) => {
       toast.success(response.data.message || "Cập nhật người dùng thành công");
 

@@ -297,7 +297,7 @@ export function LeadDataTable({
       return;
     }
     if (!ready) {
-      toast.error("Softphone chưa sẵn sàng");
+      toast.error("Web call chưa sẵn sàng");
       return;
     }
 
@@ -514,7 +514,7 @@ export function LeadDataTable({
                 !lead.phone?.trim()
                   ? "Chưa có số điện thoại"
                   : !ready
-                    ? "Softphone chưa sẵn sàng"
+                    ? "Web call chưa sẵn sàng"
                     : "Liên hệ"
               }
             >

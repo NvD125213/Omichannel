@@ -363,7 +363,7 @@ export function CustomerDataTable({
                 !customer.phone?.trim()
                   ? "Chưa có số điện thoại"
                   : !ready
-                    ? "Softphone chưa sẵn sàng"
+                    ? "Web call chưa sẵn sàng"
                     : "Liên hệ"
               }
             >

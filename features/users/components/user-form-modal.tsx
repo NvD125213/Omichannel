@@ -13,12 +13,14 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -134,6 +136,7 @@ export function UserFormDialog({
         level_id: levelId,
         tenant_id: user.tenant_id,
         is_active: user.is_active,
+        webphone_enabled: user.webphone_enabled ?? false,
         password: "", // Password không được populate khi edit
       };
       form.reset(formData);
@@ -368,6 +371,27 @@ export function UserFormDialog({
                 )}
               />
             )}
+
+            <FormField
+              control={form.control}
+              name="webphone_enabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between gap-4 rounded-xl border border-border/80 bg-muted/15 px-4 py-3">
+                  <div className="space-y-0.5">
+                    <FormLabel>Bật webphone</FormLabel>
+                    <FormDescription>
+                      Cho phép người dùng sử dụng web call trên giao diện.
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value ?? false}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
               <Button

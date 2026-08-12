@@ -3,6 +3,7 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from "axios";
+import { toast } from "sonner";
 import {
   clearTokens,
   getAccessToken,
@@ -43,6 +44,21 @@ const processQueue = (error: Error | null, token: string | null = null) => {
   failedQueue = [];
 };
 
+function getRefreshErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as
+      | { message?: string; status_code?: number }
+      | undefined;
+    if (data?.message) return data.message;
+  }
+
+  return "Không thể làm mới phiên đăng nhập";
+}
+
 // Request Interceptor - Automatically attach access token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -75,7 +91,15 @@ apiClient.interceptors.response.use(
     }
 
     // Handle 401 Unauthorized - Token expired
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Bỏ qua refresh cho logout để tránh vòng lặp khi đăng xuất
+    const requestUrl = originalRequest.url ?? "";
+    const isLogoutRequest = requestUrl.includes("/auth/logout");
+
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isLogoutRequest
+    ) {
       if (isRefreshing) {
         // Nếu đang refresh, thêm request vào queue
         return new Promise((resolve, reject) => {
@@ -98,14 +122,13 @@ apiClient.interceptors.response.use(
       const refreshToken = getRefreshToken();
 
       if (!refreshToken) {
-        // No refresh token - redirect to login
+        toast.error("Phiên đăng nhập đã hết hạn");
         clearTokens();
         triggerRedirectToLogin();
         return Promise.reject(new Error("No refresh token available"));
       }
 
       try {
-        // Attempt to refresh token using the imported service
         const data = await refreshTokenApi(refreshToken);
 
         if (data.data) {
@@ -120,14 +143,17 @@ apiClient.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${access_token}`;
           }
           return apiClient(originalRequest);
-        } else {
-          throw new Error("Không nhận được dữ liệu token mới");
         }
+
+        throw new Error("Không nhận được dữ liệu token mới");
       } catch (refreshError) {
+        const message = getRefreshErrorMessage(refreshError);
         console.error("Refresh token failed:", refreshError);
-        console.log(refreshError);
-        // Refresh failed - clear tokens and redirect to login
-        processQueue(refreshError as Error, null);
+        toast.error(message);
+        processQueue(
+          refreshError instanceof Error ? refreshError : new Error(message),
+          null,
+        );
         clearTokens();
         triggerRedirectToLogin();
         return Promise.reject(refreshError);

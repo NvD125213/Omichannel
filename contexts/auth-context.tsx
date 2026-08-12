@@ -155,15 +155,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoggingOutRef.current) return;
     isLoggingOutRef.current = true;
 
-    clearTokens();
-    await queryClient.cancelQueries({ queryKey: ["me"] });
-    queryClient.removeQueries({ queryKey: ["me"] });
-
     try {
+      // Gọi API trước khi xóa token — logout cần Bearer access token
       await logoutApi();
     } catch (error) {
       console.error("Logout API failed:", error);
     } finally {
+      clearTokens();
+      await queryClient.cancelQueries({ queryKey: ["me"] });
+      queryClient.removeQueries({ queryKey: ["me"] });
       router.replace("/sign-in");
     }
   }, [router, queryClient]);

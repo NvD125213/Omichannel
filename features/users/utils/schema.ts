@@ -14,6 +14,7 @@ export const userSchema = z.object({
   tenant_id: z.string(),
   is_active: z.number(), // 1: Active, 0: Inactive
   avatar: z.string().optional(), // Optional for UI
+  webphone_enabled: z.boolean().optional(),
 });
 
 export const userDefaultValues = {
@@ -26,6 +27,7 @@ export const userDefaultValues = {
   tenant_id: "",
   is_active: 1,
   avatar: "",
+  webphone_enabled: false,
 };
 
 export const userFormSchema = z.object({
@@ -42,6 +44,7 @@ export const userFormSchema = z.object({
   level_id: z.string().min(1, "Cấp bậc không được để trống"),
   tenant_id: z.string().min(1, "Tenant ID không được để trống"),
   is_active: z.number().min(0, "Trạng thái không hợp lệ"),
+  webphone_enabled: z.boolean().optional(),
 });
 
 export type User = z.infer<typeof userSchema>;
