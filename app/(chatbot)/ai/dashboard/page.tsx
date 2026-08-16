@@ -8,6 +8,7 @@ import { tokenUsedCardConstants } from "@/constants/dashboard/token-used-card";
 import { ReplyChatPizzaChart } from "@/features/ai-dashboard/components/reply-chat-pizza-chart";
 import { StatisticOnUserChart } from "@/features/ai-dashboard/components/statistic-on-user-chart";
 import { TopicFavouriteTabs } from "@/features/ai-dashboard/components/topic-favourite-tabs";
+import { OverlayBackground } from "@/components/overlay-background";
 import { MessageSquare, Radio, Sparkles, Users } from "lucide-react";
 
 function formatInt(value: number) {
@@ -16,7 +17,7 @@ function formatInt(value: number) {
 
 export default function AIDashboardPage() {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <OverlayBackground storageKey="omichannel:overlay-background:ai-dashboard">
       <div className="px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-bold tracking-tight">Agent Dashboard</h1>
@@ -85,6 +86,6 @@ export default function AIDashboardPage() {
 
         <TopicFavouriteTabs />
       </div>
-    </div>
+    </OverlayBackground>
   );
 }

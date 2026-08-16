@@ -4,11 +4,16 @@ import * as React from "react";
 import {
   endOfDay,
   format,
+  isSameDay,
   isValid,
   parse,
   parseISO,
   startOfDay,
+  startOfMonth,
+  startOfWeek,
   subDays,
+  subMonths,
+  subYears,
 } from "date-fns";
 import { vi } from "date-fns/locale";
 import { CalendarIcon, X } from "lucide-react";
@@ -92,7 +97,9 @@ function asValidDate(
     const trimmed = input.trim();
     if (!trimmed) return null;
     // Hỗ trợ `yyyy-MM-dd HH:mm:ss` bằng cách thay space → T
-    date = parseISO(trimmed.includes(" ") ? trimmed.replace(" ", "T") : trimmed);
+    date = parseISO(
+      trimmed.includes(" ") ? trimmed.replace(" ", "T") : trimmed,
+    );
     if (!isValid(date)) {
       date = new Date(trimmed);
     }
@@ -261,11 +268,113 @@ export function isDigitDatePartsEmpty(parts: DigitDateParts): boolean {
   return !parts.day && !parts.month && !parts.year;
 }
 
+/** Khoảng N ngày gần nhất, bao gồm hôm nay. */
+function lastNDaysInclusive(days: number): StartEndDateTimeValue {
+  const end = endOfDay(new Date());
+  const start = startOfDay(subDays(end, days - 1));
+  return { start, end };
+}
+
+type DateRangePreset = {
+  id: string;
+  label: string;
+  getRange: () => StartEndDateTimeValue;
+};
+
+const DATE_RANGE_PRESET_GROUPS: DateRangePreset[][] = [
+  [
+    {
+      id: "today",
+      label: "Hôm nay",
+      getRange: () => {
+        const now = new Date();
+        return { start: startOfDay(now), end: endOfDay(now) };
+      },
+    },
+    {
+      id: "yesterday",
+      label: "Hôm qua",
+      getRange: () => {
+        const day = subDays(new Date(), 1);
+        return { start: startOfDay(day), end: endOfDay(day) };
+      },
+    },
+    {
+      id: "last7",
+      label: "7 ngày qua",
+      getRange: () => lastNDaysInclusive(7),
+    },
+    {
+      id: "last14",
+      label: "14 ngày qua",
+      getRange: () => lastNDaysInclusive(14),
+    },
+    {
+      id: "last30",
+      label: "30 ngày qua",
+      getRange: () => lastNDaysInclusive(30),
+    },
+  ],
+  [
+    {
+      id: "thisWeek",
+      label: "Tuần này",
+      getRange: () => {
+        const now = new Date();
+        return {
+          start: startOfDay(startOfWeek(now, { weekStartsOn: 1 })),
+          end: endOfDay(now),
+        };
+      },
+    },
+    {
+      id: "thisMonth",
+      label: "Tháng này",
+      getRange: () => {
+        const now = new Date();
+        return { start: startOfMonth(now), end: endOfDay(now) };
+      },
+    },
+    {
+      id: "last3months",
+      label: "3 tháng qua",
+      getRange: () => {
+        const end = endOfDay(new Date());
+        return { start: startOfDay(subMonths(end, 3)), end };
+      },
+    },
+    {
+      id: "last6months",
+      label: "6 tháng qua",
+      getRange: () => {
+        const end = endOfDay(new Date());
+        return { start: startOfDay(subMonths(end, 6)), end };
+      },
+    },
+    {
+      id: "lastYear",
+      label: "Năm qua",
+      getRange: () => {
+        const end = endOfDay(new Date());
+        return { start: startOfDay(subYears(end, 1)), end };
+      },
+    },
+  ],
+];
+
+function isPresetActive(
+  preset: DateRangePreset,
+  value: StartEndDateTimeValue,
+): boolean {
+  if (!value.start || !value.end) return false;
+  const range = preset.getRange();
+  if (!range.start || !range.end) return false;
+  return isSameDay(value.start, range.start) && isSameDay(value.end, range.end);
+}
+
 /** Mặc định 7 ngày gần nhất (bao gồm hôm nay). */
 export function getDefaultLast7DaysRange(): StartEndDateTimeValue {
-  const end = endOfDay(new Date());
-  const start = startOfDay(subDays(end, 6));
-  return { start, end };
+  return lastNDaysInclusive(7);
 }
 
 function normalizeRange(
@@ -292,8 +401,7 @@ function normalizeRange(
   } else {
     if (nextStart)
       nextStart = applyTimeToDate(nextStart, startTime || "00:00", "start");
-    if (nextEnd)
-      nextEnd = applyTimeToDate(nextEnd, endTime || "23:59", "end");
+    if (nextEnd) nextEnd = applyTimeToDate(nextEnd, endTime || "23:59", "end");
   }
 
   return { start: nextStart, end: nextEnd };
@@ -480,9 +588,10 @@ export function StartAndEndDateTimePicker({
   align = "end",
 }: StartAndEndDateTimePickerProps) {
   const isControlled = value !== undefined;
-  const [internalValue, setInternalValue] = React.useState<StartEndDateTimeValue>(
-    defaultValue ?? { start: null, end: null },
-  );
+  const [internalValue, setInternalValue] =
+    React.useState<StartEndDateTimeValue>(
+      defaultValue ?? { start: null, end: null },
+    );
   /** Giá trị đã commit (hiển thị trên trigger + dùng để gọi API). */
   const committed = isControlled ? value : internalValue;
 
@@ -568,6 +677,15 @@ export function StartAndEndDateTimePicker({
     applyDraftDates(range?.from ?? null, range?.to ?? null);
   };
 
+  const handlePreset = (preset: DateRangePreset) => {
+    const range = preset.getRange();
+    setStartDateError(false);
+    setEndDateError(false);
+    setStartTime("00:00");
+    setEndTime("23:59");
+    applyDraftDates(range.start, range.end, "00:00", "23:59");
+  };
+
   const handleStartPartsChange = (parts: DigitDateParts) => {
     setStartParts(parts);
     setStartDateError(false);
@@ -632,7 +750,9 @@ export function StartAndEndDateTimePicker({
         : null);
     const parsedEnd =
       draft.end ??
-      (isDigitDatePartsComplete(endParts) ? parseDigitDateParts(endParts) : null);
+      (isDigitDatePartsComplete(endParts)
+        ? parseDigitDateParts(endParts)
+        : null);
 
     if (!isDigitDatePartsEmpty(startParts) && !parsedStart) {
       setStartDateError(true);
@@ -659,9 +779,9 @@ export function StartAndEndDateTimePicker({
   const hasCommittedValue = Boolean(committed.start || committed.end);
   const hasDraftValue = Boolean(
     draft.start ||
-      draft.end ||
-      !isDigitDatePartsEmpty(startParts) ||
-      !isDigitDatePartsEmpty(endParts),
+    draft.end ||
+    !isDigitDatePartsEmpty(startParts) ||
+    !isDigitDatePartsEmpty(endParts),
   );
   const canApply =
     !disabled &&
@@ -669,7 +789,7 @@ export function StartAndEndDateTimePicker({
     !endDateError &&
     Boolean(
       (draft.start || parseDigitDateParts(startParts)) &&
-        (draft.end || parseDigitDateParts(endParts)),
+      (draft.end || parseDigitDateParts(endParts)),
     );
 
   return (
@@ -697,105 +817,141 @@ export function StartAndEndDateTimePicker({
           align={align}
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
-          <Calendar
-            mode="range"
-            numberOfMonths={numberOfMonths}
-            selected={selected}
-            onSelect={handleSelect}
-            month={calendarMonth}
-            onMonthChange={setCalendarMonth}
-          />
-
-          <div className="space-y-3 border-t p-3">
-            <p className="text-muted-foreground text-xs">
-              Hoặc nhập số lần lượt: ngày → tháng → năm
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium">Ngày bắt đầu</label>
-                <DigitDateSegmentedInput
-                  value={startParts}
-                  disabled={disabled}
-                  invalid={startDateError}
-                  onChange={handleStartPartsChange}
-                />
-                {startDateError ? (
-                  <p className="text-destructive text-[11px]">
-                    Ngày không hợp lệ
-                  </p>
-                ) : null}
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium">Ngày kết thúc</label>
-                <DigitDateSegmentedInput
-                  value={endParts}
-                  disabled={disabled}
-                  invalid={endDateError}
-                  onChange={handleEndPartsChange}
-                />
-                {endDateError ? (
-                  <p className="text-destructive text-[11px]">
-                    Ngày không hợp lệ
-                  </p>
-                ) : null}
-              </div>
+          <div className="flex">
+            <div className="w-40 shrink-0 border-r py-2">
+              <p className="text-muted-foreground px-3 pb-1 text-xs font-bold tracking-wide uppercase">
+                Khoảng thời gian
+              </p>
+              {DATE_RANGE_PRESET_GROUPS.map((group, groupIndex) => (
+                <div
+                  key={group[0]?.id ?? groupIndex}
+                  className={cn(groupIndex > 0 && "mt-1 border-t pt-1")}
+                >
+                  {group.map((preset) => {
+                    const active = isPresetActive(preset, draft);
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => handlePreset(preset)}
+                        className={cn(
+                          "flex w-full items-center rounded-none px-3 py-1.5 text-left text-sm",
+                          "hover:bg-muted/80",
+                          active && "bg-muted font-medium",
+                          disabled && "pointer-events-none opacity-50",
+                        )}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
 
-            {showTime ? (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-muted-foreground text-xs font-medium">
-                    Giờ bắt đầu
-                  </label>
-                  <Input
-                    type="time"
-                    value={startTime}
-                    disabled={!draft.start || disabled}
-                    onChange={(event) =>
-                      handleStartTimeChange(event.target.value)
-                    }
-                    className="h-8"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-muted-foreground text-xs font-medium">
-                    Giờ kết thúc
-                  </label>
-                  <Input
-                    type="time"
-                    value={endTime}
-                    disabled={!draft.end || disabled}
-                    onChange={(event) =>
-                      handleEndTimeChange(event.target.value)
-                    }
-                    className="h-8"
-                  />
-                </div>
-              </div>
-            ) : null}
-          </div>
+            <div>
+              <Calendar
+                mode="range"
+                numberOfMonths={numberOfMonths}
+                selected={selected}
+                onSelect={handleSelect}
+                month={calendarMonth}
+                onMonthChange={setCalendarMonth}
+              />
 
-          <div className="flex items-center justify-between gap-2 border-t p-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-8"
-              disabled={!hasDraftValue || disabled}
-              onClick={handleClearDraft}
-            >
-              <X className="size-3.5" />
-              Xóa
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className="h-8"
-              disabled={!canApply}
-              onClick={handleApply}
-            >
-              Áp dụng
-            </Button>
+              <div className="space-y-3 border-t p-3">
+                <p className="text-muted-foreground text-xs">
+                  Hoặc nhập số lần lượt: ngày → tháng → năm
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium">Ngày bắt đầu</label>
+                    <DigitDateSegmentedInput
+                      value={startParts}
+                      disabled={disabled}
+                      invalid={startDateError}
+                      onChange={handleStartPartsChange}
+                    />
+                    {startDateError ? (
+                      <p className="text-destructive text-[11px]">
+                        Ngày không hợp lệ
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium">Ngày kết thúc</label>
+                    <DigitDateSegmentedInput
+                      value={endParts}
+                      disabled={disabled}
+                      invalid={endDateError}
+                      onChange={handleEndPartsChange}
+                    />
+                    {endDateError ? (
+                      <p className="text-destructive text-[11px]">
+                        Ngày không hợp lệ
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                {showTime ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label className="text-muted-foreground text-xs font-medium">
+                        Giờ bắt đầu
+                      </label>
+                      <Input
+                        type="time"
+                        value={startTime}
+                        disabled={!draft.start || disabled}
+                        onChange={(event) =>
+                          handleStartTimeChange(event.target.value)
+                        }
+                        className="h-8"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-muted-foreground text-xs font-medium">
+                        Giờ kết thúc
+                      </label>
+                      <Input
+                        type="time"
+                        value={endTime}
+                        disabled={!draft.end || disabled}
+                        onChange={(event) =>
+                          handleEndTimeChange(event.target.value)
+                        }
+                        className="h-8"
+                      />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="flex items-center justify-between gap-2 border-t p-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8"
+                  disabled={!hasDraftValue || disabled}
+                  onClick={handleClearDraft}
+                >
+                  <X className="size-3.5" />
+                  Xóa
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8"
+                  disabled={!canApply}
+                  onClick={handleApply}
+                >
+                  Áp dụng
+                </Button>
+              </div>
+            </div>
           </div>
         </PopoverContent>
       </Popover>

@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { OverviewReport } from "@/features/dashboard2/components/overview-report";
 import { ConversationGroupedCharts } from "@/features/dashboard2/components/conversation-charts/conversation-report";
-import { AgentHorizontalBarChart } from "@/features/dashboard2/components/agent-charts/agent-horizontal-bar-chart";
+import { GroupedSummaryTabs } from "@/features/dashboard2/components/grouped-summary-charts/grouped-summary-tabs";
 import { ConversationTrafficHeatmapChart } from "@/features/dashboard2/components/dashboard-charts/conversation-traffic-heatmap-chart";
 import { ResolutionTrafficHeatmapChart } from "@/features/dashboard2/components/dashboard-charts/resolution-traffic-heatmap-chart";
 import {
@@ -102,7 +102,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="@container/main space-y-10 px-4 pb-8 lg:px-6">
+      <div className="@container/main space-y-10 px-4 pb-24 lg:px-6">
         {isValidRange(overviewRange) ? (
           <OverviewReport
             since={overviewRange.since}
@@ -140,10 +140,10 @@ export default function DashboardPage() {
         </ChartSection>
 
         <ChartSection
-          title="Agent"
-          description="Thời gian xử lý và khối lượng hội thoại theo từng agent"
+          title="Hiệu suất"
+          description="Thời gian xử lý và khối lượng hội thoại theo agent hoặc label"
         >
-          <AgentHorizontalBarChart />
+          <GroupedSummaryTabs />
         </ChartSection>
       </div>
     </>

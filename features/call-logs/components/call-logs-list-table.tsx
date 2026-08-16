@@ -105,15 +105,13 @@ function getDirectionMeta(direction: string | null | undefined) {
 
 function getStatusClassName(status: string | null | undefined) {
   const value = String(status ?? "").toLowerCase();
-  if (["answered", "completed", "success", "ended"].includes(value)) {
+  if (["answered", "ended"].includes(value)) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300";
   }
-  if (["ringing", "in_progress", "busy", "calling"].includes(value)) {
+  if (["ringing", "created"].includes(value)) {
     return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300";
   }
-  if (
-    ["missed", "failed", "no_answer", "cancelled", "canceled"].includes(value)
-  ) {
+  if (["missed", "failed", "no_answer", "busy"].includes(value)) {
     return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300";
   }
   return "bg-muted text-muted-foreground";

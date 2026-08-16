@@ -12,13 +12,6 @@ import {
   ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getDefaultLast7DaysRange,
@@ -28,7 +21,11 @@ import {
 } from "@/components/start-and-end-datetime-picker";
 import { useAuth } from "@/contexts/auth-context";
 import { useGetReportsGroupedSummary } from "@/hooks/reports/use-reports";
-import { useListChatwootAgents } from "@/hooks/chatwoot/use-chatwoot";
+import {
+  useListChatwootAgents,
+  useListTenantInboxes,
+  useListTenantTeams,
+} from "@/hooks/chatwoot/use-chatwoot";
 import { cn } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import {
@@ -39,10 +36,22 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { AgentReportSummary } from "@/services/reports/service";
+import type {
+  AgentReportSummary,
+  ReportGroupedKind,
+} from "@/services/reports/service";
 
-export type AgentHorizontalBarChartProps = {
+export type GroupedSummaryKind = Extract<
+  ReportGroupedKind,
+  "agent" | "label" | "inbox" | "team"
+>;
+
+export type GroupedSummaryBarChartProps = {
   className?: string;
+  kind?: GroupedSummaryKind;
+  since?: number;
+  until?: number;
+  hideDatePicker?: boolean;
 };
 
 type SortKey = keyof Pick<
@@ -99,13 +108,49 @@ const countChartConfig = {
   },
 } satisfies ChartConfig;
 
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: "avg_resolution_time", label: "Thời gian giải quyết" },
-  { value: "avg_first_response_time", label: "Phản hồi đầu tiên" },
-  { value: "avg_reply_time", label: "Thời gian trả lời" },
-  { value: "conversations_count", label: "Số hội thoại" },
-  { value: "resolved_conversations_count", label: "Đã giải quyết" },
-];
+const KIND_COPY: Record<
+  GroupedSummaryKind,
+  {
+    title: string;
+    description: string;
+    fallback: string;
+    empty: string;
+    error: string;
+  }
+> = {
+  agent: {
+    title: "Hiệu suất agent",
+    description:
+      "Thời gian xử lý theo agent (ms → phút/giây). Null hiển thị N/A, không quy về 0. Độ dài thanh thời gian là tương đối từng metric.",
+    fallback: "Agent",
+    empty: "Không có dữ liệu agent trong khoảng thời gian đã chọn.",
+    error: "Không thể tải dữ liệu hiệu suất agent.",
+  },
+  label: {
+    title: "Hiệu suất label",
+    description:
+      "Thời gian xử lý theo label (ms → phút/giây). Null hiển thị N/A, không quy về 0. Độ dài thanh thời gian là tương đối từng metric.",
+    fallback: "Label",
+    empty: "Không có dữ liệu label trong khoảng thời gian đã chọn.",
+    error: "Không thể tải dữ liệu hiệu suất label.",
+  },
+  inbox: {
+    title: "Hiệu suất inbox",
+    description:
+      "Thời gian xử lý theo inbox (ms → phút/giây). Null hiển thị N/A, không quy về 0. Độ dài thanh thời gian là tương đối từng metric.",
+    fallback: "Inbox",
+    empty: "Không có dữ liệu inbox trong khoảng thời gian đã chọn.",
+    error: "Không thể tải dữ liệu hiệu suất inbox.",
+  },
+  team: {
+    title: "Hiệu suất team",
+    description:
+      "Thời gian xử lý theo team (ms → phút/giây). Null hiển thị N/A, không quy về 0. Độ dài thanh thời gian là tương đối từng metric.",
+    fallback: "Team",
+    empty: "Không có dữ liệu team trong khoảng thời gian đã chọn.",
+    error: "Không thể tải dữ liệu hiệu suất team.",
+  },
+};
 
 function toUnixRange(value: StartEndDateTimeValue) {
   const formats = toStartEndDateTimeFormats(value);
@@ -126,7 +171,17 @@ function extractSummaryList(payload: unknown): unknown[] {
   if (!payload || typeof payload !== "object") return [];
 
   const record = payload as Record<string, unknown>;
-  for (const key of ["data", "messaging", "agents", "summary", "items"]) {
+  for (const key of [
+    "data",
+    "messaging",
+    "agents",
+    "labels",
+    "inboxes",
+    "channels",
+    "teams",
+    "summary",
+    "items",
+  ]) {
     if (Array.isArray(record[key])) return record[key] as unknown[];
   }
 
@@ -144,7 +199,13 @@ function parseAgentSummaries(payload: unknown): AgentReportSummary[] {
         ? row.name.trim()
         : typeof row.available_name === "string" && row.available_name.trim()
           ? row.available_name.trim()
-          : null;
+          : typeof row.inbox_name === "string" && row.inbox_name.trim()
+            ? row.inbox_name.trim()
+            : typeof row.team_name === "string" && row.team_name.trim()
+              ? row.team_name.trim()
+              : typeof row.channel_name === "string" && row.channel_name.trim()
+                ? row.channel_name.trim()
+                : null;
 
     return [
       {
@@ -228,6 +289,7 @@ function extractChatwootAgentRecords(
     asRecords(root.data) ??
     asRecords(data?.payload) ??
     asRecords(data?.agents) ??
+    asRecords(data?.inboxes) ??
     asRecords(data?.data) ??
     asRecords(messaging?.payload) ??
     asRecords(
@@ -269,6 +331,79 @@ function buildAgentIdentityMap(response: unknown): Map<string, AgentIdentity> {
   return map;
 }
 
+function extractInboxRecords(response: unknown): Record<string, unknown>[] {
+  const asRecords = (value: unknown): Record<string, unknown>[] | null => {
+    if (!Array.isArray(value)) return null;
+    const records = value.filter(
+      (item): item is Record<string, unknown> =>
+        Boolean(item) && typeof item === "object" && !Array.isArray(item),
+    );
+    return records.length > 0 ? records : null;
+  };
+
+  if (!response || typeof response !== "object") {
+    return asRecords(response) ?? [];
+  }
+
+  const root = response as Record<string, unknown>;
+  const data =
+    root.data && typeof root.data === "object" && !Array.isArray(root.data)
+      ? (root.data as Record<string, unknown>)
+      : root;
+  const messaging = data.messaging;
+
+  return (
+    asRecords(data.teams) ??
+    asRecords(messaging) ??
+    asRecords(
+      messaging && typeof messaging === "object"
+        ? (messaging as Record<string, unknown>).payload
+        : null,
+    ) ??
+    asRecords(data.payload) ??
+    asRecords(root.payload) ??
+    []
+  );
+}
+
+function buildInboxIdentityMap(response: unknown): Map<string, AgentIdentity> {
+  const map = new Map<string, AgentIdentity>();
+
+  extractInboxRecords(response).forEach((record) => {
+    const inboxId = record.id;
+    if (inboxId == null || inboxId === "") return;
+
+    const name = String(record.name ?? "").trim();
+    if (!name) return;
+
+    const identity = { name, email: "" };
+    const key = String(inboxId).trim();
+    map.set(key, identity);
+    map.set(key.toLowerCase(), identity);
+  });
+
+  return map;
+}
+
+function buildTeamIdentityMap(response: unknown): Map<string, AgentIdentity> {
+  const map = new Map<string, AgentIdentity>();
+
+  extractInboxRecords(response).forEach((record) => {
+    const teamId = record.id;
+    if (teamId == null || teamId === "") return;
+
+    const name = String(record.name ?? "").trim();
+    if (!name) return;
+
+    const identity = { name, email: "" };
+    const key = String(teamId).trim();
+    map.set(key, identity);
+    map.set(key.toLowerCase(), identity);
+  });
+
+  return map;
+}
+
 function resolveAgentIdentity(
   id: string,
   identityById: Map<string, AgentIdentity>,
@@ -283,23 +418,32 @@ function resolveAgentIdentity(
   );
 }
 
-function uniqueAgentLabels(
+function resolveEntityLabels(
   rows: AgentReportSummary[],
+  kind: GroupedSummaryKind,
   identityById: Map<string, AgentIdentity>,
 ) {
   return rows.map((row) => {
     const id = String(row.id);
+    if (kind === "label" || kind === "inbox" || kind === "team") {
+      const identity = resolveAgentIdentity(id, identityById, row.name);
+      const name =
+        row.name?.trim() ||
+        identity.name ||
+        `${KIND_COPY[kind].fallback} ${id}`;
+      return { id, label: name, name, email: identity.email };
+    }
     const identity = resolveAgentIdentity(id, identityById, row.name);
     const name = identity.name;
     const email = identity.email;
-    const label = name || email || "Agent";
+    const label = name || email || KIND_COPY.agent.fallback;
     return { id, label, name, email };
   });
 }
 
 function wrapAxisLabel(text: string): string[] {
-  if (text.length <= 20) return [text];
-  return [`${text.slice(0, 19)}…`];
+  if (text.length <= 14) return [text];
+  return [`${text.slice(0, 13)}…`];
 }
 
 function AgentAxisTick({
@@ -315,7 +459,7 @@ function AgentAxisTick({
 }) {
   const id = String(payload?.value ?? "");
   const identity = identities?.[id];
-  const text = identity?.name || identity?.email || "Agent";
+  const text = identity?.name || identity?.email || "—";
   const hint = [identity?.name, identity?.email].filter(Boolean).join(" · ");
   const lines = wrapAxisLabel(text);
   const offset = ((lines.length - 1) * 12) / 2;
@@ -433,7 +577,9 @@ function AgentTooltip({
     <div className="border-border/50 bg-background grid min-w-52 gap-1.5 rounded-lg border px-2.5 py-2 text-xs shadow-xl">
       <div className="space-y-0.5">
         <p className="font-medium">{row.name || row.label}</p>
-        <p className="text-muted-foreground break-all">{row.email || "N/A"}</p>
+        {row.email ? (
+          <p className="text-muted-foreground break-all">{row.email}</p>
+        ) : null}
       </div>
       {lines.map((line) => (
         <div
@@ -680,16 +826,25 @@ function CountEndLabel({
   );
 }
 
-export function AgentHorizontalBarChart({
+export function GroupedSummaryBarChart({
   className,
-}: AgentHorizontalBarChartProps) {
+  kind = "agent",
+  since,
+  until,
+  hideDatePicker = false,
+}: GroupedSummaryBarChartProps) {
+  const copy = KIND_COPY[kind];
   const { user } = useAuth();
   const tenantId = user?.tenant_id ?? "";
-  const [sortKey, setSortKey] = useState<SortKey>("avg_resolution_time");
+  const [sortKey] = useState<SortKey>("avg_resolution_time");
   const [rangeValue, setRangeValue] = useState<StartEndDateTimeValue>(
     getDefaultLast7DaysRange,
   );
-  const range = useMemo(() => toUnixRange(rangeValue), [rangeValue]);
+  const internalRange = useMemo(() => toUnixRange(rangeValue), [rangeValue]);
+  const range = {
+    since: since && since > 0 ? since : internalRange.since,
+    until: until && until > 0 ? until : internalRange.until,
+  };
 
   const params = useMemo(
     () => ({
@@ -704,35 +859,50 @@ export function AgentHorizontalBarChart({
 
   const { data, isLoading, isFetching, isError } = useGetReportsGroupedSummary(
     tenantId,
-    "agent",
+    kind,
     params,
     enabled,
   );
-  const { data: chatwootAgentsResponse } = useListChatwootAgents(tenantId);
-
-  const identityById = useMemo(
-    () => buildAgentIdentityMap(chatwootAgentsResponse),
-    [chatwootAgentsResponse],
+  const { data: chatwootAgentsResponse } = useListChatwootAgents(
+    kind === "agent" ? tenantId : "",
+  );
+  const { data: chatwootInboxesResponse } = useListTenantInboxes(
+    kind === "inbox" ? tenantId : "",
+  );
+  const { data: chatwootTeamsResponse } = useListTenantTeams(
+    kind === "team" ? tenantId : "",
   );
 
-  const agents = useMemo(
+  const identityById = useMemo(() => {
+    if (kind === "agent") return buildAgentIdentityMap(chatwootAgentsResponse);
+    if (kind === "inbox") return buildInboxIdentityMap(chatwootInboxesResponse);
+    if (kind === "team") return buildTeamIdentityMap(chatwootTeamsResponse);
+    return new Map<string, AgentIdentity>();
+  }, [
+    chatwootAgentsResponse,
+    chatwootInboxesResponse,
+    chatwootTeamsResponse,
+    kind,
+  ]);
+
+  const entities = useMemo(
     () => sortAgents(parseAgentSummaries(data?.data), sortKey),
     [data, sortKey],
   );
 
   const chartRows = useMemo(() => {
     const resolutionMax = maxFinite(
-      agents.map((row) => row.avg_resolution_time),
+      entities.map((row) => row.avg_resolution_time),
     );
     const firstResponseMax = maxFinite(
-      agents.map((row) => row.avg_first_response_time),
+      entities.map((row) => row.avg_first_response_time),
     );
-    const replyMax = maxFinite(agents.map((row) => row.avg_reply_time));
-    const labels = uniqueAgentLabels(agents, identityById);
+    const replyMax = maxFinite(entities.map((row) => row.avg_reply_time));
+    const labels = resolveEntityLabels(entities, kind, identityById);
 
-    return agents.map((row, index) => ({
+    return entities.map((row, index) => ({
       id: labels[index]?.id ?? String(row.id),
-      label: labels[index]?.label ?? "Agent",
+      label: labels[index]?.label ?? copy.fallback,
       name: labels[index]?.name ?? "",
       email: labels[index]?.email ?? "",
       conversations_count: row.conversations_count,
@@ -746,7 +916,7 @@ export function AgentHorizontalBarChart({
         toRelativeVisual(row.avg_first_response_time, firstResponseMax) ?? 0,
       replyVisual: toRelativeVisual(row.avg_reply_time, replyMax) ?? 0,
     })) satisfies AgentChartRow[];
-  }, [agents, identityById]);
+  }, [copy.fallback, entities, identityById, kind]);
 
   const axisIdentities = useMemo(
     () =>
@@ -773,38 +943,20 @@ export function AgentHorizontalBarChart({
       <CardHeader className="px-5 pt-5 pb-0">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-base font-bold">
-              Hiệu suất agent
-            </CardTitle>
-            <CardDescription>
-              Thời gian xử lý theo agent (ms → phút/giây). Null hiển thị N/A,
-              không quy về 0. Độ dài thanh thời gian là tương đối từng metric.
-            </CardDescription>
+            <CardTitle className="text-base font-bold">{copy.title}</CardTitle>
+            <CardDescription>{copy.description}</CardDescription>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end lg:w-auto">
-            {/* <Select
-              value={sortKey}
-              onValueChange={(value) => setSortKey(value as SortKey)}
-            >
-              <SelectTrigger className="h-8 w-full min-w-0 sm:w-48">
-                <SelectValue placeholder="Sắp xếp" />
-              </SelectTrigger>
-              <SelectContent align="end">
-                {SORT_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select> */}
-            <StartAndEndDateTimePicker
-              value={rangeValue}
-              onChange={setRangeValue}
-              numberOfMonths={2}
-              placeholder="Chọn khoảng thời gian"
-              align="end"
-              className="shrink-0"
-            />
+            {hideDatePicker ? null : (
+              <StartAndEndDateTimePicker
+                value={rangeValue}
+                onChange={setRangeValue}
+                numberOfMonths={2}
+                placeholder="Chọn khoảng thời gian"
+                align="end"
+                className="shrink-0"
+              />
+            )}
           </div>
         </div>
       </CardHeader>
@@ -818,11 +970,11 @@ export function AgentHorizontalBarChart({
           </div>
         ) : isError && !data ? (
           <p className="text-muted-foreground py-16 text-center text-sm">
-            Không thể tải dữ liệu hiệu suất agent.
+            {copy.error}
           </p>
         ) : chartRows.length === 0 ? (
           <p className="text-muted-foreground py-16 text-center text-sm">
-            Không có dữ liệu agent trong khoảng thời gian đã chọn.
+            {copy.empty}
           </p>
         ) : (
           <div
@@ -840,13 +992,13 @@ export function AgentHorizontalBarChart({
               </div>
               <ChartContainer
                 config={timeChartConfig}
-                className="aspect-auto w-full"
+                className="aspect-auto w-full justify-start [&_.recharts-wrapper]:w-full"
                 style={{ height: chartHeight }}
               >
                 <BarChart
                   layout="vertical"
                   data={chartRows}
-                  margin={{ top: 12, right: 88, left: 8, bottom: 8 }}
+                  margin={{ top: 12, right: 88, left: 0, bottom: 24 }}
                   barCategoryGap="18%"
                   barGap={6}
                 >
@@ -855,14 +1007,25 @@ export function AgentHorizontalBarChart({
                     strokeDasharray="3 3"
                     className="stroke-muted/30"
                   />
-                  <XAxis type="number" domain={[0, 100]} hide />
+                  <XAxis
+                    type="number"
+                    domain={[0, 100]}
+                    ticks={[0, 100]}
+                    padding={{ left: 0, right: 0 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(value) => (value === 0 ? "0" : "Max")}
+                  />
                   <YAxis
                     type="category"
                     dataKey="id"
-                    width={140}
+                    width={96}
+                    tickMargin={4}
                     tickLine={false}
                     axisLine={false}
                     interval={0}
+                    padding={{ top: 0, bottom: 0 }}
                     tick={(props) => (
                       <AgentAxisTick {...props} identities={axisIdentities} />
                     )}
@@ -928,13 +1091,13 @@ export function AgentHorizontalBarChart({
               </div>
               <ChartContainer
                 config={countChartConfig}
-                className="aspect-auto w-full"
+                className="aspect-auto w-full justify-start [&_.recharts-wrapper]:w-full"
                 style={{ height: chartHeight }}
               >
                 <BarChart
                   layout="vertical"
                   data={chartRows}
-                  margin={{ top: 12, right: 56, left: 8, bottom: 8 }}
+                  margin={{ top: 12, right: 56, left: 0, bottom: 8 }}
                   barCategoryGap="20%"
                   barGap={6}
                 >
@@ -947,6 +1110,7 @@ export function AgentHorizontalBarChart({
                     type="number"
                     allowDecimals={false}
                     domain={[0, (dataMax: number) => Math.max(dataMax, 1)]}
+                    padding={{ left: 0, right: 0 }}
                     tickLine={false}
                     axisLine={false}
                     tick={{ fontSize: 11 }}
@@ -955,10 +1119,12 @@ export function AgentHorizontalBarChart({
                   <YAxis
                     type="category"
                     dataKey="id"
-                    width={140}
+                    width={96}
+                    tickMargin={4}
                     tickLine={false}
                     axisLine={false}
                     interval={0}
+                    padding={{ top: 0, bottom: 0 }}
                     tick={(props) => (
                       <AgentAxisTick {...props} identities={axisIdentities} />
                     )}
@@ -1001,4 +1167,10 @@ export function AgentHorizontalBarChart({
       </CardContent>
     </Card>
   );
+}
+
+export function AgentHorizontalBarChart(
+  props: Omit<GroupedSummaryBarChartProps, "kind">,
+) {
+  return <GroupedSummaryBarChart kind="agent" {...props} />;
 }

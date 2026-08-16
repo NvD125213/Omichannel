@@ -390,6 +390,10 @@ export type NavigationRailFilterProps = {
   overlaySurfaceClassName?: string;
   /** Class bổ sung chỉ cho khung panel overlay (shadow, border, …) */
   overlayPanelClassName?: string;
+  /** Nội dung filter thêm, render trong panel sau các select mặc định */
+  extraPanelContent?: ReactNode;
+  /** Số filter đang active ở extraPanelContent — để hiện badge / bật Đặt lại */
+  extraActiveFilterCount?: number;
 };
 
 const RAIL_COLLAPSED_WIDTH = 56;
@@ -492,6 +496,8 @@ export function NavigationRailFilter({
   overlayPanelWidth = RAIL_EXPANDED_WIDTH,
   overlaySurfaceClassName,
   overlayPanelClassName,
+  extraPanelContent,
+  extraActiveFilterCount = 0,
 }: NavigationRailFilterProps) {
   const isOverlay = displayMode === "overlay";
   const isControlled = open !== undefined;
@@ -680,7 +686,8 @@ export function NavigationRailFilter({
     selectValue ||
     select2Value ||
     comboboxValues.length > 0 ||
-    selectedTags.length > 0
+    selectedTags.length > 0 ||
+    extraActiveFilterCount > 0
   );
 
   const totalActiveFilters = [
@@ -689,6 +696,7 @@ export function NavigationRailFilter({
     select2Value ? 1 : 0,
     comboboxValues.length,
     selectedTags.length,
+    extraActiveFilterCount,
   ].reduce((a, b) => a + b, 0);
 
   const getHeaderIcon = () => {
@@ -840,7 +848,10 @@ export function NavigationRailFilter({
                 </div>
 
                 <ScrollArea
-                  className={cn("flex-1 bg-background", overlaySurfaceClassName)}
+                  className={cn(
+                    "min-h-0 flex-1 overflow-hidden bg-background",
+                    overlaySurfaceClassName,
+                  )}
                 >
                   <div
                     className={cn(
@@ -1180,7 +1191,7 @@ export function NavigationRailFilter({
           </motion.div>
 
           {/* Filter Content */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="min-h-0 flex-1 overflow-hidden">
             <motion.div className="space-y-5 p-4">
               {/* Search Input */}
               {showSearch && (
@@ -1278,6 +1289,13 @@ export function NavigationRailFilter({
                   </div>
                 </>
               )}
+
+              {extraPanelContent ? (
+                <>
+                  <Separator />
+                  {extraPanelContent}
+                </>
+              ) : null}
 
               {/* Combobox (Multi-select) */}
               {comboboxOptions.length > 0 && (

@@ -69,7 +69,12 @@ export type ReportSummaryType =
   | "label"
   | "team";
 
-export type ReportGroupedKind = "agent" | "team" | "label" | "channel";
+export type ReportGroupedKind =
+  | "agent"
+  | "team"
+  | "label"
+  | "channel"
+  | "inbox";
 
 export type ReportTimeseriesMetric =
   | "conversations_count"
@@ -190,7 +195,7 @@ export const reportsService = {
 
   /**
    * GET .../reports/summary/:kind
-   * Grouped Summary — kind: agent | team | label | channel
+   * Grouped Summary — kind: agent | team | label | channel | inbox
    */
   getGroupedSummary: async (
     tenantId: string,

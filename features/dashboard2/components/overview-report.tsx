@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -16,17 +17,32 @@ import {
 } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   HintTooltipContent,
   Tooltip,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth-context";
-import { useGetReportsOverview } from "@/hooks/reports/use-reports";
+import {
+  useGetCsatResponses,
+  useGetReportsOverview,
+} from "@/hooks/reports/use-reports";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { vi } from "date-fns/locale";
+import { useEffect, useState } from "react";
 import {
   CircleHelp,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   Clock3,
   Frown,
@@ -398,7 +414,13 @@ function MetricsGrid({ items }: { items: MetricsGridItem[] }) {
   );
 }
 
-function CsatOverview({ csat }: { csat: ReportsOverviewCsat }) {
+function CsatOverview({
+  csat,
+  onShowDetail,
+}: {
+  csat: ReportsOverviewCsat;
+  onShowDetail: () => void;
+}) {
   const distribution = CSAT_LEVELS.map((level) => {
     const count = csat.ratings_count[String(level.rating)] ?? 0;
     const percentage =
@@ -435,9 +457,19 @@ function CsatOverview({ csat }: { csat: ReportsOverviewCsat }) {
       {/* Cột trái — điểm lớn + meta */}
       <div className="flex min-w-0 flex-col justify-between gap-6">
         <div>
-          <p className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
-            Điểm CSAT
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
+              Điểm CSAT
+            </p>
+            <button
+              type="button"
+              onClick={onShowDetail}
+              className="text-primary inline-flex items-center gap-0.5 text-[11px] font-medium tracking-[0.14em] uppercase hover:underline"
+            >
+              Chi tiết
+              <ChevronRight className="size-3.5" aria-hidden="true" />
+            </button>
+          </div>
           <div className="mt-3 flex items-end gap-2">
             <p
               className="text-6xl font-bold leading-none tracking-tighter tabular-nums sm:text-7xl"
@@ -566,6 +598,349 @@ function CsatOverview({ csat }: { csat: ReportsOverviewCsat }) {
       </div>
     </section>
   );
+}
+
+type CsatResponseRow = {
+  id: string;
+  rating: number | null;
+  feedback: string;
+  conversationId: string;
+  createdAt: number | null;
+  contactName: string;
+  contactEmail: string;
+  agentName: string;
+  agentEmail: string;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function extractCsatResponseList(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  const record = payload as Record<string, unknown>;
+  for (const key of ["messaging", "payload", "data", "responses", "csat"]) {
+    const value = record[key];
+    if (Array.isArray(value)) return value;
+    const nested = asRecord(value);
+    if (nested && Array.isArray(nested.payload)) return nested.payload;
+    if (nested && Array.isArray(nested.data)) return nested.data;
+  }
+
+  return [];
+}
+
+function toPositiveInt(value: unknown): number | null {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.floor(n);
+}
+
+function parseCsatPagination(
+  payload: unknown,
+  requestedPage: number,
+  rowCount: number,
+) {
+  const root = asRecord(payload);
+  const messaging = asRecord(root?.messaging);
+  const meta =
+    asRecord(root?.meta) ??
+    asRecord(root?.pagination) ??
+    asRecord(messaging?.meta) ??
+    asRecord(messaging?.pagination);
+
+  const page =
+    toPositiveInt(meta?.current_page) ??
+    toPositiveInt(meta?.page) ??
+    requestedPage;
+  const total =
+    toPositiveInt(meta?.count) ??
+    toPositiveInt(meta?.total) ??
+    toPositiveInt(meta?.total_count);
+  const pageSize =
+    toPositiveInt(meta?.per_page) ??
+    toPositiveInt(meta?.page_size) ??
+    toPositiveInt(meta?.limit);
+  const totalPages =
+    toPositiveInt(meta?.total_pages) ??
+    (total != null
+      ? Math.max(1, Math.ceil(total / (pageSize || rowCount || 25)))
+      : null);
+  const inferredSize = pageSize ?? 25;
+
+  return {
+    page,
+    total,
+    totalPages,
+    canPrev: page > 1,
+    canNext: totalPages != null ? page < totalPages : rowCount >= inferredSize,
+  };
+}
+
+function parseCsatResponses(payload: unknown): CsatResponseRow[] {
+  return extractCsatResponseList(payload).flatMap((item) => {
+    const row = asRecord(item);
+    if (!row || row.id == null || row.id === "") return [];
+
+    const contact = asRecord(row.contact);
+    const agent = asRecord(row.assigned_agent);
+    const ratingRaw =
+      typeof row.rating === "number" ? row.rating : Number(row.rating);
+    const createdRaw =
+      typeof row.created_at === "number"
+        ? row.created_at
+        : Number(row.created_at);
+
+    const contactName = String(contact?.name ?? "").trim();
+    const contactEmail = String(contact?.email ?? "").trim();
+    const agentName = String(agent?.available_name ?? agent?.name ?? "").trim();
+    const agentEmail = String(agent?.email ?? "").trim();
+    const feedback = String(row.feedback_message ?? "").trim();
+
+    return [
+      {
+        id: String(row.id),
+        rating: Number.isFinite(ratingRaw) ? ratingRaw : null,
+        feedback,
+        conversationId:
+          row.conversation_id == null ? "" : String(row.conversation_id),
+        createdAt: Number.isFinite(createdRaw) ? createdRaw : null,
+        contactName,
+        contactEmail,
+        agentName,
+        agentEmail,
+      },
+    ];
+  });
+}
+
+function formatCsatTimestamp(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const ms = value < 1e12 ? value * 1000 : value;
+  const date = new Date(ms);
+  if (Number.isNaN(date.getTime())) return "—";
+  return format(date, "dd/MM/yyyy HH:mm", { locale: vi });
+}
+
+function CsatRatingCell({ rating }: { rating: number | null }) {
+  const level = CSAT_LEVELS.find((item) => item.rating === rating);
+  if (rating == null || !level)
+    return <span className="text-muted-foreground">—</span>;
+
+  const Icon = level.icon;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <Icon className={cn("size-4 shrink-0", level.iconClass)} aria-hidden />
+      <span className="font-semibold tabular-nums" translate="no">
+        {rating}
+      </span>
+    </span>
+  );
+}
+
+function CsatResponsesDetail({
+  tenantId,
+  since,
+  until,
+  onBack,
+}: {
+  tenantId: string;
+  since: number;
+  until: number;
+  onBack: () => void;
+}) {
+  const [page, setPage] = useState(1);
+  const { data, isLoading, isFetching, isError } = useGetCsatResponses(
+    tenantId,
+    { since, until, page },
+    !!tenantId && Number.isFinite(since) && Number.isFinite(until),
+  );
+  const rows = parseCsatResponses(data?.data);
+  const pagination = parseCsatPagination(data?.data, page, rows.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [since, until]);
+
+  const showPager =
+    pagination.canPrev || pagination.canNext || pagination.totalPages != null;
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
+          Phản hồi CSAT
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-primary text-[11px] font-medium tracking-[0.14em] uppercase hover:underline"
+        >
+          Tổng quan
+        </button>
+      </div>
+
+      {isLoading && rows.length === 0 ? (
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-8 w-full" />
+        </div>
+      ) : isError ? (
+        <p className="text-destructive text-sm">
+          Không thể tải danh sách phản hồi CSAT.
+        </p>
+      ) : rows.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          Chưa có phản hồi trong khoảng đã chọn.
+        </p>
+      ) : (
+        <Table
+          containerClassName={cn(
+            "max-h-72 overflow-auto rounded-md border border-border/60",
+            isFetching && "opacity-70",
+          )}
+        >
+          <TableHeader>
+            <TableRow>
+              <TableHead>Khách hàng</TableHead>
+              <TableHead>Điểm</TableHead>
+              <TableHead>Phản hồi</TableHead>
+              <TableHead>Agent</TableHead>
+              <TableHead className="text-right">Thời gian</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.id}>
+                <TableCell>
+                  <div className="min-w-36">
+                    <p className="font-medium">{row.contactName || "—"}</p>
+                    {row.contactEmail ? (
+                      <p className="text-muted-foreground text-xs">
+                        {row.contactEmail}
+                      </p>
+                    ) : null}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <CsatRatingCell rating={row.rating} />
+                </TableCell>
+                <TableCell className="max-w-56 whitespace-normal">
+                  {row.feedback || (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <div className="min-w-32">
+                    <p className="font-medium">{row.agentName || "—"}</p>
+                    {row.agentEmail ? (
+                      <p className="text-muted-foreground text-xs">
+                        {row.agentEmail}
+                      </p>
+                    ) : null}
+                  </div>
+                </TableCell>
+                <TableCell
+                  className="text-right tabular-nums whitespace-nowrap"
+                  translate="no"
+                >
+                  {formatCsatTimestamp(row.createdAt)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+
+      {showPager ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-muted-foreground text-xs tabular-nums">
+            {pagination.total != null
+              ? `${formatNumber(pagination.total)} phản hồi`
+              : `Trang ${pagination.page}`}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              className="cursor-pointer"
+              disabled={!pagination.canPrev || isFetching}
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              aria-label="Trang trước"
+            >
+              <ChevronLeft />
+            </Button>
+            <span className="min-w-14 text-center text-xs font-medium tabular-nums">
+              {pagination.page}
+              {pagination.totalPages != null ? ` / ${pagination.totalPages}` : ""}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              className="cursor-pointer"
+              disabled={!pagination.canNext || isFetching}
+              onClick={() => setPage((current) => current + 1)}
+              aria-label="Trang sau"
+            >
+              <ChevronRight />
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CsatPanel({
+  csat,
+  tenantId,
+  since,
+  until,
+}: {
+  csat: ReportsOverviewCsat | null;
+  tenantId: string;
+  since: number;
+  until: number;
+}) {
+  const [showDetail, setShowDetail] = useState(false);
+
+  if (showDetail) {
+    return (
+      <CsatResponsesDetail
+        tenantId={tenantId}
+        since={since}
+        until={until}
+        onBack={() => setShowDetail(false)}
+      />
+    );
+  }
+
+  if (!csat || csat.total_count === 0) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        <p className="text-muted-foreground text-center text-sm">
+          Chưa có phản hồi CSAT.
+        </p>
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto px-0"
+          onClick={() => setShowDetail(true)}
+        >
+          Chi tiết
+        </Button>
+      </div>
+    );
+  }
+
+  return <CsatOverview csat={csat} onShowDetail={() => setShowDetail(true)} />;
 }
 
 function OverviewSkeleton() {
@@ -733,7 +1108,8 @@ export function OverviewReport({ since, until }: OverviewReportProps) {
 
   const firstResponseMetric: MetricItem = {
     label: "RTT",
-    helpText: "RTT là thời gian phản hồi đầu tiên trung bình kể từ khi khách gửi tin nhắn đến lúc nhận được phản hồi đầu tiên.",
+    helpText:
+      "RTT là thời gian phản hồi đầu tiên trung bình kể từ khi khách gửi tin nhắn đến lúc nhận được phản hồi đầu tiên.",
     value: formatDuration(summary.avg_first_response_time),
     previousLabel: formatDuration(previous.avg_first_response_time ?? 0),
     growth: calcGrowth(
@@ -748,7 +1124,8 @@ export function OverviewReport({ since, until }: OverviewReportProps) {
 
   const resolutionTimeMetric: MetricItem = {
     label: "ATTD",
-    helpText: "ATTD là thời gian xử lý trung bình từ lúc hội thoại được tạo đến khi được đánh dấu đã giải quyết.",
+    helpText:
+      "ATTD là thời gian xử lý trung bình từ lúc hội thoại được tạo đến khi được đánh dấu đã giải quyết.",
     value: formatDuration(summary.avg_resolution_time),
     previousLabel: formatDuration(previous.avg_resolution_time ?? 0),
     growth: calcGrowth(
@@ -877,14 +1254,13 @@ export function OverviewReport({ since, until }: OverviewReportProps) {
         </Card>
 
         <Card className="flex flex-col border-border/50 bg-card py-0 shadow-sm lg:col-span-8">
-          <CardContent className="flex flex-1 flex-col justify-center px-5 py-6 sm:px-6 sm:py-7">
-            {!csat || csat.total_count === 0 ? (
-              <p className="text-muted-foreground text-center text-sm">
-                Chưa có phản hồi CSAT.
-              </p>
-            ) : (
-              <CsatOverview csat={csat} />
-            )}
+          <CardContent className="flex flex-1 flex-col px-5 py-6 sm:px-6 sm:py-7">
+            <CsatPanel
+              csat={csat}
+              tenantId={tenantId}
+              since={since}
+              until={until}
+            />
           </CardContent>
         </Card>
       </div>
