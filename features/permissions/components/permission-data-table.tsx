@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PermissionTableToolbar } from "./permission-data-table-toolbar";
-import rolePermission from "@/constants/role-permission.json";
 import { useGetRoles } from "@/hooks/role/use-get-role";
 import {
   useGetPermissions,
@@ -107,7 +106,9 @@ export default function PermissionsMatrix() {
   });
 
   const { data: currentUser } = useMe();
-  const { data: allPermissionsData } = useGetPermissions();
+  const { data: allPermissionsData } = useGetPermissions({
+    for_assign: true,
+  });
   const assignRolePermissionMutation = useAssignRolePermission();
 
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -132,13 +133,21 @@ export default function PermissionsMatrix() {
     selectedRole || "",
   );
 
-  /** API (mảng / nhóm) + fallback JSON tĩnh — luôn chuẩn hóa cùng format. */
+  /** Chỉ quyền tenant được phép gán (`for_assign=true`), ẩn quyền ngoài phạm vi. */
   const rawData = useMemo(() => {
-    if (allPermissionsData != null) {
-      return groupPermissionsForMatrix(allPermissionsData);
-    }
-    return groupPermissionsForMatrix(rolePermission.data);
+    if (allPermissionsData == null) return {};
+    return groupPermissionsForMatrix(allPermissionsData);
   }, [allPermissionsData]);
+
+  const assignablePermissionIds = useMemo(() => {
+    const ids = new Set<string>();
+    Object.values(rawData).forEach((perms) => {
+      perms.forEach((p) => {
+        if (p.id) ids.add(p.id);
+      });
+    });
+    return ids;
+  }, [rawData]);
 
   React.useEffect(() => {
     if (!rolePermissionsData) return;
@@ -147,11 +156,11 @@ export default function PermissionsMatrix() {
     const next = new Set<string>();
     Object.values(grouped).forEach((perms) => {
       perms.forEach((p) => {
-        if (p.id) next.add(p.id);
+        if (p.id && assignablePermissionIds.has(p.id)) next.add(p.id);
       });
     });
     setSelectedPermissions(next);
-  }, [rolePermissionsData]);
+  }, [rolePermissionsData, assignablePermissionIds]);
 
   const actions = useMemo(
     () => sortMatrixActions(Object.keys(rawData)),
@@ -248,16 +257,27 @@ export default function PermissionsMatrix() {
     [filteredData],
   );
 
+  const allPermissionIds = useMemo(() => {
+    const ids: string[] = [];
+    Object.values(rawData).forEach((perms) => {
+      perms.forEach((p) => {
+        if (p.id) ids.push(p.id);
+      });
+    });
+    return ids;
+  }, [rawData]);
+
+  const allPermissionsState = selectionState(
+    allPermissionIds,
+    selectedPermissions,
+  );
+
   const toggleAll = () => {
-    if (selectedPermissions.size > 0) {
+    if (allPermissionsState === true) {
       setSelectedPermissions(new Set());
       return;
     }
-    const allIds = new Set<string>();
-    Object.values(rawData).forEach((perms) => {
-      perms.forEach((p) => allIds.add(p.id));
-    });
-    setSelectedPermissions(allIds);
+    setSelectedPermissions(new Set(allPermissionIds));
   };
 
   const roleOptions = useMemo(() => {
@@ -343,8 +363,29 @@ export default function PermissionsMatrix() {
                     )}
                   >
                     <div className="grid h-14 grid-cols-[1rem_minmax(0,1fr)] items-end gap-2.5 px-3 pb-2.5">
-                      {/* placeholder căn thẳng cột tick hàng */}
-                      <span className={CHECK_SLOT} aria-hidden />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={CHECK_SLOT}>
+                            <Checkbox
+                              checked={allPermissionsState}
+                              disabled={allPermissionIds.length === 0}
+                              onCheckedChange={(value) =>
+                                togglePermissionGroup(
+                                  allPermissionIds,
+                                  value === true,
+                                )
+                              }
+                              aria-label="Chọn tất cả quyền hạn"
+                              className="size-4 shadow-none"
+                            />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {allPermissionIds.length > 0
+                            ? "Chọn/bỏ chọn toàn bộ quyền hạn"
+                            : "Không có quyền để chọn"}
+                        </TooltipContent>
+                      </Tooltip>
                       <span className="pb-px text-left text-sm leading-none">
                         Danh sách quyền hạn
                       </span>

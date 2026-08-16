@@ -249,7 +249,7 @@ export function DataTable({
             className="-ml-4 h-8 data-[state=open]:bg-accent"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Thứ tự
+            Cấp bậc
             {column.getIsSorted() === "asc" ? (
               <ArrowUp className="ml-2 h-4 w-4" />
             ) : column.getIsSorted() === "desc" ? (
@@ -267,11 +267,13 @@ export function DataTable({
           <Badge
             variant="secondary"
             className={cn(
-              "min-w-8 justify-center rounded-full px-2 text-xs font-semibold",
+              "min-w-8 justify-center rounded-full px-2 text-xs font-bold lowercase",
               getOrderBadgeColor(order),
             )}
           >
-            {order ?? "-"}
+            {order !== undefined && order !== null
+              ? String(order).toLowerCase()
+              : "-"}
           </Badge>
         );
       },

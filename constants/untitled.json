@@ -1,0 +1,870 @@
+[
+  {
+    "id": "019fa30c-6bb3-7dad-b885-433c1c63ca33",
+    "name": "view_users",
+    "description": "Permission to view_users",
+    "belong_to": "user",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bbc-7261-8a30-46d0d0429bbe",
+    "name": "current_user",
+    "description": "Permission to current_user",
+    "belong_to": "user",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bc2-7d4b-8e27-9f2d34c37232",
+    "name": "delete_users",
+    "description": "Permission to delete_users",
+    "belong_to": "user",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bc9-7836-b6ae-6c52e29b54c1",
+    "name": "create_users",
+    "description": "Permission to create_users",
+    "belong_to": "user",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bcf-7829-90ef-3369408ff7b2",
+    "name": "edit_users",
+    "description": "Permission to edit_users",
+    "belong_to": "user",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bdc-717a-955c-aeed8792809a",
+    "name": "edit_roles",
+    "description": "Permission to edit_roles",
+    "belong_to": "role",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6be2-7214-8378-7ed9d9e2e790",
+    "name": "view_roles",
+    "description": "Permission to view_roles",
+    "belong_to": "role",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6be9-7ae0-9b9c-c42448921c2a",
+    "name": "delete_roles",
+    "description": "Permission to delete_roles",
+    "belong_to": "role",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bef-7ea9-9da7-a81f78367d3f",
+    "name": "create_roles",
+    "description": "Permission to create_roles",
+    "belong_to": "role",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bf5-7a31-9e95-758475adaea9",
+    "name": "view_permissions",
+    "description": "Permission to view_permissions",
+    "belong_to": "permission",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6bfa-7d7b-9582-a6db950aea00",
+    "name": "edit_permissions",
+    "description": "Permission to edit_permissions",
+    "belong_to": "permission",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c00-78fc-86c5-dd7ad2e815b3",
+    "name": "delete_permissions",
+    "description": "Permission to delete_permissions",
+    "belong_to": "permission",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c06-7ee8-9f72-66f9fb9f58ab",
+    "name": "create_permissions",
+    "description": "Permission to create_permissions",
+    "belong_to": "permission",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c10-7a16-b5ec-8b5655032f4e",
+    "name": "assign_permissions_to_role",
+    "description": "Permission to assign_permissions_to_role",
+    "belong_to": "permission_role",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c17-7871-9b82-4ac3e172b392",
+    "name": "delete_permission_from_role",
+    "description": "Permission to delete_permission_from_role",
+    "belong_to": "permission_role",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c1f-77f8-bc76-309dce3c40a5",
+    "name": "view_logs",
+    "description": "Permission to view_logs",
+    "belong_to": "log",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c25-74c6-8781-af485f792747",
+    "name": "view_levels",
+    "description": "Permission to view_levels",
+    "belong_to": "level",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c2b-725f-9f78-a2bb87e93400",
+    "name": "create_level",
+    "description": "Permission to create_level",
+    "belong_to": "level",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c31-7ba9-bb77-d877a3778dd9",
+    "name": "edit_level",
+    "description": "Permission to edit_level",
+    "belong_to": "level",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c36-7fd4-afd4-340bcdc66d12",
+    "name": "delete_level",
+    "description": "Permission to delete_level",
+    "belong_to": "level",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c3d-7c38-abdb-21f472d4efad",
+    "name": "view_departments",
+    "description": "Permission to view_departments",
+    "belong_to": "department",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c43-7a46-b175-2004e6fac03e",
+    "name": "create_department",
+    "description": "Permission to create_department",
+    "belong_to": "department",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c4a-7ca0-a17a-ad0e1704b732",
+    "name": "edit_department",
+    "description": "Permission to edit_department",
+    "belong_to": "department",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c4f-7a6e-932b-0d446c370a91",
+    "name": "delete_department",
+    "description": "Permission to delete_department",
+    "belong_to": "department",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c55-7361-b05c-756ada1768e1",
+    "name": "view_groups",
+    "description": "Permission to view_groups",
+    "belong_to": "group",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c5b-7ba3-b013-7daaff0d1a9f",
+    "name": "create_group",
+    "description": "Permission to create_group",
+    "belong_to": "group",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c61-777d-8cbd-151b84ebe36d",
+    "name": "edit_group",
+    "description": "Permission to edit_group",
+    "belong_to": "group",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c67-724e-8e4b-16bb045cff72",
+    "name": "delete_group",
+    "description": "Permission to delete_group",
+    "belong_to": "group",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c6f-7c11-bd33-848a594f4f72",
+    "name": "assign_user_to_group",
+    "description": "Permission to assign_user_to_group",
+    "belong_to": "group",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c82-76b8-a3d2-d1ce38ae4067",
+    "name": "view_tags",
+    "description": "Permission to view_tags",
+    "belong_to": "tag",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c90-7531-86d5-6da199b4d5c8",
+    "name": "create_tag",
+    "description": "Permission to create_tag",
+    "belong_to": "tag",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c97-706c-a413-ab37635eae47",
+    "name": "edit_tag",
+    "description": "Permission to edit_tag",
+    "belong_to": "tag",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6c9d-7dfe-9443-6b55e568c33b",
+    "name": "delete_tag",
+    "description": "Permission to delete_tag",
+    "belong_to": "tag",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6ca4-7306-8a78-af54bc850c4b",
+    "name": "view_tickets",
+    "description": "Permission to view_tickets",
+    "belong_to": "ticket",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6ca9-7273-bf06-7b2d2debee46",
+    "name": "create_ticket",
+    "description": "Permission to create_ticket",
+    "belong_to": "ticket",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cb0-73d7-821e-c92edc7b6c62",
+    "name": "edit_ticket",
+    "description": "Permission to edit_ticket",
+    "belong_to": "ticket",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cb6-7a15-a399-ac08e2516012",
+    "name": "delete_ticket",
+    "description": "Permission to delete_ticket",
+    "belong_to": "ticket",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cbe-7c36-8f5c-317ceb9c58ab",
+    "name": "assign_ticket",
+    "description": "Permission to assign_ticket",
+    "belong_to": "ticket",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cc4-754b-88d1-55e33c32af1b",
+    "name": "view_ticket_events",
+    "description": "Permission to view_ticket_events",
+    "belong_to": "ticket_event",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6ccb-7478-b9fb-dd457175e3f6",
+    "name": "create_ticket_event",
+    "description": "Permission to create_ticket_event",
+    "belong_to": "ticket_event",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cd0-7930-ba62-aa3c460c07b7",
+    "name": "edit_ticket_event",
+    "description": "Permission to edit_ticket_event",
+    "belong_to": "ticket_event",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cd7-74a6-8646-436de660027d",
+    "name": "delete_ticket_event",
+    "description": "Permission to delete_ticket_event",
+    "belong_to": "ticket_event",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cdd-7470-a288-1ad704e88b3f",
+    "name": "view_ticket_templates",
+    "description": "Permission to view_ticket_templates",
+    "belong_to": "ticket_template",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6ce4-70dc-b08c-85911fd2844c",
+    "name": "create_ticket_template",
+    "description": "Permission to create_ticket_template",
+    "belong_to": "ticket_template",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cea-7614-8214-67bd227abe03",
+    "name": "edit_ticket_template",
+    "description": "Permission to edit_ticket_template",
+    "belong_to": "ticket_template",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cf1-73a0-ab6d-417dd8680d6c",
+    "name": "delete_ticket_template",
+    "description": "Permission to delete_ticket_template",
+    "belong_to": "ticket_template",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cf6-71f6-9ef4-562d05403741",
+    "name": "view_ticket_contexts",
+    "description": "Permission to view_ticket_contexts",
+    "belong_to": "ticket_context",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6cfe-7200-a058-7d5323f0e075",
+    "name": "create_ticket_context",
+    "description": "Permission to create_ticket_context",
+    "belong_to": "ticket_context",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d05-7203-a6f7-d130a1253b1c",
+    "name": "edit_ticket_context",
+    "description": "Permission to edit_ticket_context",
+    "belong_to": "ticket_context",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d0c-779e-87c1-54630afec249",
+    "name": "delete_ticket_context",
+    "description": "Permission to delete_ticket_context",
+    "belong_to": "ticket_context",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d13-7016-9db1-0c7f453592a0",
+    "name": "view_ticket_extensions",
+    "description": "Permission to view_ticket_extensions",
+    "belong_to": "ticket_extension",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d19-7a11-9a01-ee8dfa10c7ed",
+    "name": "create_ticket_extension",
+    "description": "Permission to create_ticket_extension",
+    "belong_to": "ticket_extension",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d20-786a-a9a4-ccfe8167cdf7",
+    "name": "edit_ticket_extension",
+    "description": "Permission to edit_ticket_extension",
+    "belong_to": "ticket_extension",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d27-75f4-ae11-895044202678",
+    "name": "delete_ticket_extension",
+    "description": "Permission to delete_ticket_extension",
+    "belong_to": "ticket_extension",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d2d-756d-8e3e-15ebca4c65e1",
+    "name": "view_ticket_flows",
+    "description": "Permission to view_ticket_flows",
+    "belong_to": "ticket_flow",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d3f-769c-ac25-f2a6f1779195",
+    "name": "create_ticket_flow",
+    "description": "Permission to create_ticket_flow",
+    "belong_to": "ticket_flow",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d46-7058-8b9b-596b70d27b9d",
+    "name": "edit_ticket_flow",
+    "description": "Permission to edit_ticket_flow",
+    "belong_to": "ticket_flow",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d4d-7e60-8ca5-c45986424c39",
+    "name": "delete_ticket_flow",
+    "description": "Permission to delete_ticket_flow",
+    "belong_to": "ticket_flow",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d53-759a-84e9-a1df921fa050",
+    "name": "view_ticket_flow_instances",
+    "description": "Permission to view_ticket_flow_instances",
+    "belong_to": "ticket_flow_instance",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d61-7058-9b82-19aac812b4b6",
+    "name": "create_ticket_flow_instance",
+    "description": "Permission to create_ticket_flow_instance",
+    "belong_to": "ticket_flow_instance",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d67-708f-84b6-de08fe2e9304",
+    "name": "edit_ticket_flow_instance",
+    "description": "Permission to edit_ticket_flow_instance",
+    "belong_to": "ticket_flow_instance",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d6f-7ca2-99f9-44516da991f3",
+    "name": "delete_ticket_flow_instance",
+    "description": "Permission to delete_ticket_flow_instance",
+    "belong_to": "ticket_flow_instance",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d76-7abd-9114-a1debc013784",
+    "name": "view_ticket_flow_steps",
+    "description": "Permission to view_ticket_flow_steps",
+    "belong_to": "ticket_flow_step",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d8b-73ee-b966-846b5060e280",
+    "name": "create_ticket_flow_step",
+    "description": "Permission to create_ticket_flow_step",
+    "belong_to": "ticket_flow_step",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d92-73f1-819a-69c604349435",
+    "name": "edit_ticket_flow_step",
+    "description": "Permission to edit_ticket_flow_step",
+    "belong_to": "ticket_flow_step",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6d99-7e34-8e61-f957a5a12122",
+    "name": "delete_ticket_flow_step",
+    "description": "Permission to delete_ticket_flow_step",
+    "belong_to": "ticket_flow_step",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6da0-7e00-b4ae-b55d5c11743b",
+    "name": "view_customers",
+    "description": "Permission to view_customers",
+    "belong_to": "customer",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6dae-782e-ae93-c04e4c405a6d",
+    "name": "create_customer",
+    "description": "Permission to create_customer",
+    "belong_to": "customer",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6db4-7c80-99cc-5c507b22de2f",
+    "name": "edit_customer",
+    "description": "Permission to edit_customer",
+    "belong_to": "customer",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6dbb-7e28-8346-731cdfd0fdf6",
+    "name": "delete_customer",
+    "description": "Permission to delete_customer",
+    "belong_to": "customer",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6dc1-7a4d-88ed-4188fc134b54",
+    "name": "view_customer_provided_info",
+    "description": "Permission to view_customer_provided_info",
+    "belong_to": "customer_provided_info",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6dc8-760d-b85a-ffc7230aebbe",
+    "name": "create_customer_provided_info",
+    "description": "Permission to create_customer_provided_info",
+    "belong_to": "customer_provided_info",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6dcf-7bc5-829a-43757dd1e562",
+    "name": "edit_customer_provided_info",
+    "description": "Permission to edit_customer_provided_info",
+    "belong_to": "customer_provided_info",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6dd6-7cf1-9287-07e398a1ad66",
+    "name": "delete_customer_provided_info",
+    "description": "Permission to delete_customer_provided_info",
+    "belong_to": "customer_provided_info",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6ddd-720b-84cc-10ac18423894",
+    "name": "view_tenants",
+    "description": "Permission to view_tenants",
+    "belong_to": "tenant",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6de4-7f91-aaf7-668c56dd9e78",
+    "name": "create_tenant",
+    "description": "Permission to create_tenant",
+    "belong_to": "tenant",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6dea-768c-b368-6ef2aebf305b",
+    "name": "edit_tenant",
+    "description": "Permission to edit_tenant",
+    "belong_to": "tenant",
+    "is_active": 1
+  },
+  {
+    "id": "019fa30c-6df1-7a8a-9b2d-1780ee1ab7af",
+    "name": "delete_tenant",
+    "description": "Permission to delete_tenant",
+    "belong_to": "tenant",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1eea-7082-9e19-2f7119424dbf",
+    "name": "view_messaging_accounts",
+    "description": "Permission to view_messaging_accounts",
+    "belong_to": "messaging_account",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1ef4-70c7-9311-1de987a3d9c7",
+    "name": "create_messaging_account",
+    "description": "Permission to create_messaging_account",
+    "belong_to": "messaging_account",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1efb-750a-a23d-2239230cb525",
+    "name": "edit_messaging_account",
+    "description": "Permission to edit_messaging_account",
+    "belong_to": "messaging_account",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f03-7ff6-90e6-60525d89eda8",
+    "name": "delete_messaging_account",
+    "description": "Permission to delete_messaging_account",
+    "belong_to": "messaging_account",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f0c-7c5a-bdf0-fe9753a4c1b1",
+    "name": "sync_messaging_integration",
+    "description": "Permission to sync_messaging_integration",
+    "belong_to": "messaging_integration",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f15-7e69-910c-e2b2e0dc5d0a",
+    "name": "view_messaging_conversations",
+    "description": "Permission to view_messaging_conversations",
+    "belong_to": "messaging_conversation",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f1b-785e-a619-1ce196539925",
+    "name": "create_messaging_conversation",
+    "description": "Permission to create_messaging_conversation",
+    "belong_to": "messaging_conversation",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f22-7724-b36e-7f741c05f7de",
+    "name": "edit_messaging_conversation",
+    "description": "Permission to edit_messaging_conversation",
+    "belong_to": "messaging_conversation",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f29-74cf-87ef-5b5ac0351363",
+    "name": "delete_messaging_conversation",
+    "description": "Permission to delete_messaging_conversation",
+    "belong_to": "messaging_conversation",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f30-73ba-aac3-701caafc2e68",
+    "name": "send_messaging_message",
+    "description": "Permission to send_messaging_message",
+    "belong_to": "messaging_message",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f38-78ce-a4b2-93b81b27e4a8",
+    "name": "delete_messaging_message",
+    "description": "Permission to delete_messaging_message",
+    "belong_to": "messaging_message",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f40-7a6f-901a-340e51edff16",
+    "name": "assign_messaging_conversation",
+    "description": "Permission to assign_messaging_conversation",
+    "belong_to": "messaging_conversation",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f46-7560-b9f5-602d401b1adf",
+    "name": "view_messaging_inboxes",
+    "description": "Permission to view_messaging_inboxes",
+    "belong_to": "messaging_inbox",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f4c-7a9d-8374-aa896bb733c9",
+    "name": "create_messaging_inbox",
+    "description": "Permission to create_messaging_inbox",
+    "belong_to": "messaging_inbox",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f53-7fe2-9631-b1b02db536b6",
+    "name": "edit_messaging_inbox",
+    "description": "Permission to edit_messaging_inbox",
+    "belong_to": "messaging_inbox",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f5b-7b69-b13e-37b0af5402a7",
+    "name": "manage_messaging_inbox_members",
+    "description": "Permission to manage_messaging_inbox_members",
+    "belong_to": "messaging_inbox",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f61-7bac-a193-5aab48bf49c1",
+    "name": "view_messaging_labels",
+    "description": "Permission to view_messaging_labels",
+    "belong_to": "messaging_label",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f68-70f7-95ef-591bfefb1d44",
+    "name": "create_messaging_label",
+    "description": "Permission to create_messaging_label",
+    "belong_to": "messaging_label",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f6f-764e-8727-597f1d7841b7",
+    "name": "delete_messaging_label",
+    "description": "Permission to delete_messaging_label",
+    "belong_to": "messaging_label",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f76-70f8-a466-730c65262be0",
+    "name": "bulk_messaging_actions",
+    "description": "Permission to bulk_messaging_actions",
+    "belong_to": "messaging_action",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f7d-7aca-b012-9d16db840a16",
+    "name": "view_messaging_custom_filters",
+    "description": "Permission to view_messaging_custom_filters",
+    "belong_to": "messaging_custom_filter",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f84-7f96-950f-09d3cb235aeb",
+    "name": "create_messaging_custom_filter",
+    "description": "Permission to create_messaging_custom_filter",
+    "belong_to": "messaging_custom_filter",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f8a-7036-9873-3c244a7356a4",
+    "name": "edit_messaging_custom_filter",
+    "description": "Permission to edit_messaging_custom_filter",
+    "belong_to": "messaging_custom_filter",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f8f-798a-a99a-a6833304a106",
+    "name": "delete_messaging_custom_filter",
+    "description": "Permission to delete_messaging_custom_filter",
+    "belong_to": "messaging_custom_filter",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f97-7677-b2ca-4598db87a713",
+    "name": "view_messaging_agents",
+    "description": "Permission to view_messaging_agents",
+    "belong_to": "messaging_agent",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1f9d-7305-88b8-9cc971dcaeda",
+    "name": "create_messaging_agent",
+    "description": "Permission to create_messaging_agent",
+    "belong_to": "messaging_agent",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fa8-7cc8-8b3d-841e543f939a",
+    "name": "edit_messaging_agent",
+    "description": "Permission to edit_messaging_agent",
+    "belong_to": "messaging_agent",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fb1-7c15-87bb-0ef45ed9fc79",
+    "name": "delete_messaging_agent",
+    "description": "Permission to delete_messaging_agent",
+    "belong_to": "messaging_agent",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fb7-7050-9eaf-6d8a694bc563",
+    "name": "view_messaging_teams",
+    "description": "Permission to view_messaging_teams",
+    "belong_to": "messaging_team",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fbd-7592-b9d7-1e2119aec855",
+    "name": "create_messaging_team",
+    "description": "Permission to create_messaging_team",
+    "belong_to": "messaging_team",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fc3-79f4-8234-f85943c6f4cf",
+    "name": "edit_messaging_team",
+    "description": "Permission to edit_messaging_team",
+    "belong_to": "messaging_team",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fca-7790-befc-009259320129",
+    "name": "delete_messaging_team",
+    "description": "Permission to delete_messaging_team",
+    "belong_to": "messaging_team",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fd0-7cb3-be16-6a49719b7db1",
+    "name": "manage_messaging_team_members",
+    "description": "Permission to manage_messaging_team_members",
+    "belong_to": "messaging_team",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fd6-79ec-8708-f7614ab9b098",
+    "name": "view_messaging_agent_bots",
+    "description": "Permission to view_messaging_agent_bots",
+    "belong_to": "messaging_agent_bot",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fdc-75a5-ac46-91548f598789",
+    "name": "create_messaging_agent_bot",
+    "description": "Permission to create_messaging_agent_bot",
+    "belong_to": "messaging_agent_bot",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fe3-7ad8-8c7d-683b9c829151",
+    "name": "edit_messaging_agent_bot",
+    "description": "Permission to edit_messaging_agent_bot",
+    "belong_to": "messaging_agent_bot",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fe9-704c-9da9-fb90302f86fd",
+    "name": "delete_messaging_agent_bot",
+    "description": "Permission to delete_messaging_agent_bot",
+    "belong_to": "messaging_agent_bot",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1fef-7953-a44c-26630a7f93eb",
+    "name": "view_messaging_users",
+    "description": "Permission to view_messaging_users",
+    "belong_to": "messaging_user",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1ff5-796c-9781-654f30d0daa8",
+    "name": "create_messaging_user",
+    "description": "Permission to create_messaging_user",
+    "belong_to": "messaging_user",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-1ffb-766f-817d-089eab25e779",
+    "name": "edit_messaging_user",
+    "description": "Permission to edit_messaging_user",
+    "belong_to": "messaging_user",
+    "is_active": 1
+  },
+  {
+    "id": "019fcacd-2000-71c8-8a2c-5ac51b629201",
+    "name": "delete_messaging_user",
+    "description": "Permission to delete_messaging_user",
+    "belong_to": "messaging_user",
+    "is_active": 1
+  },
+  {
+    "id": "019fda6a-d053-7ec3-bb6d-c596dc2f8114",
+    "name": "view_call_logs",
+    "description": "Permission to view_call_logs",
+    "belong_to": "call_log",
+    "is_active": 1
+  },
+  {
+    "id": "019fda6a-d056-72fd-b852-48ef5c0ac5f7",
+    "name": "create_call_log",
+    "description": "Permission to create_call_log",
+    "belong_to": "call_log",
+    "is_active": 1
+  },
+  {
+    "id": "019fda6a-d058-7cd6-896a-458147474546",
+    "name": "edit_call_log",
+    "description": "Permission to edit_call_log",
+    "belong_to": "call_log",
+    "is_active": 1
+  },
+  {
+    "id": "019fda6a-d05a-753f-b43f-bfeec10dee68",
+    "name": "view_call_log_events",
+    "description": "Permission to view_call_log_events",
+    "belong_to": "call_log_event",
+    "is_active": 1
+  },
+  {
+    "id": "019fe988-2619-7e17-9cc6-7958a29ff639",
+    "name": "view_messaging_reports",
+    "description": "Permission to view_messaging_reports",
+    "belong_to": "messaging",
+    "is_active": 1
+  }
+]

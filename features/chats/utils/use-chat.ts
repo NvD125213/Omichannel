@@ -23,6 +23,7 @@ interface ChatState {
 }
 
 interface ChatActions {
+  reset: () => void;
   setConversations: (conversations: ChatConversation[]) => void;
   setMessages: (conversationId: string, messages: ChatMessage[]) => void;
   setUsers: (users: ChatUser[]) => void;
@@ -53,6 +54,17 @@ export const useChatStore = create<ChatState & ChatActions>((set, get) => ({
   onlineUsers: [],
 
   // Actions
+  reset: () =>
+    set({
+      conversations: [],
+      messages: {},
+      users: [],
+      selectedConversation: null,
+      searchQuery: "",
+      isTyping: {},
+      onlineUsers: [],
+    }),
+
   setConversations: (conversations) => set({ conversations }),
 
   setMessages: (conversationId, messages) =>

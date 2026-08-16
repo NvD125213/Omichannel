@@ -50,6 +50,7 @@ import {
   withDefault,
 } from "use-query-params";
 import type { Tenant } from "../utils/schema";
+import { getTenantMeta } from "../utils/schema";
 import { TenantTablePagination } from "./tenant-data-table-pagination";
 import { TenantTableToolbar } from "./tenant-data-table-toolbar";
 
@@ -134,8 +135,8 @@ export function TenantDataTable({
 
   const getStatusColor = (isActive: number) => {
     return isActive === 1
-      ? "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20"
-      : "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20";
+      ? "text-green-600 bg-green-50 border border-green-200 dark:text-green-400 dark:bg-green-900/20"
+      : "text-red-600 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-900/20";
   };
 
   const columns: ColumnDef<Tenant>[] = [
@@ -227,6 +228,40 @@ export function TenantDataTable({
             )}`}
           >
             {isActive === 1 ? "Hoạt động" : "Không hoạt động"}
+          </span>
+        );
+      },
+    },
+    {
+      id: "chatbot_enabled",
+      accessorFn: (row) => getTenantMeta(row).chatbot_enabled,
+      header: ({ column }) => (
+        <Button
+          variant="ghost"
+          className="-ml-4 h-8 data-[state=open]:bg-accent"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        >
+          Chatbot
+          {column.getIsSorted() === "asc" ? (
+            <ArrowUp className="ml-2 h-4 w-4" />
+          ) : column.getIsSorted() === "desc" ? (
+            <ArrowDown className="ml-2 h-4 w-4" />
+          ) : (
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          )}
+        </Button>
+      ),
+      cell: ({ row }) => {
+        const enabled = getTenantMeta(row.original).chatbot_enabled;
+        return (
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              enabled
+                ? "text-emerald-700 bg-emerald-50 border border-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/20"
+                : "text-red-600 bg-red-50 border border-red-200 dark:text-red-400 dark:bg-red-900/20"
+            }`}
+          >
+            {enabled ? "Đang bật" : "Đã tắt"}
           </span>
         );
       },
@@ -382,4 +417,3 @@ export function TenantDataTable({
     </div>
   );
 }
-

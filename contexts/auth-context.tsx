@@ -25,10 +25,22 @@ import { useMe } from "@/hooks/user/use-me";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { getCurrentUserApi } from "@/services/user/user-current";
+import { useChatStore } from "@/features/chats/utils/use-chat";
+import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 import { isAxiosError } from "axios";
 
 function isNetworkAuthError(error: unknown): boolean {
   return isAxiosError(error) && !error.response;
+}
+
+/** Xóa cache session cũ khi đổi tài khoản (React Query + zustand chat). */
+async function clearSessionClientCache(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
+  await queryClient.cancelQueries();
+  queryClient.clear();
+  useChatStore.getState().reset();
+  useChatUnreadStore.getState().reset();
 }
 
 interface AuthContextType {
@@ -162,8 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Logout API failed:", error);
     } finally {
       clearTokens();
-      await queryClient.cancelQueries({ queryKey: ["me"] });
-      queryClient.removeQueries({ queryKey: ["me"] });
+      await clearSessionClientCache(queryClient);
       router.replace("/sign-in");
     }
   }, [router, queryClient]);
@@ -173,6 +184,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoggingOutRef.current = false;
       const response = await loginApi({ name_tenant, username, password });
       setTokens(response.data.access_token, response.data.refresh_token);
+      // Đảm bảo không còn data tài khoản cũ trước khi fetch /me
+      await clearSessionClientCache(queryClient);
       await queryClient.fetchQuery({
         queryKey: ["me"],
         queryFn: getCurrentUserApi,

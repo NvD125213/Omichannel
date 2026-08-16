@@ -82,10 +82,16 @@ export const useGetConversationTraffic = (
   enabled = true,
 ) => {
   return useQuery({
-    queryKey: [QUERY_KEY, "conversation-traffic", tenantId, params],
+    queryKey: [
+      QUERY_KEY,
+      "conversation-traffic",
+      tenantId,
+      params?.since ?? null,
+      params?.until ?? null,
+      params?.timezone_offset ?? null,
+    ],
     queryFn: () => reportsService.getConversationTraffic(tenantId, params),
     enabled: enabled && !!tenantId,
-    placeholderData: (previousData) => previousData,
   });
 };
 
@@ -121,9 +127,20 @@ export const useGetReportTimeseries = (
   enabled = true,
 ) => {
   return useQuery({
-    queryKey: [QUERY_KEY, "timeseries", tenantId, params],
+    queryKey: [
+      QUERY_KEY,
+      "timeseries",
+      tenantId,
+      params.metric,
+      params.type,
+      params.group_by ?? null,
+      params.since ?? null,
+      params.until ?? null,
+      params.business_hours ?? null,
+      params.timezone_offset ?? null,
+      params.id ?? null,
+    ],
     queryFn: () => reportsService.getTimeseries(tenantId, params),
     enabled: enabled && !!tenantId && !!params?.metric && !!params?.type,
-    placeholderData: (previousData) => previousData,
   });
 };

@@ -11,6 +11,8 @@ export const tenantSchema = z.object({
   description: z.string().optional().nullable(),
   is_active: z.number(),
   meta: tenantMetaSchema.optional().nullable(),
+  /** Một số endpoint trả `meta_data` thay vì `meta` */
+  meta_data: tenantMetaSchema.optional().nullable(),
 });
 
 export const tenantDefaultValues = {
@@ -34,3 +36,20 @@ export const tenantFormSchema = z.object({
 export type Tenant = z.infer<typeof tenantSchema>;
 export type TenantFormValues = z.infer<typeof tenantFormSchema>;
 export type TenantMeta = z.infer<typeof tenantMetaSchema>;
+
+/** Chuẩn hóa meta từ `meta` hoặc `meta_data` (API hay trả lệch field). */
+export function getTenantMeta(
+  tenant?:
+    | Pick<Tenant, "meta" | "meta_data">
+    | {
+        meta?: Partial<TenantMeta> | null;
+        meta_data?: Partial<TenantMeta> | null;
+      }
+    | null,
+): TenantMeta {
+  const raw = tenant?.meta ?? tenant?.meta_data ?? null;
+  return {
+    chatbot_enabled: Boolean(raw?.chatbot_enabled ?? true),
+    default_responder: raw?.default_responder === "agent" ? "agent" : "bot",
+  };
+}

@@ -11,6 +11,7 @@ import React, {
   type Dispatch,
   type SetStateAction,
 } from "react";
+import { usePathname } from "next/navigation";
 import { useCreateCallLog } from "@/hooks/call-logs/use-call-logs";
 import { useMe } from "@/hooks/user/use-me";
 import { useGetMyWebcall } from "@/hooks/user/use-get-my-webcall";
@@ -70,7 +71,12 @@ const CGVCallSDKContext = createContext<CGVCallSDKContextType | undefined>(
 
 const SDK_SCRIPT = "https://sdk.telesip.vn/public/sdk.v2.min.js";
 const SDK_STYLES = "https://sdk.telesip.vn/public/styles.css";
-const TEARDOWN_GRACE_MS = 800;
+/**
+ * Grace trước khi destroy SDK khi không còn provider nào mount.
+ * Phải đủ dài để survive chuyển route-group (dashboard ↔ chatbot đều
+ * force-dynamic, có thể mất >1s) — destroy giữa chừng làm widget vỡ DOM.
+ */
+const TEARDOWN_GRACE_MS = 3000;
 /** Chờ trước khi mở widget / cho phép show — tránh alert/dialog từ SDK lúc boot. */
 const WIDGET_BOOT_DELAY_MS = 2000;
 
@@ -246,6 +252,55 @@ function hideWidgetDom() {
     el.style.setProperty("visibility", "hidden", "important");
     el.style.setProperty("pointer-events", "none", "important");
   }
+}
+
+/**
+ * Các path KHÔNG được hiện widget: auth `(auth)` + trang lỗi `(errors)`.
+ * Route group không xuất hiện trên URL nên so theo prefix pathname.
+ */
+const WIDGET_BLOCKED_PATH_PREFIXES = [
+  "/sign-in",
+  "/sign-up",
+  "/reset-password",
+  "/forbidden",
+  "/unauthorized",
+  "/not-found",
+  "/internal-server-error",
+  "/maintenance-error",
+] as const;
+
+function isWidgetAllowedOnPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return true;
+  return !WIDGET_BLOCKED_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+function isWidgetAllowedHere(): boolean {
+  if (typeof window === "undefined") return false;
+  return isWidgetAllowedOnPath(window.location.pathname);
+}
+
+/**
+ * Gỡ các inline style ẩn (`display/visibility/pointer-events !important`)
+ * mà `hideWidgetDom` đã set lúc unmount. Không gỡ thì SDK (Vue) toggle
+ * display inline thường sẽ thua `!important` → widget nửa ẩn nửa hiện
+ * sau khi chuyển giữa 2 hệ thống.
+ *
+ * Không khôi phục trên các trang bị chặn (auth/errors).
+ */
+function restoreWidgetDom() {
+  if (typeof document === "undefined") return;
+  if (!isWidgetAllowedHere()) return;
+  for (const id of ["pwBackground", "ppContainer"]) {
+    const el = document.getElementById(id);
+    if (!(el instanceof HTMLElement)) continue;
+    el.style.removeProperty("display");
+    el.style.removeProperty("visibility");
+    el.style.removeProperty("pointer-events");
+  }
+  // Ghost drag là tàn dư — luôn xóa khi khôi phục.
+  document.getElementById("pwBackground-drag-ghost")?.remove();
 }
 
 function removeOrphanedWidgetDom() {
@@ -482,8 +537,11 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
   );
   const [callSession, setCallSession] = useState<CallSession>(IDLE_SESSION);
 
+  const pathname = usePathname();
+  const widgetAllowed = isWidgetAllowedOnPath(pathname);
+
   const { data: currentUser } = useMe();
-  const { data: webcall } = useGetMyWebcall();
+  const { data: webcall, fetchStatus: webcallFetchStatus } = useGetMyWebcall();
   const createCallLog = useCreateCallLog();
 
   const sdkRef = useRef<any>(sharedSdk);
@@ -517,6 +575,11 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
     if (typeof document !== "undefined") {
       document.getElementById("cgv-sdk-style-overrides")?.remove();
     }
+    // Chuyển giữa 2 hệ thống: provider cũ đã hide widget lúc unmount —
+    // SDK vẫn sống thì trả widget về trạng thái bình thường.
+    if (sharedSdk) {
+      restoreWidgetDom();
+    }
 
     return () => {
       mountCount = Math.max(0, mountCount - 1);
@@ -546,6 +609,13 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     if (!isWebcallUsable(webcall)) {
+      // QUAN TRỌNG: hook webcall dùng gcTime 0 → khi provider remount
+      // (chuyển dashboard ↔ chatbot) data = undefined trong lúc refetch.
+      // Destroy ở thời điểm này giết SDK đang khỏe rồi tạo lại instance
+      // thứ hai → Vue của TeleSIP không mount được → widget hiện raw
+      // template ({{ calleeInfo }}...). Chỉ destroy khi query đã "đứng
+      // yên" (idle) mà vẫn không có config dùng được.
+      if (webcallFetchStatus === "fetching") return;
       if (sharedSdk) {
         destroySharedSdk();
         setSdk(null);
@@ -563,6 +633,10 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
         const instance = ensureSharedSdk(config);
         if (cancelled || !instance) return;
+        // Reuse instance sau khi chuyển hệ thống → gỡ inline hide còn sót.
+        if (sharedWidgetUnlocked) {
+          restoreWidgetDom();
+        }
         setSdk(instance);
         setReady(true);
         setWidgetUnlocked(sharedWidgetUnlocked);
@@ -580,15 +654,29 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [webcall]);
+  }, [webcall, webcallFetchStatus]);
 
   useEffect(() => {
     if (!ready || !widgetUnlocked) return;
     return enableSoftphoneCornerDrag();
   }, [ready, widgetUnlocked]);
 
+  // Ẩn widget trên các trang auth/errors, hiện lại khi quay về app.
+  // Không destroy SDK — chỉ toggle DOM để tránh vỡ Vue của TeleSIP.
+  useEffect(() => {
+    if (!widgetAllowed) {
+      hideWidgetInstance(sharedSdk);
+      hideWidgetDom();
+      return;
+    }
+    if (sharedSdk) {
+      restoreWidgetDom();
+    }
+  }, [widgetAllowed, sdk, ready]);
+
   const showWidget = useCallback(() => {
     if (!sharedWidgetUnlocked && !widgetUnlocked) return;
+    if (!isWidgetAllowedHere()) return;
     const instance = sdkRef.current ?? sharedSdk;
     if (!instance) return;
     showWidgetInstance(instance);

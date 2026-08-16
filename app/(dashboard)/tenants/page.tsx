@@ -49,6 +49,7 @@ const sortOptions: FilterOption[] = [
 const columnOptions: ColumnOption[] = [
   { id: "name", label: "Tên doanh nghiệp" },
   { id: "is_active", label: "Trạng thái" },
+  { id: "chatbot_enabled", label: "Chatbot" },
 ];
 
 function TenantsPageContent() {

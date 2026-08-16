@@ -83,7 +83,13 @@ export type ReportTimeseriesMetric =
   | "reply_time"
   | (string & {});
 
-export type ReportGroupBy = "day" | "week" | "month" | "year" | (string & {});
+export type ReportGroupBy =
+  | "hour"
+  | "day"
+  | "week"
+  | "month"
+  | "year"
+  | (string & {});
 
 export interface ReportDateRangeParams {
   since?: ReportDateParam;
@@ -98,6 +104,17 @@ export interface GetReportsOverviewParams extends ReportDateRangeParams {
 export interface GetReportsGroupedSummaryParams extends ReportDateRangeParams {
   /** Chỉ tính trong giờ làm việc */
   business_hours?: boolean;
+}
+
+/** Một dòng summary theo agent — thời gian là milliseconds; null = không có dữ liệu */
+export interface AgentReportSummary {
+  id: number | string;
+  conversations_count: number | null;
+  resolved_conversations_count: number | null;
+  avg_resolution_time: number | null;
+  avg_first_response_time: number | null;
+  avg_reply_time: number | null;
+  name?: string | null;
 }
 
 export interface GetReportSummaryParams extends ReportDateRangeParams {
@@ -126,6 +143,18 @@ export interface GetCsatResponsesParams extends ReportDateRangeParams {
   agent_id?: string;
 }
 
+export interface ReportTimeseriesPoint {
+  value: number;
+  timestamp: number;
+}
+
+export interface ReportTimeseriesData {
+  tenant_id?: string;
+  messaging?: ReportTimeseriesPoint[];
+}
+
+export type GetReportTimeseriesResponse = ApiResponse<ReportTimeseriesData>;
+
 export interface GetReportTimeseriesParams extends ReportDateRangeParams {
   metric: ReportTimeseriesMetric;
   type: ReportSummaryType;
@@ -133,6 +162,8 @@ export interface GetReportTimeseriesParams extends ReportDateRangeParams {
   id?: string;
   group_by?: ReportGroupBy;
   business_hours?: boolean;
+  /** Offset giờ, ví dụ 7 cho UTC+7 */
+  timezone_offset?: string | number;
 }
 
 const reportsBase = (tenantId: string) =>
@@ -268,8 +299,8 @@ export const reportsService = {
   getTimeseries: async (
     tenantId: string,
     params: GetReportTimeseriesParams,
-  ): Promise<ReportsApiResponse> => {
-    const response = await apiClient.get<ReportsApiResponse>(
+  ): Promise<GetReportTimeseriesResponse> => {
+    const response = await apiClient.get<GetReportTimeseriesResponse>(
       reportsBase(tenantId),
       { params },
     );

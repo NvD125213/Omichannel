@@ -2,13 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import {
   getPermissionsApi,
   getPermissionsByRoleApi,
+  GetPermissionsParams,
   PermissionResponseApi,
 } from "@/services/permission/get-permission";
 
-export const useGetPermissions = () => {
+export const useGetPermissions = (params?: GetPermissionsParams) => {
   return useQuery({
-    queryKey: ["permissions"],
-    queryFn: () => getPermissionsApi(),
+    queryKey: ["permissions", params],
+    queryFn: () => getPermissionsApi(params),
     staleTime: 5 * 60 * 1000,
     retry: false,
     select: (data: PermissionResponseApi) => data.data,

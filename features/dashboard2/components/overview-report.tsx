@@ -46,9 +46,10 @@ import {
 import { Cell, Pie, PieChart } from "recharts";
 import type { ReportsOverviewCsat } from "@/services/reports/service";
 
-/** Tạm thời — sẽ thay bằng date picker */
-const REPORT_SINCE = 1785862800;
-const REPORT_UNTIL = 1786467599;
+export type OverviewReportProps = {
+  since: number;
+  until: number;
+};
 
 const formatNumber = (value: number) =>
   new Intl.NumberFormat("vi-VN").format(value);
@@ -584,7 +585,7 @@ function OverviewSkeleton() {
   );
 }
 
-export function OverviewReport() {
+export function OverviewReport({ since, until }: OverviewReportProps) {
   const { user } = useAuth();
   const tenantId = user?.tenant_id ?? "";
 
@@ -595,8 +596,8 @@ export function OverviewReport() {
     error,
   } = useGetReportsOverview(
     tenantId,
-    { since: REPORT_SINCE, until: REPORT_UNTIL },
-    !!tenantId,
+    { since, until },
+    !!tenantId && Number.isFinite(since) && Number.isFinite(until),
   );
 
   const overview = response?.data;

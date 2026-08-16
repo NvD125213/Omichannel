@@ -15,6 +15,7 @@ interface ChatUnreadState {
 }
 
 interface ChatUnreadActions {
+  reset: () => void;
   mergeFromConversations: (conversations: ChatConversation[]) => void;
   mergeUnreadEntries: (
     items: Array<{
@@ -118,6 +119,13 @@ export const useChatUnreadStore = create<ChatUnreadState & ChatUnreadActions>(
     entries: {},
     totalUnread: 0,
     unreadByInboxId: {},
+
+    reset: () =>
+      set({
+        entries: {},
+        totalUnread: 0,
+        unreadByInboxId: {},
+      }),
 
     mergeFromConversations: (conversations) => {
       const next = { ...get().entries };

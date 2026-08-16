@@ -1,9 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import {
   assignRolePermissionApi,
-  AssignRolePermissionResponseApi,
   unassignRolePermissionApi,
-  UnassignRolePermissionResponseApi,
 } from "@/services/permission/action-permission";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";

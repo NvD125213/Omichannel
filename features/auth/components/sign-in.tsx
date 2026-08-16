@@ -42,7 +42,6 @@ export default function SignIn() {
     try {
       setIsLoading(true);
       await login(data.name_tenant, data.username, data.password);
-      toast.success("Đăng nhập thành công!");
       const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
       router.push(callbackUrl);
       router.refresh();

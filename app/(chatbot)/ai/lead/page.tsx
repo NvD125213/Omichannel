@@ -21,6 +21,7 @@ import {
   useListAgents,
   useListAgentLeads,
 } from "@/hooks/chatbot-kg-core/use-chatbot-kg-core";
+import { useMe } from "@/hooks/user/use-me";
 
 const STATUS_ALL = "all";
 
@@ -44,6 +45,9 @@ export default function LeadPage() {
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({});
+
+  const { data: currentUser } = useMe();
+  const myAgentId = currentUser?.agent_id?.trim() || undefined;
 
   const [query, setQuery] = useQueryParams({
     page: withDefault(NumberParam, 1),
@@ -73,14 +77,19 @@ export default function LeadPage() {
     [agents],
   );
 
-  const activeAgentId = query.agent_id ?? undefined;
+  const activeAgentId = query.agent_id ?? myAgentId;
 
-  // Tự chọn agent đầu tiên khi chưa có agent nào được chọn trên URL
+  // Ưu tiên agent_id của user đang đăng nhập; chỉ fallback agent đầu danh sách khi user chưa gắn agent
   useEffect(() => {
-    if (!activeAgentId && agents.length > 0) {
+    if (query.agent_id) return;
+    if (myAgentId) {
+      setQuery({ agent_id: myAgentId }, "replaceIn");
+      return;
+    }
+    if (agents.length > 0) {
       setQuery({ agent_id: agents[0].id }, "replaceIn");
     }
-  }, [activeAgentId, agents, setQuery]);
+  }, [query.agent_id, myAgentId, agents, setQuery]);
 
   const listParams = useMemo(
     () => ({
@@ -129,7 +138,7 @@ export default function LeadPage() {
   };
 
   const handleClearFilters = () => {
-    setQuery({ status: STATUS_ALL, page: 1 });
+    setQuery({ status: STATUS_ALL, page: 1, agent_id: myAgentId });
   };
 
   const handleRefresh = () => {

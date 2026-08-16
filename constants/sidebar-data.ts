@@ -216,12 +216,12 @@ export const sidebarData: SidebarData = {
           icon: IconPhoneCall,
           permissions: [PERMISSIONS.VIEW_LOGS],
         },
-        {
-          title: "3CX Webclient",
-          url: "/3cx",
-          icon: IconHeadset,
-          permissions: [PERMISSIONS.VIEW_LOGS],
-        },
+        // {
+        //   title: "3CX Webclient",
+        //   url: "/3cx",
+        //   icon: IconHeadset,
+        //   permissions: [PERMISSIONS.VIEW_LOGS],
+        // },
         // {
         //   title: "Calendar",
         //   url: "/calendar",

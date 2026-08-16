@@ -35,6 +35,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import {
+  getTenantMeta,
   tenantDefaultValues,
   tenantFormSchema,
   type TenantFormValues,
@@ -74,13 +75,14 @@ export function TenantFormDialog({
 
   useEffect(() => {
     if (tenant && open) {
+      const meta = getTenantMeta(tenant);
       form.reset({
         id: tenant.id,
         name: tenant.name,
         description: tenant.description ?? "",
         is_active: tenant.is_active,
-        chatbot_enabled: tenant.meta?.chatbot_enabled ?? true,
-        default_responder: tenant.meta?.default_responder ?? "bot",
+        chatbot_enabled: meta.chatbot_enabled,
+        default_responder: meta.default_responder,
       });
     } else if (!tenant && open) {
       form.reset(tenantDefaultValues);
@@ -89,14 +91,17 @@ export function TenantFormDialog({
 
   function onSubmit(data: TenantFormValues) {
     const description = data.description?.trim();
+    const meta = {
+      chatbot_enabled: data.chatbot_enabled,
+      default_responder: data.default_responder,
+    };
     const payload = {
       name: data.name.trim(),
       ...(description ? { description } : {}),
       is_active: data.is_active,
-      meta: {
-        chatbot_enabled: Boolean(data.chatbot_enabled),
-        default_responder: data.default_responder,
-      },
+      // Gửi cả 2 key vì BE/list có thể đọc lệch `meta` vs `meta_data`
+      meta,
+      meta_data: meta,
     };
 
     if (isEditMode && tenant?.id) {

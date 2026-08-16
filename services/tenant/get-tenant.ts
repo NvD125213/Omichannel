@@ -137,6 +137,11 @@ export interface CreateTenantRequest {
     chatbot_enabled: boolean;
     default_responder: "bot" | "agent";
   };
+  /** Một số BE nhận/lưu dưới tên `meta_data` */
+  meta_data?: {
+    chatbot_enabled: boolean;
+    default_responder: "bot" | "agent";
+  };
 }
 
 export interface UpdateTenantRequest {
@@ -144,6 +149,10 @@ export interface UpdateTenantRequest {
   description?: string;
   is_active?: number;
   meta?: {
+    chatbot_enabled: boolean;
+    default_responder: "bot" | "agent";
+  };
+  meta_data?: {
     chatbot_enabled: boolean;
     default_responder: "bot" | "agent";
   };

@@ -6,6 +6,7 @@ import "./globals.css";
 import { AUTH_NAV_RECOVERY_INLINE_SCRIPT } from "@/constants/auth-navigation";
 import { FontProvider } from "@/contexts/font-context";
 import { AuthProvider } from "@/contexts/auth-context";
+import { CGVCallSDKProvider } from "@/components/cgv-call-sdk-provider";
 import { QueryProvider } from "@/components/query-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -89,8 +90,14 @@ export default function RootLayout({
               <QueryProvider>
                 <AuthProvider>
                   <SocketProvider>
-                    {children}
-                    <Toaster richColors />
+                    {/* Mount 1 lần ở root — không unmount khi chuyển
+                        (dashboard) ↔ (chatbot), tránh destroy/recreate
+                        SDK làm vỡ widget. Provider trong 2 layout con
+                        tự pass-through nhờ guard context. */}
+                    <CGVCallSDKProvider>
+                      {children}
+                      <Toaster richColors />
+                    </CGVCallSDKProvider>
                   </SocketProvider>
                 </AuthProvider>
               </QueryProvider>
