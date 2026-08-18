@@ -298,7 +298,7 @@ function MetricBody({ metric }: { metric: MetricItem }) {
 
 function MetricCell({ metric }: { metric: MetricItem }) {
   return (
-    <Card className="@container/card h-full border-border/50 bg-card py-0 shadow-sm">
+    <Card className="@container/card h-full min-w-0 border-border/50 bg-card py-0 shadow-sm">
       <CardContent className="p-3 @min-[16rem]/card:p-4 @min-[24rem]/card:p-5">
         <MetricBody metric={metric} />
       </CardContent>
@@ -342,7 +342,7 @@ function TripleMetricCard({
   metrics: [MetricItem, MetricItem, MetricItem];
 }) {
   return (
-    <Card className="@container/card h-full border-border/50 bg-card py-0 shadow-sm">
+    <Card className="@container/card h-full min-w-0 border-border/50 bg-card py-0 shadow-sm">
       <CardContent className="flex flex-col p-3 @min-[16rem]/card:p-4 @min-[24rem]/card:p-5 sm:flex-row sm:items-stretch sm:gap-0">
         {metrics.map((metric, index) => (
           <div key={metric.label} className="contents">
@@ -357,7 +357,7 @@ function TripleMetricCard({
 
 function DoubleMetricCard({ metrics }: { metrics: [MetricItem, MetricItem] }) {
   return (
-    <Card className="@container/card h-full border-border/50 bg-card py-0 shadow-sm">
+    <Card className="@container/card h-full min-w-0 border-border/50 bg-card py-0 shadow-sm">
       <CardContent className="flex flex-col p-3 @min-[16rem]/card:p-4 @min-[24rem]/card:p-5 sm:flex-row sm:items-stretch sm:gap-0">
         {metrics.map((metric, index) => (
           <div key={metric.label} className="contents">
@@ -371,15 +371,15 @@ function DoubleMetricCard({ metrics }: { metrics: [MetricItem, MetricItem] }) {
 }
 
 const METRIC_SPAN_CLASS = {
-  single: "@min-[72rem]/main:col-span-1",
-  double: "md:col-span-2 @min-[72rem]/main:col-span-2",
-  triple: "md:col-span-2 @min-[72rem]/main:col-span-3",
+  single: "min-w-0 xl:col-span-1",
+  double: "min-w-0 xl:col-span-2",
+  triple: "min-w-0 xl:col-span-3",
 } as const;
 
 function MetricsGrid({ items }: { items: MetricsGridItem[] }) {
   return (
     <div
-      className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4 @min-[72rem]/main:grid-cols-6"
+      className="grid grid-cols-1 gap-3 md:gap-4 xl:grid-cols-6"
       role="list"
       aria-label="Chỉ số tổng quan"
     >
@@ -877,7 +877,9 @@ function CsatResponsesDetail({
             </Button>
             <span className="min-w-14 text-center text-xs font-medium tabular-nums">
               {pagination.page}
-              {pagination.totalPages != null ? ` / ${pagination.totalPages}` : ""}
+              {pagination.totalPages != null
+                ? ` / ${pagination.totalPages}`
+                : ""}
             </span>
             <Button
               type="button"
@@ -946,11 +948,10 @@ function CsatPanel({
 function OverviewSkeleton() {
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[1fr_2fr_1fr_1fr]">
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-40 rounded-xl md:col-span-2 xl:col-span-1" />
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-40 rounded-xl" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-6">
+        <Skeleton className="h-40 rounded-xl xl:col-span-1" />
+        <Skeleton className="h-40 rounded-xl xl:col-span-3" />
+        <Skeleton className="h-40 rounded-xl xl:col-span-2" />
       </div>
       <div className="grid gap-5 lg:grid-cols-12">
         <Skeleton className="h-64 rounded-xl lg:col-span-4" />
