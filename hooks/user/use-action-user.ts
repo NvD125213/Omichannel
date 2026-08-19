@@ -1,3 +1,5 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   createUserApi,
   updateUserApi,
@@ -6,8 +8,7 @@ import {
   type UpdateUserPayload,
 } from "@/services/user/action-user";
 import type { UserFormValues } from "@/features/users/utils/schema";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 function toCreateUserPayload(data: UserFormValues): CreateUserPayload {
   const { id: _id, is_active: _isActive, ...payload } = data;
@@ -29,11 +30,12 @@ export function useCreateUser() {
     mutationFn: (data: UserFormValues) =>
       createUserApi(toCreateUserPayload(data)),
     onSuccess: (response) => {
-      // response là AxiosResponse, data thật sự nằm trong response.data
-      console.log("Tạo thành công user:", response.data);
-      toast.success(response.data.message || "Tạo người dùng thành công!");
+      toastApiMutation(
+        response,
+        "Tạo người dùng thành công!",
+        "Có lỗi xảy ra khi tạo người dùng",
+      );
 
-      // Invalidate cache để fetch lại dữ liệu
       queryClient.invalidateQueries({
         queryKey: ["users"],
       });
@@ -56,7 +58,11 @@ export function useUpdateUser() {
       return updateUserApi(data.id, toUpdateUserPayload(data));
     },
     onSuccess: (response) => {
-      toast.success(response.data.message || "Cập nhật người dùng thành công");
+      toastApiMutation(
+        response,
+        "Cập nhật người dùng thành công",
+        "Có lỗi xảy ra khi cập nhật người dùng",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["users"],
@@ -77,8 +83,12 @@ export function useDeleteUser() {
 
   return useMutation({
     mutationFn: deleteUserApi,
-    onSuccess: () => {
-      toast.success("Xóa người dùng thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa người dùng thành công",
+        "Có lỗi xảy ra khi xóa người dùng",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["users"],

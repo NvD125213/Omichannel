@@ -12,6 +12,7 @@ import {
   updateTicketEventApi,
 } from "@/services/ticket/ticket-events/services";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 export const useGetTicketEventsInfinite = (params: TicketEventParams) => {
   return useInfiniteQuery({
@@ -45,8 +46,12 @@ export const useCreateTicketEvent = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: TicketEventRequest) => createTicketEventApi(data),
-    onSuccess: () => {
-      toast.success("Tạo event thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Tạo event thành công",
+        "Có lỗi xảy ra khi tạo event",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-events"] });
     },
     onError: (error: any) => {
@@ -67,8 +72,12 @@ export const useUpdateTicketEvent = () => {
       id: string;
       data: Partial<TicketEventRequest>;
     }) => updateTicketEventApi(id, data),
-    onSuccess: () => {
-      toast.success("Cập nhật event thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Cập nhật event thành công",
+        "Có lỗi xảy ra khi cập nhật event",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-events"] });
     },
     onError: (error: any) => {
@@ -83,8 +92,12 @@ export const useDeleteTicketEvent = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTicketEventApi(id),
-    onSuccess: () => {
-      toast.success("Xóa event thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa event thành công",
+        "Có lỗi xảy ra khi xóa event",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-events"] });
     },
     onError: (error: any) => {

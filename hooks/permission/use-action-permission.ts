@@ -4,6 +4,7 @@ import {
   unassignRolePermissionApi,
 } from "@/services/permission/action-permission";
 import { useQueryClient } from "@tanstack/react-query";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import { toast } from "sonner";
 
 export const useAssignRolePermission = () => {
@@ -13,10 +14,12 @@ export const useAssignRolePermission = () => {
     mutationFn: assignRolePermissionApi,
     mutationKey: ["assign-role-permission"],
     onSuccess: (response) => {
-      console.log("Phân quyền thành công:", response);
-      toast.success(response.message || "Phân quyền thành công!");
+      toastApiMutation(
+        response,
+        "Phân quyền thành công!",
+        "Có lỗi xảy ra khi phân quyền",
+      );
 
-      // Invalidate cache để fetch lại dữ liệu
       queryClient.invalidateQueries({
         queryKey: ["permissions"],
       });
@@ -37,10 +40,12 @@ export const useUnassignRolePermission = () => {
     mutationFn: unassignRolePermissionApi,
     mutationKey: ["unassign-role-permission"],
     onSuccess: (response) => {
-      console.log("Gỡ quyền thành công:", response);
-      toast.success(response.message || "Gỡ quyền thành công!");
+      toastApiMutation(
+        response,
+        "Gỡ quyền thành công!",
+        "Có lỗi xảy ra khi gỡ quyền",
+      );
 
-      // Invalidate cache để fetch lại dữ liệu
       queryClient.invalidateQueries({
         queryKey: ["permissions"],
       });

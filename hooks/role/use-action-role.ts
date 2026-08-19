@@ -3,6 +3,7 @@ import {
   updateRoleApi,
   deleteRoleApi,
 } from "@/services/role/action-role";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -12,11 +13,12 @@ export function useCreateRole() {
   return useMutation({
     mutationFn: createRoleApi,
     onSuccess: (response) => {
-      // response là AxiosResponse, data thật sự nằm trong response.data
-      console.log("Tạo thành công Role:", response.data);
-      toast.success(response.data.message || "Tạo vai trò thành công!");
+      toastApiMutation(
+        response,
+        "Tạo vai trò thành công!",
+        "Có lỗi xảy ra khi tạo vai trò",
+      );
 
-      // Invalidate cache để fetch lại dữ liệu
       queryClient.invalidateQueries({
         queryKey: ["roles"],
       });
@@ -34,7 +36,11 @@ export function useUpdateRole() {
   return useMutation({
     mutationFn: updateRoleApi,
     onSuccess: (response) => {
-      toast.success(response.data.message || "Cập nhật vai trò thành công");
+      toastApiMutation(
+        response,
+        "Cập nhật vai trò thành công",
+        "Có lỗi xảy ra khi cập nhật vai trò",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["roles"],
@@ -55,8 +61,12 @@ export function useDeleteRole() {
 
   return useMutation({
     mutationFn: deleteRoleApi,
-    onSuccess: () => {
-      toast.success("Xóa vai trò thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa vai trò thành công",
+        "Có lỗi xảy ra khi xóa vai trò",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["roles"],

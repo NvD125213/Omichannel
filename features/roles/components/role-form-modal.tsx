@@ -37,6 +37,7 @@ import {
 } from "../utils/schema";
 import { useCreateRole, useUpdateRole } from "@/hooks/role/use-action-role";
 import { useMe } from "@/hooks/user/use-me";
+import { useGetTenants } from "@/hooks/tenant/use-get-tenant";
 import type { Role } from "../utils/schema";
 import { removeEmptyFields } from "@/utils/remove-field-empty";
 
@@ -62,35 +63,39 @@ export function RoleFormDialog({
   const createRoleMutation = useCreateRole();
   const updateRoleMutation = useUpdateRole();
 
-  // Lấy thông tin user hiện tại để get tenant_id
-  const { data: currentUser, isLoading: isLoadingUser } = useMe();
+  const { data: currentUser } = useMe();
+  const isPlatformAdmin = currentUser?.is_platform_admin === true;
+
+  const { data: tenantsData, isLoading: isLoadingTenants } = useGetTenants(
+    { page: 1, page_size: 100, is_active: 1 },
+    { enabled: open && isPlatformAdmin },
+  );
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: roleDefaultValues,
   });
 
-  // Auto-populate tenant_id từ current user
-  // Populate form logic
   useEffect(() => {
-    if (role && open) {
-      const formData = {
+    if (!open) return;
+
+    if (role) {
+      form.reset({
         id: role.id,
         name: role.name,
         description: role.description,
         role_order: role.role_order,
         tenant_id: role.tenant_id,
         is_active: role.is_active,
-      };
-      form.reset(formData);
-    } else if (!role && open) {
-      // Reset về default values khi tạo mới
-      form.reset({
-        ...roleDefaultValues,
-        tenant_id: currentUser?.tenant_id || "",
       });
+      return;
     }
-  }, [role, open, form, currentUser]);
+
+    form.reset({
+      ...roleDefaultValues,
+      tenant_id: isPlatformAdmin ? "" : currentUser?.tenant_id || "",
+    });
+  }, [role, open, form, currentUser, isPlatformAdmin]);
 
   function onSubmit(data: RoleFormValues) {
     const payload = removeEmptyFields(data);
@@ -137,6 +142,43 @@ export function RoleFormDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
+              {isPlatformAdmin ? (
+                <FormField
+                  control={form.control}
+                  name="tenant_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Doanh nghiệp</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={isLoadingTenants}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue
+                              placeholder={
+                                isLoadingTenants
+                                  ? "Đang tải danh sách doanh nghiệp..."
+                                  : "Chọn doanh nghiệp"
+                              }
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {tenantsData?.items?.map((tenant) => (
+                            <SelectItem key={tenant.id} value={tenant.id}>
+                              {tenant.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+
               {/* Tên vai trò */}
               <FormField
                 control={form.control}

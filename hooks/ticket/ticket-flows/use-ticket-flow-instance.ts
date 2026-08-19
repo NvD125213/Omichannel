@@ -15,6 +15,7 @@ import {
   UpdateFlowInstanceRequest,
 } from "@/services/ticket/ticket-flows/ticket-flow-instance/services";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 export const useGetTicketFlowInstances = (params: FlowInstanceParams) => {
   return useInfiniteQuery({
@@ -61,11 +62,11 @@ export const useCreateTicketFlowInstance = () => {
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flow-instances"] });
       queryClient.invalidateQueries({ queryKey: ["ticket-flow-instance"] });
-      if (response.data.status_code == 201) {
-        toast.success(response.data.message);
-      } else {
-        toast.error(response.data.message);
-      }
+      toastApiMutation(
+        response,
+        "Tạo instance thành công",
+        "Có lỗi khi tạo instance",
+      );
     },
     onError: (error) => {
       toast.error(error.message);
@@ -86,11 +87,11 @@ export const useUpdateTicketFlowInstance = () => {
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flow-instances"] });
       queryClient.invalidateQueries({ queryKey: ["ticket-flow-instance"] });
-      if (response.data.status_code == 200) {
-        toast.success(response.data.message);
-      } else {
-        toast.error(response.data.message);
-      }
+      toastApiMutation(
+        response,
+        "Cập nhật instance thành công",
+        "Có lỗi khi cập nhật instance",
+      );
     },
     onError: (error) => {
       toast.error(error.message);
@@ -104,11 +105,11 @@ export const useDeleteTicketFlowInstance = () => {
     mutationFn: (id: string) => deleteFlowInstanceApi(id),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flow-instances"] });
-      if (response.data.status_code == 200) {
-        toast.success(response.data.message);
-      } else {
-        toast.error(response.data.message);
-      }
+      toastApiMutation(
+        response,
+        "Xóa instance thành công",
+        "Có lỗi khi xóa instance",
+      );
     },
     onError: (error) => {
       toast.error(error.message);

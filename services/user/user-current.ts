@@ -34,6 +34,7 @@ export interface UserCurrentData {
   graph_activated: number;
   meta_data?: unknown;
   permissions: string[];
+  is_platform_admin?: boolean;
   webcall?: UserWebcallConfig | null;
 }
 

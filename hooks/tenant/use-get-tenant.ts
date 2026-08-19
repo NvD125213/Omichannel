@@ -5,6 +5,7 @@ import {
   type UseQueryResult,
 } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import {
   createTenantApi,
   deleteTenantApi,
@@ -89,12 +90,12 @@ export const useCreateTenant = () => {
   return useMutation({
     mutationFn: (data: CreateTenantRequest) => createTenantApi(data),
     onSuccess: (res) => {
-      if (res.status_code === 201) {
-        toast.success(res.message || "Tạo tenant thành công");
-        queryClient.invalidateQueries({ queryKey: ["tenants"] });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi tạo tenant");
-      }
+      toastApiMutation(
+        res,
+        "Tạo tenant thành công",
+        "Có lỗi xảy ra khi tạo tenant",
+      );
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
     },
     onError: (error: any) => {
       toast.error(
@@ -111,15 +112,15 @@ export const useUpdateTenant = () => {
     mutationFn: ({ id, data }: { id: string; data: UpdateTenantRequest }) =>
       updateTenantApi(id, data),
     onSuccess: (res, variables) => {
-      if (res.status_code === 200) {
-        toast.success(res.message || "Cập nhật tenant thành công");
-        queryClient.invalidateQueries({ queryKey: ["tenants"] });
-        queryClient.invalidateQueries({
-          queryKey: ["tenant", variables.id],
-        });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi cập nhật tenant");
-      }
+      toastApiMutation(
+        res,
+        "Cập nhật tenant thành công",
+        "Có lỗi xảy ra khi cập nhật tenant",
+      );
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      queryClient.invalidateQueries({
+        queryKey: ["tenant", variables.id],
+      });
     },
     onError: (error: any) => {
       toast.error(
@@ -135,12 +136,12 @@ export const useDeleteTenant = () => {
   return useMutation({
     mutationFn: (id: string) => deleteTenantApi(id),
     onSuccess: (res) => {
-      if (res.status_code === 200) {
-        toast.success(res.message || "Xóa tenant thành công");
-        queryClient.invalidateQueries({ queryKey: ["tenants"] });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi xóa tenant");
-      }
+      toastApiMutation(
+        res,
+        "Xóa tenant thành công",
+        "Có lỗi xảy ra khi xóa tenant",
+      );
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
     },
     onError: (error: any) => {
       toast.error(

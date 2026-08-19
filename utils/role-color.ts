@@ -1,9 +1,9 @@
 const ROLE_COLORS = [
-  "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20",
-  "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20",
-  "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20",
-  "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20",
-  "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20",
+  "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20 border border-red-600",
+  "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20 border border-blue-600",
+  "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20 border border-green-600",
+  "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-900/20 border border-yellow-600",
+  "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20 border border-purple-600",
 ];
 
 function hashString(str: string) {

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import {
   createTagApi,
   deleteTagApi,
@@ -32,8 +33,12 @@ export const useCreateTag = () => {
 
   return useMutation({
     mutationFn: createTagApi,
-    onSuccess: () => {
-      toast.success("Tạo tag thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Tạo tag thành công",
+        "Có lỗi xảy ra khi tạo tag",
+      );
       queryClient.invalidateQueries({ queryKey: ["tags"] });
       queryClient.invalidateQueries({ queryKey: ["tags-statistics"] });
     },
@@ -51,8 +56,12 @@ export const useUpdateTag = () => {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateTagRequest }) =>
       updateTagApi(id, payload),
-    onSuccess: () => {
-      toast.success("Cập nhật tag thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Cập nhật tag thành công",
+        "Có lỗi xảy ra khi cập nhật tag",
+      );
       queryClient.invalidateQueries({ queryKey: ["tags"] });
       queryClient.invalidateQueries({ queryKey: ["tags-statistics"] });
     },
@@ -69,8 +78,12 @@ export const useDeleteTag = () => {
 
   return useMutation({
     mutationFn: deleteTagApi,
-    onSuccess: () => {
-      toast.success("Xóa tag thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa tag thành công",
+        "Có lỗi xảy ra khi xóa tag",
+      );
       queryClient.invalidateQueries({ queryKey: ["tags"] });
       queryClient.invalidateQueries({ queryKey: ["tags-statistics"] });
     },

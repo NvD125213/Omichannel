@@ -8,6 +8,7 @@ import {
   updateTicketExtensionApi,
 } from "@/services/ticket/ticket-extensions/services";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 export const useGetTicketExtensions = (params: TicketExtensionParams) => {
   return useQuery({
@@ -22,8 +23,12 @@ export const useCreateTicketExtension = () => {
   return useMutation({
     mutationFn: (data: TicketExtensionRequest) =>
       createTicketExtensionApi(data),
-    onSuccess: () => {
-      toast.success("Tạo extension thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Tạo extension thành công",
+        "Có lỗi xảy ra khi tạo extension",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-extensions"] });
     },
     onError: (error: any) => {
@@ -44,8 +49,12 @@ export const useUpdateTicketExtension = () => {
       id: string;
       data: Partial<TicketExtensionRequest>;
     }) => updateTicketExtensionApi(id, data),
-    onSuccess: () => {
-      toast.success("Cập nhật extension thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Cập nhật extension thành công",
+        "Có lỗi xảy ra khi cập nhật extension",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-extensions"] });
     },
     onError: (error: any) => {
@@ -61,8 +70,12 @@ export const useDeleteTicketExtension = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTicketExtensionApi(id),
-    onSuccess: () => {
-      toast.success("Xóa extension thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa extension thành công",
+        "Có lỗi xảy ra khi xóa extension",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-extensions"] });
     },
     onError: (error: any) => {

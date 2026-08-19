@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import {
   createTicketApi,
   updateTicketApi,
@@ -47,8 +48,12 @@ export const useCreateTicket = () => {
 
   return useMutation({
     mutationFn: createTicketApi,
-    onSuccess: () => {
-      toast.success("Tạo ticket thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Tạo ticket thành công",
+        "Có lỗi xảy ra khi tạo ticket",
+      );
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
     },
     onError: (error: any) => {
@@ -70,14 +75,14 @@ export const useUpdateTicket = () => {
       id: string;
       payload: ActionTicketRequest;
     }) => updateTicketApi(id, payload),
-    onSuccess: (_, variables) => {
-      if (_.data.status_code == 200) {
-        toast.success("Cập nhật template ticket thành công");
-        queryClient.invalidateQueries({ queryKey: ["tickets"] });
-        queryClient.invalidateQueries({ queryKey: ["ticket", variables.id] });
-      } else {
-        toast.error("Lỗi: " + _.data.message);
-      }
+    onSuccess: (response, variables) => {
+      toastApiMutation(
+        response,
+        "Cập nhật ticket thành công",
+        "Có lỗi xảy ra khi cập nhật ticket",
+      );
+      queryClient.invalidateQueries({ queryKey: ["tickets"] });
+      queryClient.invalidateQueries({ queryKey: ["ticket", variables.id] });
     },
     onError: (error: any) => {
       console.log(error);
@@ -117,8 +122,12 @@ export const useDeleteTicket = () => {
 
   return useMutation({
     mutationFn: deleteTicketApi,
-    onSuccess: () => {
-      toast.success("Xóa ticket thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa ticket thành công",
+        "Có lỗi xảy ra khi xóa ticket",
+      );
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
     },
     onError: (error: any) => {
@@ -140,8 +149,12 @@ export const useAssignTicket = () => {
       id: string;
       payload: AssignTicketRequest;
     }) => assignTicketApi(id, payload),
-    onSuccess: (_, variables) => {
-      toast.success("Phân quyền ticket thành công");
+    onSuccess: (response, variables) => {
+      toastApiMutation(
+        response,
+        "Phân quyền ticket thành công",
+        "Có lỗi xảy ra khi phân quyền ticket",
+      );
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
       queryClient.invalidateQueries({ queryKey: ["ticket", variables.id] });
     },
@@ -158,8 +171,12 @@ export const useStatusTicket = () => {
 
   return useMutation({
     mutationFn: statusTicketApi,
-    onSuccess: (_, id) => {
-      toast.success("Cập nhật trạng thái ticket thành công");
+    onSuccess: (response, id) => {
+      toastApiMutation(
+        response,
+        "Cập nhật trạng thái ticket thành công",
+        "Có lỗi xảy ra khi cập nhật trạng thái ticket",
+      );
       queryClient.invalidateQueries({ queryKey: ["tickets"] });
       queryClient.invalidateQueries({ queryKey: ["ticket", id] });
     },

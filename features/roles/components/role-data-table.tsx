@@ -68,16 +68,18 @@ interface DataTableProps {
   isLoading?: boolean;
   columnVisibility?: VisibilityState;
   onColumnVisibilityChange?: (visibility: VisibilityState) => void;
+  selectedTenantName?: string;
 }
 
 const getOrderBadgeColor = (order?: number) => {
   if (order === undefined || order === null)
     return "bg-muted text-muted-foreground";
 
-  if (order <= 10) return "bg-blue-100 text-blue-700";
-  if (order <= 100) return "bg-purple-100 text-purple-700";
-  if (order <= 1000) return "bg-red-100 text-red-500";
-  return "bg-gray-100 text-gray-700";
+  if (order <= 10) return "bg-blue-100 text-blue-700 border border-blue-600";
+  if (order <= 100)
+    return "bg-purple-100 text-purple-700 border border-purple-600";
+  if (order <= 1000) return "bg-red-100 text-red-500 border border-red-600";
+  return "bg-gray-100 text-gray-700 border border-gray-600";
 };
 
 export function DataTable({
@@ -89,6 +91,7 @@ export function DataTable({
   isLoading,
   columnVisibility: externalColumnVisibility,
   onColumnVisibilityChange,
+  selectedTenantName,
 }: DataTableProps) {
   // Danh sách các query params của api
   const [page, setPage] = useQueryParam("page", withDefault(NumberParam, 1));
@@ -398,6 +401,7 @@ export function DataTable({
         table={table}
         search={search}
         onSearchChange={(value) => setSearch(value ?? undefined)}
+        selectedTenantName={selectedTenantName}
       />
       <div className="rounded-md border">
         <Table>

@@ -3,6 +3,7 @@ import {
   updateDepartmentApi,
   deleteDepartmentApi,
 } from "@/services/department/action-deparment";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -12,8 +13,11 @@ export function useCreateDepartment() {
   return useMutation({
     mutationFn: createDepartmentApi,
     onSuccess: (response) => {
-      console.log("Tạo thành công Department:", response.data);
-      toast.success(response.data.message || "Tạo phòng ban thành công!");
+      toastApiMutation(
+        response,
+        "Tạo phòng ban thành công!",
+        "Có lỗi xảy ra khi tạo phòng ban",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["departments"],
@@ -31,8 +35,12 @@ export function useUpdateDepartment() {
 
   return useMutation({
     mutationFn: updateDepartmentApi,
-    onSuccess: (response: any) => {
-      toast.success(response.data.message || "Cập nhật phòng ban thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Cập nhật phòng ban thành công",
+        "Có lỗi xảy ra khi cập nhật phòng ban",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["departments"],
@@ -53,8 +61,12 @@ export function useDeleteDepartment() {
 
   return useMutation({
     mutationFn: deleteDepartmentApi,
-    onSuccess: () => {
-      toast.success("Xóa phòng ban thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa phòng ban thành công",
+        "Có lỗi xảy ra khi xóa phòng ban",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["departments"],

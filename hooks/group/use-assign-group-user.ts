@@ -2,6 +2,7 @@ import {
   assignGroupUserApi,
   removeGroupUserApi,
 } from "@/services/group/assign-group-user";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -10,8 +11,12 @@ export const useAssignGroupUser = () => {
 
   return useMutation({
     mutationFn: assignGroupUserApi,
-    onSuccess: (response: any) => {
-      toast.success(response.data.message || "Cập nhật thành viên thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Cập nhật thành viên thành công",
+        "Có lỗi xảy ra khi cập nhật thành viên",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["groups"],
@@ -35,8 +40,12 @@ export const useRemoveGroupUser = () => {
 
   return useMutation({
     mutationFn: removeGroupUserApi,
-    onSuccess: (response: any) => {
-      toast.success(response.data.message || "Cập nhật thành viên thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Cập nhật thành viên thành công",
+        "Có lỗi xảy ra khi cập nhật thành viên",
+      );
 
       queryClient.invalidateQueries({
         queryKey: ["groups"],

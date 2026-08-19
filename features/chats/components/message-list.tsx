@@ -667,7 +667,10 @@ export function MessageList({
                     typeof nextPageData.messaging === "object" &&
                     !Array.isArray(nextPageData.messaging)
                       ? {
-                          ...(nextPageData.messaging as Record<string, unknown>),
+                          ...(nextPageData.messaging as Record<
+                            string,
+                            unknown
+                          >),
                         }
                       : null;
                   if (chatwootData) {
@@ -815,13 +818,13 @@ export function MessageList({
                 <Fragment key={messageId}>
                   {showDaySeparator && (
                     <div className="flex items-center justify-center py-4">
-                      <div className="text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full">
+                      <div className="text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full border border-muted-foreground/10">
                         {formatDateHeader(messageDateKey)}
                       </div>
                     </div>
                   )}
                   <div className="flex justify-center py-1">
-                    <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                    <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground border border-muted-foreground/10">
                       {getMessageContent(message) || "Thông báo hệ thống"}
                     </div>
                   </div>
@@ -893,7 +896,7 @@ export function MessageList({
               <Fragment key={messageId}>
                 {showDaySeparator && (
                   <div className="flex items-center justify-center py-4">
-                    <div className="text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full">
+                    <div className="text-xs font-medium text-muted-foreground bg-muted/50 px-4 py-1.5 rounded-full border border-muted-foreground/10">
                       {formatDateHeader(messageDateKey)}
                     </div>
                   </div>

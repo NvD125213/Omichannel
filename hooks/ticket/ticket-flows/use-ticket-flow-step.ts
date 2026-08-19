@@ -14,6 +14,7 @@ import {
   UpdateFlowStepRequest,
 } from "@/services/ticket/ticket-flows/ticket-flow-step/services";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 export const useGetTicketFlowStepsInfinite = (params: FlowStepParams) => {
   return useInfiniteQuery({
@@ -73,11 +74,11 @@ export const useCreateTicketFlowSteps = () => {
       queryClient.invalidateQueries({
         queryKey: ["ticket-flows"],
       });
-      if (response?.data.status_code == 201) {
-        toast.success(response.data.message || "Tạo bước xử lý thành công");
-      } else {
-        toast.error(response?.data.message || "Có lỗi khi tạo bước xử lý");
-      }
+      toastApiMutation(
+        response,
+        "Tạo bước xử lý thành công",
+        "Có lỗi khi tạo bước xử lý",
+      );
     },
     onError: (error: any) => {
       toast.error(
@@ -96,13 +97,11 @@ export const useUpdateTicketFlowStep = () => {
       updateFlowStepApi(id, data),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flow-steps"] });
-      if (response?.data.status_code == 200) {
-        toast.success(
-          response.data.message || "Cập nhật bước xử lý thành công",
-        );
-      } else {
-        toast.error(response?.data.message || "Có lỗi khi cập nhật bước xử lý");
-      }
+      toastApiMutation(
+        response,
+        "Cập nhật bước xử lý thành công",
+        "Có lỗi khi cập nhật bước xử lý",
+      );
     },
     onError: (error: any) => {
       toast.error(
@@ -120,11 +119,11 @@ export const useDeleteTicketFlowStep = () => {
     mutationFn: (id: string) => deleteFlowStepApi(id),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flow-steps"] });
-      if (response?.data.status_code == 200) {
-        toast.success(response.data.message || "Xóa bước xử lý thành công");
-      } else {
-        toast.error(response?.data.message || "Có lỗi khi xóa bước xử lý");
-      }
+      toastApiMutation(
+        response,
+        "Xóa bước xử lý thành công",
+        "Có lỗi khi xóa bước xử lý",
+      );
     },
     onError: (error: any) => {
       toast.error(

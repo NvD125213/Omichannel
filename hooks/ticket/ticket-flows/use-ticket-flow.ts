@@ -9,6 +9,7 @@ import {
   UpdateFlowRequest,
 } from "@/services/ticket/ticket-flows/ticket-flow/services";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 export const useGetTicketFlows = (
   params: FlowParams,
@@ -28,11 +29,11 @@ export const useCreateTicketFlow = () => {
     mutationFn: (data: CreateFlowRequest) => createFlowApi(data),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flows"] });
-      if (response.data.status_code == 201) {
-        toast.success(response.data.message || "Tạo luồng xử lý thành công");
-      } else {
-        toast.error(response.data.message || "Có lỗi khi tạo luồng xử lý");
-      }
+      toastApiMutation(
+        response,
+        "Tạo luồng xử lý thành công",
+        "Có lỗi khi tạo luồng xử lý",
+      );
     },
     onError: (error: any) => {
       toast.error(
@@ -51,13 +52,11 @@ export const useUpdateTicketFlow = () => {
       updateFlowApi(id, data),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flows"] });
-      if (response.data.status_code == 200) {
-        toast.success(
-          response.data.message || "Cập nhật luồng xử lý thành công",
-        );
-      } else {
-        toast.error(response.data.message || "Có lỗi khi cập nhật luồng xử lý");
-      }
+      toastApiMutation(
+        response,
+        "Cập nhật luồng xử lý thành công",
+        "Có lỗi khi cập nhật luồng xử lý",
+      );
     },
     onError: (error: any) => {
       toast.error(
@@ -75,11 +74,11 @@ export const useDeleteTicketFlow = () => {
     mutationFn: (id: string) => deleteFlowApi(id),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["ticket-flows"] });
-      if (response.data.status_code == 200) {
-        toast.success(response.data.message || "Xóa luồng xử lý thành công");
-      } else {
-        toast.error(response.data.message || "Có lỗi khi xóa luồng xử lý");
-      }
+      toastApiMutation(
+        response,
+        "Xóa luồng xử lý thành công",
+        "Có lỗi khi xóa luồng xử lý",
+      );
     },
     onError: (error: any) => {
       toast.error(

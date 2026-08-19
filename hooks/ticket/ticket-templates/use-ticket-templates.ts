@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 import {
   getTicketTemplates,
@@ -44,8 +45,12 @@ export const useCreateTicketTemplate = () => {
 
   return useMutation({
     mutationFn: createTicketTemplateApi,
-    onSuccess: () => {
-      toast.success("Tạo ticket template thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Tạo ticket template thành công",
+        "Có lỗi xảy ra khi tạo ticket template",
+      );
       queryClient.invalidateQueries({
         queryKey: ["ticket-templates"],
       });
@@ -70,8 +75,12 @@ export const useUpdateTicketTemplate = () => {
       id: string;
       payload: UpdateTicketTemplateRequest;
     }) => updateTicketTemplateApi(id, payload),
-    onSuccess: (_, variables) => {
-      toast.success("Cập nhật ticket template thành công");
+    onSuccess: (response, variables) => {
+      toastApiMutation(
+        response,
+        "Cập nhật ticket template thành công",
+        "Có lỗi xảy ra khi cập nhật ticket template",
+      );
       queryClient.invalidateQueries({
         queryKey: ["ticket-templates"],
       });
@@ -93,8 +102,12 @@ export const useDeleteTicketTemplate = () => {
 
   return useMutation({
     mutationFn: deleteTicketTemplateApi,
-    onSuccess: () => {
-      toast.success("Xóa ticket template thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa ticket template thành công",
+        "Có lỗi xảy ra khi xóa ticket template",
+      );
       queryClient.invalidateQueries({
         queryKey: ["ticket-templates"],
       });
@@ -113,8 +126,12 @@ export const useStatusTicketTemplate = () => {
 
   return useMutation({
     mutationFn: statusTicketTemplateApi,
-    onSuccess: (_, id) => {
-      toast.success("Cập nhật trạng thái template thành công");
+    onSuccess: (response, id) => {
+      toastApiMutation(
+        response,
+        "Cập nhật trạng thái template thành công",
+        "Có lỗi xảy ra khi cập nhật trạng thái template",
+      );
       queryClient.invalidateQueries({
         queryKey: ["ticket-templates"],
       });

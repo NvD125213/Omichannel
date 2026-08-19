@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 import {
   getSlas,
@@ -42,8 +43,12 @@ export const useCreateSla = () => {
 
   return useMutation({
     mutationFn: createSlaApi,
-    onSuccess: () => {
-      toast.success("Tạo SLA thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Tạo SLA thành công",
+        "Có lỗi xảy ra khi tạo SLA",
+      );
       queryClient.invalidateQueries({
         queryKey: ["slas"],
       });
@@ -62,8 +67,12 @@ export const useUpdateSla = () => {
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateSlaRequest }) =>
       updateSlaApi(id, payload),
-    onSuccess: (_, variables) => {
-      toast.success("Cập nhật SLA thành công");
+    onSuccess: (response, variables) => {
+      toastApiMutation(
+        response,
+        "Cập nhật SLA thành công",
+        "Có lỗi xảy ra khi cập nhật SLA",
+      );
       queryClient.invalidateQueries({
         queryKey: ["slas"],
       });
@@ -84,8 +93,12 @@ export const useDeleteSla = () => {
 
   return useMutation({
     mutationFn: deleteSlaApi,
-    onSuccess: () => {
-      toast.success("Xóa SLA thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa SLA thành công",
+        "Có lỗi xảy ra khi xóa SLA",
+      );
       queryClient.invalidateQueries({
         queryKey: ["slas"],
       });

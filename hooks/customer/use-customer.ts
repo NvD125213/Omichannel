@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import {
   customerService,
   type GetCustomersParams,
@@ -30,13 +31,13 @@ export const useCreateCustomer = () => {
   return useMutation({
     mutationFn: (data: CreateCustomerRequest) =>
       customerService.createCustomer(data),
-    onSuccess: (res, variables) => {
-      if (res.status_code == 201) {
-        toast.success(res.message || "Tạo khách hàng thành công");
-        queryClient.invalidateQueries({ queryKey: ["customers"] });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi tạo khách hàng");
-      }
+    onSuccess: (res) => {
+      toastApiMutation(
+        res,
+        "Tạo khách hàng thành công",
+        "Có lỗi xảy ra khi tạo khách hàng",
+      );
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
     onError: (error: any) => {
       toast.error(
@@ -53,13 +54,13 @@ export const useUpdateCustomer = () => {
     mutationFn: ({ id, data }: { id: string; data: UpdateCustomerRequest }) =>
       customerService.updateCustomer(id, data),
     onSuccess: (res, variables) => {
-      if (res.status_code == 200) {
-        toast.success(res.message || "Cập nhật khách hàng thành công");
-        queryClient.invalidateQueries({ queryKey: ["customers"] });
-        queryClient.invalidateQueries({ queryKey: ["customer", variables.id] });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi cập nhật khách hàng");
-      }
+      toastApiMutation(
+        res,
+        "Cập nhật khách hàng thành công",
+        "Có lỗi xảy ra khi cập nhật khách hàng",
+      );
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customer", variables.id] });
     },
     onError: (error: any) => {
       toast.error(
@@ -75,13 +76,13 @@ export const useDeleteCustomer = () => {
 
   return useMutation({
     mutationFn: (id: string) => customerService.deleteCustomer(id),
-    onSuccess: (res, variables) => {
-      if (res.status_code == 200) {
-        toast.success(res.message || "Xóa khách hàng thành công");
-        queryClient.invalidateQueries({ queryKey: ["customers"] });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi xóa khách hàng");
-      }
+    onSuccess: (res) => {
+      toastApiMutation(
+        res,
+        "Xóa khách hàng thành công",
+        "Có lỗi xảy ra khi xóa khách hàng",
+      );
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
     },
     onError: (error: any) => {
       toast.error(
@@ -111,17 +112,17 @@ export const useCreateCustomerTag = () => {
       data: CreateCustomerTagRequest;
     }) => customerService.createCustomerTag(customerId, data),
     onSuccess: (res, variables) => {
-      if (res.status_code == 201) {
-        toast.success("Cập nhật tag khách hàng thành công");
-        queryClient.invalidateQueries({
-          queryKey: ["tags", variables.customerId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["customer", variables.customerId],
-        });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi cập nhật tag khách hàng");
-      }
+      toastApiMutation(
+        res,
+        "Cập nhật tag khách hàng thành công",
+        "Có lỗi xảy ra khi cập nhật tag khách hàng",
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["tags", variables.customerId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["customer", variables.customerId],
+      });
     },
     onError: (error: any) => {
       toast.error(
@@ -144,20 +145,20 @@ export const useRemoveCustomerTag = () => {
       tagIds: string[];
     }) => customerService.removeCustomerTag(customerId, tagIds),
     onSuccess: (res, variables) => {
-      if (res.status_code == 200) {
-        toast.success(res.message || "Xóa tag khách hàng thành công");
-        queryClient.invalidateQueries({
-          queryKey: ["tags", variables.customerId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["customer", variables.customerId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: ["customers", variables.customerId],
-        });
-      } else {
-        toast.error(res.message || "Có lỗi xảy ra khi xóa tag khách hàng");
-      }
+      toastApiMutation(
+        res,
+        "Xóa tag khách hàng thành công",
+        "Có lỗi xảy ra khi xóa tag khách hàng",
+      );
+      queryClient.invalidateQueries({
+        queryKey: ["tags", variables.customerId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["customer", variables.customerId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["customers", variables.customerId],
+      });
     },
     onError: (error: any) => {
       toast.error(

@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, PlusCircle, Search, Settings2, X } from "lucide-react";
+import { Building2, Download, PlusCircle, Search, Settings2, X } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import debounce from "lodash/debounce";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,7 @@ interface DataTableToolbarProps<TData> {
   search?: string | null;
   title?: string;
   onSearchChange?: (value: string | null | undefined) => void;
+  selectedTenantName?: string;
 }
 
 interface FilterOption {
@@ -214,7 +215,7 @@ export function DataTableToolbar<TData>({
   table,
   search = "",
   title = "Danh sách vai trò",
-
+  selectedTenantName,
   onSearchChange,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
@@ -245,8 +246,14 @@ export function DataTableToolbar<TData>({
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-1 flex-wrap items-center gap-2">
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
           <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+          {selectedTenantName ? (
+            <Badge variant="secondary" className="gap-1.5 font-medium">
+              <Building2 className="size-3.5" />
+              {selectedTenantName}
+            </Badge>
+          ) : null}
         </div>
         {/* <div className="relative">
           <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

@@ -19,6 +19,7 @@ export interface RoleResponseApi {
 }
 
 export interface RoleQueryParams {
+  tenant_id?: string;
   page?: number;
   page_size?: number;
   search?: string;

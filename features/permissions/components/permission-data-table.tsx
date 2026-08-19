@@ -19,6 +19,7 @@ import {
 } from "@/hooks/permission/use-get-permisison";
 import { useAssignRolePermission } from "@/hooks/permission/use-action-permission";
 import { useMe } from "@/hooks/user/use-me";
+import { useGetTenants } from "@/hooks/tenant/use-get-tenant";
 import {
   Tooltip,
   TooltipContent,
@@ -91,6 +92,7 @@ export default function PermissionsMatrix() {
 
   const [roleSearchTerm, setRoleSearchTerm] = useState("");
   const [debouncedRoleSearch, setDebouncedRoleSearch] = useState("");
+  const [selectedTenantId, setSelectedTenantId] = useState("");
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -99,13 +101,32 @@ export default function PermissionsMatrix() {
     return () => clearTimeout(timer);
   }, [roleSearchTerm]);
 
-  const { data: roles } = useGetRoles({
-    page: 1,
-    page_size: 100,
-    search: debouncedRoleSearch,
-  });
-
   const { data: currentUser } = useMe();
+  const isPlatformAdmin = currentUser?.is_platform_admin === true;
+  const effectiveTenantId = isPlatformAdmin
+    ? selectedTenantId || undefined
+    : currentUser?.tenant_id || undefined;
+
+  React.useEffect(() => {
+    if (selectedTenantId || !currentUser?.tenant_id) return;
+    setSelectedTenantId(currentUser.tenant_id);
+  }, [currentUser?.tenant_id, selectedTenantId]);
+
+  const { data: tenantsData } = useGetTenants(
+    { page: 1, page_size: 100, is_active: 1 },
+    { enabled: isPlatformAdmin },
+  );
+
+  const { data: roles } = useGetRoles(
+    {
+      page: 1,
+      page_size: 100,
+      search: debouncedRoleSearch,
+      tenant_id: effectiveTenantId,
+    },
+    { enabled: Boolean(effectiveTenantId) },
+  );
+
   const { data: allPermissionsData } = useGetPermissions({
     for_assign: true,
   });
@@ -115,11 +136,21 @@ export default function PermissionsMatrix() {
   const [selectedRoles, setSelectedRoles] = useState<Set<string>>(new Set());
 
   React.useEffect(() => {
-    if (roles?.roles && roles.roles.length > 0 && !selectedRole) {
-      const firstRoleId = roles.roles[0].id;
-      setSelectedRole(firstRoleId);
-      setSelectedRoles(new Set([firstRoleId]));
+    const roleList = roles?.roles ?? [];
+    if (roleList.length === 0) {
+      setSelectedRole(null);
+      setSelectedRoles(new Set());
+      return;
     }
+
+    const stillValid = selectedRole
+      ? roleList.some((role) => role.id === selectedRole)
+      : false;
+    if (stillValid) return;
+
+    const firstRoleId = roleList[0].id;
+    setSelectedRole(firstRoleId);
+    setSelectedRoles(new Set([firstRoleId]));
   }, [roles, selectedRole]);
 
   React.useEffect(() => {
@@ -149,18 +180,31 @@ export default function PermissionsMatrix() {
     return ids;
   }, [rawData]);
 
-  React.useEffect(() => {
-    if (!rolePermissionsData) return;
+  const savedPermissionIds = useMemo(() => {
+    const next = new Set<string>();
+    if (!rolePermissionsData) return next;
 
     const grouped = groupPermissionsForMatrix(rolePermissionsData);
-    const next = new Set<string>();
     Object.values(grouped).forEach((perms) => {
       perms.forEach((p) => {
         if (p.id && assignablePermissionIds.has(p.id)) next.add(p.id);
       });
     });
-    setSelectedPermissions(next);
+    return next;
   }, [rolePermissionsData, assignablePermissionIds]);
+
+  React.useEffect(() => {
+    if (!rolePermissionsData) return;
+    setSelectedPermissions(new Set(savedPermissionIds));
+  }, [rolePermissionsData, savedPermissionIds]);
+
+  const isPermissionsDirty = useMemo(() => {
+    if (selectedPermissions.size !== savedPermissionIds.size) return true;
+    for (const id of selectedPermissions) {
+      if (!savedPermissionIds.has(id)) return true;
+    }
+    return false;
+  }, [selectedPermissions, savedPermissionIds]);
 
   const actions = useMemo(
     () => sortMatrixActions(Object.keys(rawData)),
@@ -289,14 +333,44 @@ export default function PermissionsMatrix() {
     );
   }, [roles]);
 
+  const tenantOptions = useMemo(
+    () =>
+      (tenantsData?.items ?? []).map((tenant) => ({
+        label: tenant.name || tenant.id,
+        value: tenant.id,
+      })),
+    [tenantsData],
+  );
+
+  const selectedTenantName = useMemo(
+    () =>
+      tenantOptions.find((option) => option.value === effectiveTenantId)
+        ?.label,
+    [tenantOptions, effectiveTenantId],
+  );
+
+  const handleTenantChange = (tenantId: string) => {
+    setSelectedTenantId(tenantId);
+    setSelectedRole(null);
+    setSelectedRoles(new Set());
+    setSelectedPermissions(new Set());
+  };
+
   const handleSave = () => {
-    if (!selectedRole || !currentUser?.tenant_id) return;
+    const roleTenantId =
+      roles?.roles?.find((role) => role.id === selectedRole)?.tenant_id ||
+      effectiveTenantId;
+    if (!selectedRole || !roleTenantId) return;
 
     assignRolePermissionMutation.mutate({
       role_id: selectedRole,
       permission_ids: Array.from(selectedPermissions),
-      tenant_id: currentUser.tenant_id,
+      tenant_id: roleTenantId,
     });
+  };
+
+  const handleRestore = () => {
+    setSelectedPermissions(new Set(savedPermissionIds));
   };
 
   return (
@@ -329,7 +403,14 @@ export default function PermissionsMatrix() {
         onToggleAll={toggleAll}
         selectedCount={selectedPermissions.size}
         onSave={handleSave}
+        onRestore={handleRestore}
         isSaving={assignRolePermissionMutation.isPending}
+        isDirty={isPermissionsDirty}
+        showTenantFilter={isPlatformAdmin}
+        tenantOptions={tenantOptions}
+        selectedTenantId={effectiveTenantId ?? ""}
+        selectedTenantName={selectedTenantName}
+        onTenantChange={handleTenantChange}
       />
 
       <div

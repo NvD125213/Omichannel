@@ -31,7 +31,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import {
   userDefaultValues,
   userFormSchema,
@@ -62,20 +62,13 @@ export function UserFormDialog({
     controlledOpen !== undefined && onOpenChange !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? onOpenChange : setInternalOpen;
+  const { data: currentUser } = useMe();
 
   const isEditMode = !!user;
 
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
 
-  // Fetch roles từ API
-  const { data: rolesData, isLoading: isLoadingRoles } = useGetRoles({});
-
-  // Fetch levels từ API
-  const { data: levelsData, isLoading: isLoadingLevels } = useGetLevels({});
-
-  // Lấy thông tin user hiện tại để get tenant_id
-  const { data: currentUser } = useMe();
   const canGetTenants =
     currentUser?.permissions?.includes(PERMISSIONS.VIEW_TENANTS) ||
     currentUser?.permissions?.includes("get_tenants");
@@ -99,55 +92,72 @@ export function UserFormDialog({
     defaultValues: userDefaultValues,
   });
 
-  // Auto-populate tenant_id từ current user
+  const watchedTenantId = useWatch({
+    control: form.control,
+    name: "tenant_id",
+  });
+  const selectedTenantId =
+    watchedTenantId ||
+    (isEditMode ? user?.tenant_id || "" : "") ||
+    (!canGetTenants ? currentUser?.tenant_id || "" : "");
+  const hasTenant = Boolean(selectedTenantId);
+
+  const { data: rolesData, isLoading: isLoadingRoles } = useGetRoles(
+    { tenant_id: selectedTenantId },
+    { enabled: open && hasTenant },
+  );
+
+  const { data: levelsData, isLoading: isLoadingLevels } = useGetLevels(
+    {},
+    { enabled: open && hasTenant },
+  );
+
   useEffect(() => {
-    if (currentUser?.tenant_id && !isEditMode && !form.getValues("tenant_id")) {
-      form.setValue("tenant_id", currentUser.tenant_id);
-    }
-  }, [currentUser, form, isEditMode]);
+    if (!open) return;
 
-  // Populate form khi edit mode
-  useEffect(() => {
-    if (user && open && rolesData && levelsData) {
-      // Map role name to role_id if role_id doesn't exist
-      let roleId = user.role_id || "";
-      if (!roleId && user.role) {
-        const roleObj = rolesData.roles?.find(
-          (r) => r.name.toLowerCase() === user.role.toLowerCase(),
-        );
-        roleId = roleObj?.id || "";
-      }
-
-      // Map level name to level_id if level_id doesn't exist
-      let levelId = user.level_id || "";
-      if (!levelId && user.level) {
-        const levelObj = levelsData.levels?.find(
-          (l) => l.name.toLowerCase() === user.level.toLowerCase(),
-        );
-        levelId = levelObj?.id || "";
-      }
-
-      const formData = {
+    if (user) {
+      form.reset({
         id: user.id,
         username: user.username,
         email: user.email,
         fullname: user.fullname,
-        role_id: roleId,
-        level_id: levelId,
+        role_id: user.role_id || "",
+        level_id: user.level_id || "",
         tenant_id: user.tenant_id,
         is_active: user.is_active,
         webphone_enabled: user.webphone_enabled ?? false,
-        password: "", // Password không được populate khi edit
-      };
-      form.reset(formData);
-    } else if (!user && open) {
-      // Reset về default values khi tạo mới
-      form.reset({
-        ...userDefaultValues,
-        tenant_id: currentUser?.tenant_id || "",
+        password: "",
       });
+      return;
     }
-  }, [user, open, form, currentUser, rolesData, levelsData]);
+
+    form.reset({
+      ...userDefaultValues,
+      tenant_id: canGetTenants ? "" : currentUser?.tenant_id || "",
+    });
+  }, [user, open, form, currentUser, canGetTenants]);
+
+  useEffect(() => {
+    if (!open || !user || !rolesData) return;
+    if (form.getValues("role_id")) return;
+    if (!user.role) return;
+
+    const roleObj = rolesData.roles?.find(
+      (r) => r.name.toLowerCase() === user.role.toLowerCase(),
+    );
+    if (roleObj) form.setValue("role_id", roleObj.id);
+  }, [open, user, rolesData, form]);
+
+  useEffect(() => {
+    if (!open || !user || !levelsData) return;
+    if (form.getValues("level_id")) return;
+    if (!user.level) return;
+
+    const levelObj = levelsData.levels?.find(
+      (l) => l.name.toLowerCase() === user.level.toLowerCase(),
+    );
+    if (levelObj) form.setValue("level_id", levelObj.id);
+  }, [open, user, levelsData, form]);
 
   function onSubmit(data: UserFormValues) {
     const payload = removeEmptyFields(data);
@@ -262,7 +272,46 @@ export function UserFormDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Vai trò field - full width, trạng thái luôn là active khi tạo mới */}
+              {canGetTenants ? (
+                <FormField
+                  control={form.control}
+                  name="tenant_id"
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <FormLabel>Doanh nghiệp</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue("role_id", "");
+                        }}
+                        value={field.value}
+                        disabled={isLoadingTenants}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full cursor-pointer">
+                            <SelectValue
+                              placeholder={
+                                isLoadingTenants
+                                  ? "Đang tải danh sách doanh nghiệp..."
+                                  : "Chọn doanh nghiệp"
+                              }
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {tenantsData?.items?.map((tenant) => (
+                            <SelectItem key={tenant.id} value={tenant.id}>
+                              {tenant.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : null}
+
               <FormField
                 control={form.control}
                 name="role_id"
@@ -272,15 +321,17 @@ export function UserFormDialog({
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
-                      disabled={isLoadingRoles}
+                      disabled={!hasTenant || isLoadingRoles}
                     >
                       <FormControl>
-                        <SelectTrigger className="cursor-pointer w-full">
+                        <SelectTrigger className="w-full cursor-pointer">
                           <SelectValue
                             placeholder={
-                              isLoadingRoles
-                                ? "Đang tải vai trò..."
-                                : "Chọn vai trò"
+                              !hasTenant
+                                ? "Chọn doanh nghiệp trước"
+                                : isLoadingRoles
+                                  ? "Đang tải vai trò..."
+                                  : "Chọn vai trò"
                             }
                           />
                         </SelectTrigger>
@@ -298,7 +349,6 @@ export function UserFormDialog({
                 )}
               />
 
-              {/* Level field - select from API */}
               <FormField
                 control={form.control}
                 name="level_id"
@@ -308,15 +358,17 @@ export function UserFormDialog({
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
-                      disabled={isLoadingLevels}
+                      disabled={!hasTenant || isLoadingLevels}
                     >
                       <FormControl>
-                        <SelectTrigger className="cursor-pointer w-full">
+                        <SelectTrigger className="w-full cursor-pointer">
                           <SelectValue
                             placeholder={
-                              isLoadingLevels
-                                ? "Đang tải cấp bậc..."
-                                : "Chọn cấp bậc"
+                              !hasTenant
+                                ? "Chọn doanh nghiệp trước"
+                                : isLoadingLevels
+                                  ? "Đang tải cấp bậc..."
+                                  : "Chọn cấp bậc"
                             }
                           />
                         </SelectTrigger>
@@ -334,43 +386,6 @@ export function UserFormDialog({
                 )}
               />
             </div>
-
-            {canGetTenants && (
-              <FormField
-                control={form.control}
-                name="tenant_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Doanh nghiệp</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={isLoadingTenants}
-                    >
-                      <FormControl>
-                        <SelectTrigger className="cursor-pointer w-full">
-                          <SelectValue
-                            placeholder={
-                              isLoadingTenants
-                                ? "Đang tải danh sách doanh nghiệp..."
-                                : "Chọn doanh nghiệp"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {tenantsData?.items?.map((tenant) => (
-                          <SelectItem key={tenant.id} value={tenant.id}>
-                            {tenant.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <FormField
               control={form.control}

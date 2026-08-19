@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 import {
   customerProvidedInfoService,
   type CustomerProvidedInfoRequest,
@@ -26,14 +27,12 @@ export const useCreateCustomerProvidedInfo = () => {
     mutationFn: (data: CustomerProvidedInfoRequest) =>
       customerProvidedInfoService.createCustomerProvidedInfo(data),
     onSuccess: (res) => {
-      if (res.status_code === 201) {
-        toast.success(res.message || "Tạo thông tin khách hàng thành công");
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      } else {
-        toast.error(
-          res.message || "Có lỗi xảy ra khi tạo thông tin khách hàng",
-        );
-      }
+      toastApiMutation(
+        res,
+        "Tạo thông tin khách hàng thành công",
+        "Có lỗi xảy ra khi tạo thông tin khách hàng",
+      );
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
     },
     onError: (error: unknown) => {
       const message = (error as { response?: { data?: { message?: string } } })
@@ -55,19 +54,15 @@ export const useUpdateCustomerProvidedInfo = () => {
       data: UpdateCustomerProvidedInfoRequest;
     }) => customerProvidedInfoService.updateCustomerProvidedInfo(id, data),
     onSuccess: (res, variables) => {
-      if (res.status_code === 200) {
-        toast.success(
-          res.message || "Cập nhật thông tin khách hàng thành công",
-        );
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-        queryClient.invalidateQueries({
-          queryKey: [QUERY_KEY, variables.id],
-        });
-      } else {
-        toast.error(
-          res.message || "Có lỗi xảy ra khi cập nhật thông tin khách hàng",
-        );
-      }
+      toastApiMutation(
+        res,
+        "Cập nhật thông tin khách hàng thành công",
+        "Có lỗi xảy ra khi cập nhật thông tin khách hàng",
+      );
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+      queryClient.invalidateQueries({
+        queryKey: [QUERY_KEY, variables.id],
+      });
     },
     onError: (error: unknown) => {
       const message = (error as { response?: { data?: { message?: string } } })
@@ -84,14 +79,12 @@ export const useDeleteCustomerProvidedInfo = () => {
     mutationFn: (id: string) =>
       customerProvidedInfoService.deleteCustomerProvidedInfo(id),
     onSuccess: (res) => {
-      if (res.status_code === 200) {
-        toast.success(res.message || "Xóa thông tin khách hàng thành công");
-        queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
-      } else {
-        toast.error(
-          res.message || "Có lỗi xảy ra khi xóa thông tin khách hàng",
-        );
-      }
+      toastApiMutation(
+        res,
+        "Xóa thông tin khách hàng thành công",
+        "Có lỗi xảy ra khi xóa thông tin khách hàng",
+      );
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
     },
     onError: (error: unknown) => {
       const message = (error as { response?: { data?: { message?: string } } })

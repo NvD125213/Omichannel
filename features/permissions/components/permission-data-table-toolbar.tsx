@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, PlusCircle, Search, X } from "lucide-react";
+import { Check, PlusCircle, RotateCcw, Search, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -169,7 +169,14 @@ interface TransactionsTableToolbarProps {
   selectedCount: number;
   isAllSelected?: boolean;
   onSave?: () => void;
+  onRestore?: () => void;
   isSaving?: boolean;
+  isDirty?: boolean;
+  showTenantFilter?: boolean;
+  tenantOptions?: FilterOption[];
+  selectedTenantId?: string;
+  selectedTenantName?: string;
+  onTenantChange?: (tenantId: string) => void;
 }
 
 export function PermissionTableToolbar({
@@ -184,9 +191,14 @@ export function PermissionTableToolbar({
   onRoleSearch,
   onToggleAll,
   selectedCount,
-  isAllSelected,
   onSave,
+  onRestore,
   isSaving = false,
+  isDirty = false,
+  showTenantFilter = false,
+  tenantOptions = [],
+  selectedTenantId = "",
+  onTenantChange,
 }: TransactionsTableToolbarProps) {
   const isFiltered = selectedActions.size > 0 || searchTerm.length > 0;
 
@@ -199,9 +211,23 @@ export function PermissionTableToolbar({
             placeholder="Tìm kiếm tên quyền hạn..."
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            className="pl-9 h-9 w-full"
+            className="pl-9 h-9 w-full bg-white dark:bg-gray-900"
           />
         </div>
+
+        {showTenantFilter ? (
+          <FacetedFilter
+            title="Doanh nghiệp"
+            options={tenantOptions}
+            selectedValues={
+              selectedTenantId ? new Set([selectedTenantId]) : new Set()
+            }
+            onSelect={(values) => {
+              onTenantChange?.(Array.from(values)[0] ?? "");
+            }}
+            singleSelect
+          />
+        ) : null}
 
         <FacetedFilter
           title="Vai trò"
@@ -231,8 +257,19 @@ export function PermissionTableToolbar({
         <Button
           variant="outline"
           size="sm"
-          onClick={onToggleAll}
+          onClick={onRestore}
+          disabled={!isDirty || isSaving}
           className="h-9 ml-auto sm:ml-0"
+        >
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Khôi phục
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onToggleAll}
+          className="h-9"
         >
           {selectedCount > 0 ? "Bỏ chọn tất cả" : "Chọn tất cả"}
         </Button>

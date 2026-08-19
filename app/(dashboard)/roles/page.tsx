@@ -11,10 +11,18 @@ import {
   StringParam,
   withDefault,
 } from "use-query-params";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AppBreadcrumb } from "@/components/breadcrumb";
-import { Home, ArrowUpAZ, ArrowDownAZ, Clock } from "lucide-react";
+import {
+  Home,
+  ArrowUpAZ,
+  ArrowDownAZ,
+  Clock,
+  Building2,
+  Check,
+  ChevronDown,
+} from "lucide-react";
 import { IconBuilding, IconLock } from "@tabler/icons-react";
 import {
   NavigationRailFilter,
@@ -23,6 +31,111 @@ import {
 } from "@/components/navigation-rail-filter";
 import { ProtectedRoute } from "@/components/protected-route";
 import { PERMISSIONS } from "@/constants/permission";
+import { useMe } from "@/hooks/user/use-me";
+import { useGetTenants } from "@/hooks/tenant/use-get-tenant";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+
+const ALL_VALUE = "__all__";
+
+type TenantOption = { value: string; label: string };
+
+function TenantSearchSelect({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: TenantOption[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <div className="space-y-2">
+      <label className="text-foreground flex items-center gap-2 text-sm font-medium">
+        <Building2 className="size-4" />
+        Doanh nghiệp
+      </label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="h-10 w-full justify-between bg-transparent font-normal"
+          >
+            <span className="truncate">
+              {selected?.label || "Tất cả doanh nghiệp"}
+            </span>
+            <ChevronDown className="ml-2 size-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-(--radix-popover-trigger-width) p-0"
+          align="start"
+        >
+          <Command>
+            <CommandInput placeholder="Tìm doanh nghiệp..." />
+            <CommandList>
+              <CommandEmpty>Không tìm thấy doanh nghiệp.</CommandEmpty>
+              <CommandGroup>
+                <CommandItem
+                  value={`Tất cả doanh nghiệp ${ALL_VALUE}`}
+                  onSelect={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 size-4",
+                      !value ? "opacity-100" : "opacity-0",
+                    )}
+                  />
+                  Tất cả doanh nghiệp
+                </CommandItem>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    value={`${option.label} ${option.value}`}
+                    onSelect={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 size-4",
+                        value === option.value ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    <span className="truncate">{option.label}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 // Sort options
 const sortOptions: FilterOption[] = [
@@ -53,6 +166,7 @@ const columnOptions: ColumnOption[] = [
   { id: "name", label: "Tên vai trò" },
   { id: "description", label: "Mô tả" },
   { id: "created_at", label: "Ngày tạo" },
+  { id: "order", label: "Thứ tự" },
 ];
 
 /**
@@ -63,7 +177,8 @@ function RolesPageContent() {
   // State để quản lý edit dialog
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-
+  const { data: currentUser } = useMe();
+  const isPlatformAdmin = currentUser?.is_platform_admin === true;
   // State để quản lý delete dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingRole, setDeletingRole] = useState<Role | null>(null);
@@ -79,6 +194,8 @@ function RolesPageContent() {
     page_size: withDefault(NumberParam, 10),
     search: StringParam,
     sort_by: StringParam,
+    sort_order: StringParam,
+    tenant_id: StringParam,
   });
 
   // Set default query params in URL on mount
@@ -88,11 +205,32 @@ function RolesPageContent() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { data: tenantsData } = useGetTenants(
+    { page: 1, page_size: 100 },
+    { enabled: isPlatformAdmin },
+  );
+
+  const tenantOptions = useMemo<TenantOption[]>(
+    () =>
+      (tenantsData?.items ?? []).map((tenant) => ({
+        value: tenant.id,
+        label: tenant.name || tenant.id,
+      })),
+    [tenantsData],
+  );
+
+  const selectedTenantName = useMemo(
+    () =>
+      tenantOptions.find((option) => option.value === query.tenant_id)?.label,
+    [tenantOptions, query.tenant_id],
+  );
+
   // Fetch roles with query params
   const { data, isLoading } = useGetRoles({
     page: query.page,
     page_size: query.page_size,
     search: query.search || undefined,
+    tenant_id: isPlatformAdmin ? query.tenant_id || undefined : undefined,
   });
 
   const roles: Role[] = (data?.roles as unknown as Role[]) || [];
@@ -135,8 +273,20 @@ function RolesPageContent() {
     setQuery({ sort_by: value || undefined, page: 1 });
   };
 
+  const handleTenantChange = (value: string) => {
+    setQuery({
+      tenant_id: !value || value === ALL_VALUE ? undefined : value,
+      page: 1,
+    });
+  };
+
   const handleClearFilters = () => {
-    setQuery({ search: undefined, sort_by: undefined, page: 1 });
+    setQuery({
+      search: undefined,
+      sort_by: undefined,
+      tenant_id: undefined,
+      page: 1,
+    });
   };
 
   // Column visibility handler
@@ -164,6 +314,16 @@ function RolesPageContent() {
         columnOptions={columnOptions}
         columnVisibility={columnVisibility}
         onColumnVisibilityChange={handleColumnVisibilityChange}
+        extraActiveFilterCount={isPlatformAdmin && query.tenant_id ? 1 : 0}
+        extraPanelContent={
+          isPlatformAdmin ? (
+            <TenantSearchSelect
+              value={query.tenant_id ?? ""}
+              options={tenantOptions}
+              onChange={handleTenantChange}
+            />
+          ) : null
+        }
       />
 
       {/* Main Content */}
@@ -198,6 +358,7 @@ function RolesPageContent() {
             isLoading={isLoading}
             columnVisibility={columnVisibility}
             onColumnVisibilityChange={setColumnVisibility}
+            selectedTenantName={selectedTenantName}
           />
         </div>
 

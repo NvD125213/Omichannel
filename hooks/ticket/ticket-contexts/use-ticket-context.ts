@@ -14,6 +14,7 @@ import {
   updateTicketContextApi,
 } from "@/services/ticket/ticket-contexts/services";
 import { toast } from "sonner";
+import { toastApiMutation } from "@/lib/toast-api-mutation";
 
 export const useGetTicketContexts = (params: TicketContextParams) => {
   return useQuery({
@@ -69,8 +70,12 @@ export const useCreateTicketContext = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: TicketContextRequest) => createTicketContextApi(data),
-    onSuccess: (_data, variables) => {
-      toast.success("Tạo context thành công");
+    onSuccess: (response, variables) => {
+      toastApiMutation(
+        response,
+        "Tạo context thành công",
+        "Có lỗi xảy ra khi tạo context",
+      );
       queryClient.invalidateQueries({
         queryKey: ["ticket-contexts", variables.ticket_id],
       });
@@ -94,8 +99,12 @@ export const useUpdateTicketContext = () => {
       id: string;
       data: Partial<TicketContextRequest>;
     }) => updateTicketContextApi(id, data),
-    onSuccess: () => {
-      toast.success("Cập nhật context thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Cập nhật context thành công",
+        "Có lỗi xảy ra khi cập nhật context",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-contexts"] });
     },
     onError: (error: any) => {
@@ -110,8 +119,12 @@ export const useDeleteTicketContext = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteTicketContextApi(id),
-    onSuccess: () => {
-      toast.success("Xóa context thành công");
+    onSuccess: (response) => {
+      toastApiMutation(
+        response,
+        "Xóa context thành công",
+        "Có lỗi xảy ra khi xóa context",
+      );
       queryClient.invalidateQueries({ queryKey: ["ticket-contexts"] });
     },
     onError: (error: any) => {

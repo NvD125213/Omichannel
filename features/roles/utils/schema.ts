@@ -18,7 +18,7 @@ export const roleFormSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, "Tên vai trò không được để trống"),
   description: z.string().min(1, "Mô tả không được để trống"),
-  tenant_id: z.string().optional(),
+  tenant_id: z.string().min(1, "Vui lòng chọn doanh nghiệp").optional(),
   role_order: z.number().min(1, "Cần có thứ tự cho vai trò"),
   is_active: z.number().optional(),
 });
