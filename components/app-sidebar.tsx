@@ -28,13 +28,17 @@ export default function AppSidebar({
   navGroups = sidebarData.navGroups,
   ...props
 }: AppSidebarProps) {
-  const { permissions } = useAuth();
+  const { permissions, isPlatformAdmin } = useAuth();
   const { config } = useSidebarConfig();
   const totalUnread = useTotalUnread();
 
   const filteredNavGroups = useMemo(() => {
-    return filterNavGroupsByPermissions(navGroups, permissions);
-  }, [navGroups, permissions]);
+    return filterNavGroupsByPermissions(
+      navGroups,
+      permissions,
+      isPlatformAdmin,
+    );
+  }, [navGroups, permissions, isPlatformAdmin]);
 
   const navGroupsWithUnreadBadges = useMemo(() => {
     if (totalUnread <= 0) return filteredNavGroups;

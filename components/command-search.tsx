@@ -27,7 +27,7 @@ interface CommandSearchProps {
 }
 
 export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
-  const { permissions } = useAuth();
+  const { permissions, isPlatformAdmin } = useAuth();
   const pathname = usePathname();
   const isChatbot = isChatbotPath(pathname ?? "");
 
@@ -36,7 +36,11 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
       ? chatbotSidebarData.navGroups
       : sidebarData.navGroups;
 
-    const filteredGroups = filterNavGroupsByPermissions(navGroups, permissions);
+    const filteredGroups = filterNavGroupsByPermissions(
+      navGroups,
+      permissions,
+      isPlatformAdmin,
+    );
     const searchItems = flattenNavGroupsForSearch(filteredGroups);
 
     return searchItems.reduce(
@@ -49,7 +53,7 @@ export function CommandSearch({ open, onOpenChange }: CommandSearchProps) {
       },
       {} as Record<string, typeof searchItems>,
     );
-  }, [permissions, isChatbot]);
+  }, [isChatbot, permissions, isPlatformAdmin]);
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>

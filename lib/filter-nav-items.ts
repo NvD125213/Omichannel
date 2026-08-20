@@ -1,38 +1,45 @@
 import { NavGroup, NavItem } from "@/lib/types";
 
+type NavAccessItem = {
+  permissions?: string[];
+  requirePlatformAdmin?: boolean;
+};
+
+function canSeeNavEntry(
+  item: NavAccessItem,
+  userPermissions: string[],
+  isPlatformAdmin: boolean,
+): boolean {
+  if (item.requirePlatformAdmin && !isPlatformAdmin) {
+    return false;
+  }
+  if (!item.permissions || item.permissions.length === 0) {
+    return true;
+  }
+  return item.permissions.some((permission) =>
+    userPermissions.includes(permission),
+  );
+}
+
 /**
  * Filter nav items based on user permissions
  * @param items - Array of nav items
  * @param userPermissions - Array of user's permissions
+ * @param isPlatformAdmin - `is_platform_admin` from `/user/current`
  * @returns Filtered array of nav items
  */
 export function filterNavItemsByPermissions(
   items: NavItem[],
   userPermissions: string[],
+  isPlatformAdmin = false,
 ): NavItem[] {
   return items
-    .filter((item) => {
-      // Nếu item không có permissions requirement -> show
-      if (!item.permissions || item.permissions.length === 0) {
-        return true;
-      }
-
-      // Check nếu user có ít nhất 1 permission trong danh sách required
-      return item.permissions.some((permission) =>
-        userPermissions.includes(permission),
-      );
-    })
+    .filter((item) => canSeeNavEntry(item, userPermissions, isPlatformAdmin))
     .map((item) => {
-      // Nếu item có nested items (collapsible), filter nested items
       if ("items" in item && item.items) {
-        const filteredNestedItems = item.items.filter((nestedItem) => {
-          if (!nestedItem.permissions || nestedItem.permissions.length === 0) {
-            return true;
-          }
-          return nestedItem.permissions.some((permission) =>
-            userPermissions.includes(permission),
-          );
-        });
+        const filteredNestedItems = item.items.filter((nestedItem) =>
+          canSeeNavEntry(nestedItem, userPermissions, isPlatformAdmin),
+        );
 
         return {
           ...item,
@@ -42,7 +49,6 @@ export function filterNavItemsByPermissions(
       return item;
     })
     .filter((item) => {
-      // Remove collapsible items nếu không còn nested items nào sau khi filter
       if ("items" in item && item.items) {
         return item.items.length > 0;
       }
@@ -54,35 +60,37 @@ export function filterNavItemsByPermissions(
  * Filter nav groups based on user permissions
  * @param navGroups - Array of nav groups
  * @param userPermissions - Array of user's permissions
+ * @param isPlatformAdmin - `is_platform_admin` from `/user/current`
  * @returns Filtered array of nav groups
  */
 export function filterNavGroupsByPermissions(
   navGroups: NavGroup[],
   userPermissions: string[],
+  isPlatformAdmin = false,
 ): NavGroup[] {
   return navGroups
     .map((group) => ({
       ...group,
-      items: filterNavItemsByPermissions(group.items, userPermissions),
+      items: filterNavItemsByPermissions(
+        group.items,
+        userPermissions,
+        isPlatformAdmin,
+      ),
     }))
-    .filter((group) => group.items.length > 0); // Remove empty groups
+    .filter((group) => group.items.length > 0);
 }
 
 /**
  * Check if a single nav item should be visible
  * @param item - Nav item to check
  * @param userPermissions - Array of user's permissions
+ * @param isPlatformAdmin - `is_platform_admin` from `/user/current`
  * @returns boolean
  */
 export function canAccessNavItem(
   item: NavItem,
   userPermissions: string[],
+  isPlatformAdmin = false,
 ): boolean {
-  if (!item.permissions || item.permissions.length === 0) {
-    return true;
-  }
-
-  return item.permissions.some((permission) =>
-    userPermissions.includes(permission),
-  );
+  return canSeeNavEntry(item, userPermissions, isPlatformAdmin);
 }

@@ -195,5 +195,11 @@ export function getRequiredPermissionsForPath(
   return null;
 }
 
+/** Route chỉ dành cho platform admin (`is_platform_admin` từ `/user/current`). */
+export function requiresPlatformAdminForPath(pathname: string): boolean {
+  const path = normalizePath(pathname);
+  return matches(path, "/tenants");
+}
+
 /** Toàn bộ permission key trong hệ thống (dùng audit / tooling). */
 export const ALL_PERMISSIONS: Permission[] = Object.values(PERMISSIONS);

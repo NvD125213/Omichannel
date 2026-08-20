@@ -1,7 +1,10 @@
 "use client";
 
 import { ProtectedRoute } from "@/components/protected-route";
-import { getRequiredPermissionsForPath } from "@/constants/route-permissions";
+import {
+  getRequiredPermissionsForPath,
+  requiresPlatformAdminForPath,
+} from "@/constants/route-permissions";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -16,6 +19,7 @@ export function DashboardPermissionGate({ children }: { children: ReactNode }) {
   return (
     <ProtectedRoute
       requiredPermissions={requiredPermissions ?? undefined}
+      requirePlatformAdmin={requiresPlatformAdminForPath(pathname)}
     >
       {children}
     </ProtectedRoute>

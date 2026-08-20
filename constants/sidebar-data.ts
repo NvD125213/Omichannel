@@ -184,6 +184,7 @@ export const sidebarData: SidebarData = {
               url: "/tenants",
               icon: IconBuildingBroadcastTower,
               permissions: [PERMISSIONS.VIEW_TENANTS],
+              requirePlatformAdmin: true,
             },
           ],
         },

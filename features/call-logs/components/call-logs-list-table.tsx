@@ -17,17 +17,20 @@ import {
 } from "@tanstack/react-table";
 import {
   ArrowDownLeft,
+  ArrowRight,
   ArrowUpRight,
+  Building2,
+  ChevronDown,
   ClipboardList,
   EllipsisVertical,
   Eye,
-  ListTree,
   Phone,
   PhoneCall,
   TimerReset,
+  User,
   UserRound,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { NumberParam, useQueryParam, withDefault } from "use-query-params";
 import { IconMoodEmpty } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyData } from "@/components/empty-data";
+import { TimelineCallLog } from "@/components/timeline-call-log";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -49,12 +53,53 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useGetCallLogEvents } from "@/hooks/call-logs/use-call-logs";
 import { cn } from "@/lib/utils";
 import type { CallLog, Pagination } from "@/services/call-logs/service";
 import { convertDateTime } from "@/utils/convert-time";
 import { CallLogDetail } from "./call-log-detail";
-import { CallLogEvent } from "./call-log-event";
 import { CallLogsListPagination } from "./call-logs-list-pagination";
+
+function CallLogRowTimeline({
+  sipCallId,
+  enabled,
+}: {
+  sipCallId: string;
+  enabled: boolean;
+}) {
+  const { data, isLoading, isError } = useGetCallLogEvents(
+    sipCallId,
+    { page: 1, page_size: 50 },
+    enabled && !!sipCallId,
+  );
+  const events = data?.data?.items ?? [];
+
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-20 w-full rounded-lg sm:h-28 sm:rounded-xl" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <p className="py-6 text-center text-sm text-red-600">
+        Không tải được timeline cuộc gọi
+      </p>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <p className="py-6 text-center text-sm text-muted-foreground">
+        Cuộc gọi này chưa ghi nhận sự kiện để vẽ timeline.
+      </p>
+    );
+  }
+
+  return <TimelineCallLog events={events} />;
+}
 
 interface CallLogsListTableProps {
   callLogs: CallLog[];
@@ -76,6 +121,21 @@ function formatDuration(seconds: number | null | undefined) {
     return `${hrs}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
   return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
+function getCallEndpoints(log: CallLog) {
+  const direction = String(log.direction ?? "").toLowerCase();
+  const phone = log.phone_number?.trim() || "";
+  const from =
+    log.from_number?.trim() || (direction === "outbound" ? "" : phone);
+  const to = log.to_number?.trim() || (direction === "outbound" ? phone : "");
+
+  return {
+    from: from || "—",
+    to: to || "—",
+    highlightFrom: direction !== "outbound",
+    highlightTo: direction === "outbound",
+  };
 }
 
 function getDirectionMeta(direction: string | null | undefined) {
@@ -103,15 +163,40 @@ function getDirectionMeta(direction: string | null | undefined) {
   };
 }
 
+function getStatusLabel(status: string | null | undefined) {
+  const value = String(status ?? "").toLowerCase();
+  const labels: Record<string, string> = {
+    created: "Đã tạo",
+    ringing: "Đang đổ chuông",
+    calling: "Đang đổ chuông",
+    answered: "Đã nghe",
+    completed: "Đã nghe",
+    success: "Đã nghe",
+    ended: "Kết thúc",
+    hangup: "Kết thúc",
+    missed: "Nhỡ máy",
+    busy: "Máy bận",
+    no_answer: "Không trả lời",
+    failed: "Thất bại",
+    cancelled: "Đã hủy",
+    canceled: "Đã hủy",
+  };
+  return labels[value] || status || "Không rõ";
+}
+
 function getStatusClassName(status: string | null | undefined) {
   const value = String(status ?? "").toLowerCase();
-  if (["answered", "ended"].includes(value)) {
+  if (["answered", "ended", "completed", "success", "hangup"].includes(value)) {
     return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300";
   }
-  if (["ringing", "created"].includes(value)) {
+  if (["ringing", "created", "calling"].includes(value)) {
     return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-300";
   }
-  if (["missed", "failed", "no_answer", "busy"].includes(value)) {
+  if (
+    ["missed", "failed", "no_answer", "busy", "cancelled", "canceled"].includes(
+      value,
+    )
+  ) {
     return "border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300";
   }
   return "bg-muted text-muted-foreground";
@@ -188,17 +273,20 @@ export function CallLogsListTable({
     useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [detailOpen, setDetailOpen] = useState(false);
-  const [eventsOpen, setEventsOpen] = useState(false);
   const [selectedLog, setSelectedLog] = useState<CallLog | null>(null);
+  const [expandedSipCallIds, setExpandedSipCallIds] = useState<string[]>([]);
 
   const openDetail = (log: CallLog) => {
     setSelectedLog(log);
     setDetailOpen(true);
   };
 
-  const openEvents = (log: CallLog) => {
-    setSelectedLog(log);
-    setEventsOpen(true);
+  const toggleTimeline = (log: CallLog) => {
+    const id = log.sip_call_id;
+    if (!id) return;
+    setExpandedSipCallIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
+    );
   };
 
   const columnVisibility = externalColumnVisibility ?? internalColumnVisibility;
@@ -246,24 +334,64 @@ export function CallLogsListTable({
         size: 48,
       },
       {
-        accessorKey: "phone_number",
-        header: "Số điện thoại",
-        cell: ({ row }) => (
-          <div className="flex min-w-40 flex-col gap-1">
-            <span className="font-medium tabular-nums">
-              {row.original.phone_number || "—"}
-            </span>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>{getCallSourceChannel(row.original.source)}</span>
-              {row.original.hotline ? (
-                <>
-                  <span className="text-border">•</span>
-                  <span className="tabular-nums">{row.original.hotline}</span>
-                </>
-              ) : null}
+        id: "phone_number",
+        accessorFn: (log) =>
+          [log.from_number, log.to_number, log.phone_number]
+            .filter(Boolean)
+            .join(" "),
+        header: "Luồng gọi",
+        cell: ({ row }) => {
+          const { from, to, highlightFrom, highlightTo } = getCallEndpoints(
+            row.original,
+          );
+
+          return (
+            <div className="flex min-w-48 items-end gap-2">
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground">Số gọi đi</p>
+                <p
+                  className={cn(
+                    "mt-0.5 tabular-nums",
+                    highlightFrom
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {from}
+                </p>
+              </div>
+              <ArrowRight
+                className="mb-0.5 size-3.5 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-[11px] text-muted-foreground">Số gọi đến</p>
+                <p
+                  className={cn(
+                    "mt-0.5 tabular-nums",
+                    highlightTo
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {to}
+                </p>
+              </div>
             </div>
-          </div>
-        ),
+          );
+        },
+      },
+      {
+        accessorKey: "hotline",
+        header: "Hotline",
+        cell: ({ row }) => {
+          const hotline = row.original.hotline?.trim();
+          return hotline ? (
+            <span className="tabular-nums">{hotline}</span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
       },
       {
         id: "source",
@@ -288,10 +416,17 @@ export function CallLogsListTable({
         header: "Doanh nghiệp",
         cell: ({ row }) => {
           const name = row.original.tenant_name?.trim();
-          return name ? (
-            <span className="text-sm">{name}</span>
-          ) : (
-            <span className="text-muted-foreground">—</span>
+          if (!name) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+          return (
+            <Badge
+              variant="outline"
+              className="gap-1 font-medium border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800/50 dark:bg-slate-950/40 dark:text-slate-300"
+            >
+              <Building2 className="size-3.5" />
+              {name}
+            </Badge>
           );
         },
       },
@@ -300,10 +435,17 @@ export function CallLogsListTable({
         header: "Người thực hiện",
         cell: ({ row }) => {
           const name = row.original.username_action_call?.trim();
-          return name ? (
-            <span className="text-sm">{name}</span>
-          ) : (
-            <span className="text-muted-foreground">—</span>
+          if (!name) {
+            return <span className="text-muted-foreground">—</span>;
+          }
+          return (
+            <Badge
+              variant="outline"
+              className="gap-1 font-medium border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
+            >
+              <User className="size-3.5" />
+              {name}
+            </Badge>
           );
         },
       },
@@ -332,12 +474,9 @@ export function CallLogsListTable({
           return (
             <Badge
               variant="outline"
-              className={cn(
-                "font-medium capitalize",
-                getStatusClassName(status),
-              )}
+              className={cn("font-medium", getStatusClassName(status))}
             >
-              {status || "Không rõ"}
+              {getStatusLabel(status)}
             </Badge>
           );
         },
@@ -351,7 +490,7 @@ export function CallLogsListTable({
             return <span className="text-sm text-muted-foreground">—</span>;
           }
           return (
-            <div className="inline-flex min-w-20 items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1 text-sm font-medium tabular-nums text-foreground">
+            <div className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2 py-1 text-sm font-medium tabular-nums text-foreground sm:min-w-20 sm:gap-2 sm:px-3">
               <TimerReset className="size-3.5 text-muted-foreground" />
               {label}
             </div>
@@ -385,7 +524,7 @@ export function CallLogsListTable({
             <audio
               controls
               preload="metadata"
-              className="h-9 min-w-60 w-full"
+              className="h-9 w-full min-w-48 sm:min-w-64"
               src={url}
             >
               Trình duyệt không hỗ trợ phát audio.
@@ -399,12 +538,34 @@ export function CallLogsListTable({
         enableSorting: false,
         enableHiding: false,
         cell: ({ row }) => {
+          const sipCallId = row.original.sip_call_id;
+          const isExpanded = expandedSipCallIds.includes(sipCallId);
+
           return (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 cursor-pointer"
+                className="size-10 cursor-pointer sm:size-8"
+                onClick={() => toggleTimeline(row.original)}
+                title={isExpanded ? "Thu gọn timeline" : "Xem timeline"}
+                aria-expanded={isExpanded}
+              >
+                <ChevronDown
+                  className={cn(
+                    "size-4 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+                    isExpanded && "rotate-180",
+                  )}
+                />
+                <span className="sr-only">
+                  {isExpanded ? "Thu gọn timeline" : "Xem timeline"}
+                </span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-10 cursor-pointer sm:size-8"
                 onClick={() => openDetail(row.original)}
                 title="Xem chi tiết"
               >
@@ -412,7 +573,7 @@ export function CallLogsListTable({
                 <span className="sr-only">Xem chi tiết</span>
               </Button>
 
-              <DropdownMenu>
+              {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
@@ -424,18 +585,18 @@ export function CallLogsListTable({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => openEvents(row.original)}>
-                    <ListTree className="size-3.5" />
-                    Danh sách sự kiện
+                  <DropdownMenuItem onClick={() => toggleTimeline(row.original)}>
+                    <ChevronDown className="size-3.5" />
+                    Timeline cuộc gọi
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> */}
             </div>
           );
         },
       },
     ],
-    [],
+    [expandedSipCallIds],
   );
 
   const table = useReactTable({
@@ -466,7 +627,7 @@ export function CallLogsListTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">
+          <h2 className="text-lg font-semibold tracking-tight sm:text-xl">
             Lịch sử cuộc gọi
           </h2>
           <p className="text-sm text-muted-foreground">
@@ -475,7 +636,7 @@ export function CallLogsListTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border/70 bg-background shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-background shadow-sm sm:rounded-2xl">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -505,21 +666,49 @@ export function CallLogsListTable({
                 </TableRow>
               ))
             ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row: Row<CallLog>) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              table.getRowModel().rows.map((row: Row<CallLog>) => {
+                const sipCallId = row.original.sip_call_id;
+                const isExpanded = expandedSipCallIds.includes(sipCallId);
+
+                return (
+                  <Fragment key={row.id}>
+                    <TableRow
+                      data-state={
+                        row.getIsSelected()
+                          ? "selected"
+                          : isExpanded
+                            ? "open"
+                            : undefined
+                      }
+                      className={cn(isExpanded && "border-b-0 bg-muted/20")}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                    {isExpanded ? (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell
+                          colSpan={row.getVisibleCells().length}
+                          className="max-w-0 bg-muted/20 p-2 whitespace-normal sm:px-4 sm:pt-0 sm:pb-4"
+                        >
+                          <div className="w-full min-w-0 overflow-x-auto">
+                            <CallLogRowTimeline
+                              sipCallId={sipCallId}
+                              enabled={isExpanded}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </Fragment>
+                );
+              })
             ) : (
               <TableRow>
                 <TableCell
@@ -555,17 +744,7 @@ export function CallLogsListTable({
         open={detailOpen}
         onOpenChange={(next) => {
           setDetailOpen(next);
-          if (!next && !eventsOpen) setSelectedLog(null);
-        }}
-      />
-
-      <CallLogEvent
-        sipCallId={selectedLog?.sip_call_id ?? null}
-        phoneNumber={selectedLog?.phone_number}
-        open={eventsOpen}
-        onOpenChange={(next) => {
-          setEventsOpen(next);
-          if (!next && !detailOpen) setSelectedLog(null);
+          if (!next) setSelectedLog(null);
         }}
       />
     </div>

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { EmptyData } from "@/components/empty-data";
+import { TimelineCallLog } from "@/components/timeline-call-log";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
@@ -481,23 +482,15 @@ export function CallLogEvent({
           <SheetDescription asChild>
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5 text-[13px] text-muted-foreground">
               {phoneNumber ? (
-                <span className="font-semibold tabular-nums text-foreground">
+                <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-foreground">
+                  <IconPhoneCall className="size-3.5 shrink-0" stroke={1.5} />
                   {phoneNumber}
                 </span>
               ) : null}
-              {phoneNumber ? <span className="text-border">·</span> : null}
-              <span className="inline-flex min-w-0 max-w-full items-center gap-1">
-                <IconPhoneCall className="size-3.5 shrink-0" stroke={1.5} />
-                <span className="truncate font-medium text-foreground">
-                  {sipCallId || "—"}
-                </span>
-              </span>
-              {meta?.total != null ? (
-                <>
-                  <span className="text-border">·</span>
-                  <span>{meta.total} event</span>
-                </>
+              {phoneNumber && meta?.total != null ? (
+                <span className="text-border">·</span>
               ) : null}
+              {meta?.total != null ? <span>{meta.total} event</span> : null}
             </div>
           </SheetDescription>
         </SheetHeader>
@@ -531,12 +524,14 @@ export function CallLogEvent({
               onButtonClick={() => null}
             />
           ) : (
-            <Accordion
-              type="multiple"
-              value={expandedIds}
-              onValueChange={setExpandedIds}
-              className="w-full border-border"
-            >
+            <div className="space-y-5">
+              <TimelineCallLog events={events} />
+              <Accordion
+                type="multiple"
+                value={expandedIds}
+                onValueChange={setExpandedIds}
+                className="w-full border-border"
+              >
               {events.map((event, index) => {
                 const isOpen = expandedIds.includes(event.id);
                 const isLast = index === events.length - 1;
@@ -591,7 +586,8 @@ export function CallLogEvent({
                   </motion.div>
                 );
               })}
-            </Accordion>
+              </Accordion>
+            </div>
           )}
         </div>
       </SheetContent>

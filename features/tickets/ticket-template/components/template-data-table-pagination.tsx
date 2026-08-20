@@ -108,7 +108,7 @@ export function DataTablePagination<TData>({
           >
             <SelectTrigger
               size="sm"
-              className="w-20 cursor-pointer"
+              className="w-20 cursor-pointer bg-white dark:bg-transparent"
               id="rows-per-page"
             >
               <SelectValue placeholder={currentPageSize} />

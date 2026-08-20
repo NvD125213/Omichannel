@@ -37,6 +37,8 @@ interface BaseNavItem {
     | "default";
   icon?: React.ElementType;
   permissions?: string[];
+  /** Chỉ hiện khi `/user/current` có `is_platform_admin === true`. */
+  requirePlatformAdmin?: boolean;
 }
 
 type NavLink = BaseNavItem & {

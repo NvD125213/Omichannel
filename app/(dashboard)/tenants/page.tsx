@@ -208,7 +208,10 @@ function TenantsPageContent() {
 
 export default function TenantsPage() {
   return (
-    <ProtectedRoute requiredPermissions={[PERMISSIONS.VIEW_TENANTS]}>
+    <ProtectedRoute
+      requiredPermissions={[PERMISSIONS.VIEW_TENANTS]}
+      requirePlatformAdmin
+    >
       <TenantsPageContent />
     </ProtectedRoute>
   );

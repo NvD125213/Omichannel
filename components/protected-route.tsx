@@ -10,11 +10,13 @@ import { Permission } from "@/constants/permission";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredPermissions?: Permission[];
+  requirePlatformAdmin?: boolean;
 }
 
 export function ProtectedRoute({
   children,
   requiredPermissions,
+  requirePlatformAdmin = false,
 }: ProtectedRouteProps) {
   const {
     isAuthenticated,
@@ -23,6 +25,7 @@ export function ProtectedRoute({
     retryAuth,
     logout,
     hasAnyPermission,
+    isPlatformAdmin,
   } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -30,9 +33,10 @@ export function ProtectedRoute({
   const redirectStartedRef = useRef(false);
 
   const hasPermission =
-    !requiredPermissions ||
-    requiredPermissions.length === 0 ||
-    hasAnyPermission(requiredPermissions);
+    (!requiredPermissions ||
+      requiredPermissions.length === 0 ||
+      hasAnyPermission(requiredPermissions)) &&
+    (!requirePlatformAdmin || isPlatformAdmin);
 
   useEffect(() => {
     setIsMounted(true);

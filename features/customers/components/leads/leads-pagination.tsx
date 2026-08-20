@@ -69,7 +69,7 @@ export function LeadsDataPagination<TData>({
           >
             <SelectTrigger
               size="sm"
-              className="w-20 cursor-pointer"
+              className="w-20 cursor-pointer bg-white dark:bg-transparent"
               id="leads-rows-per-page"
             >
               <SelectValue placeholder={currentPageSize} />

@@ -97,7 +97,8 @@ export function TenantTablePagination<TData>({
   return (
     <div className="flex items-center justify-between px-4">
       <div className="hidden flex-1 text-sm text-muted-foreground lg:flex">
-        {table.getFilteredSelectedRowModel().rows.length} doanh nghiệp được chọn.
+        {table.getFilteredSelectedRowModel().rows.length} doanh nghiệp được
+        chọn.
       </div>
       <div className="flex w-full items-center gap-8 lg:w-fit">
         <div className="hidden items-center gap-2 lg:flex">
@@ -110,7 +111,7 @@ export function TenantTablePagination<TData>({
           >
             <SelectTrigger
               size="sm"
-              className="w-20 cursor-pointer"
+              className="w-20 cursor-pointer bg-white dark:bg-transparent"
               id="rows-per-page"
             >
               <SelectValue placeholder={currentPageSize} />
@@ -172,4 +173,3 @@ export function TenantTablePagination<TData>({
     </div>
   );
 }
-

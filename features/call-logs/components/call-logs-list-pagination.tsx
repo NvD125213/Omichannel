@@ -65,7 +65,10 @@ export function CallLogsListPagination<TData>({
       </div>
       <div className="flex w-full items-center gap-8 lg:w-fit">
         <div className="hidden items-center gap-2 lg:flex">
-          <Label htmlFor="call-logs-rows-per-page" className="text-sm font-medium">
+          <Label
+            htmlFor="call-logs-rows-per-page"
+            className="text-sm font-medium"
+          >
             Số hàng trên mỗi trang
           </Label>
           <Select
@@ -74,7 +77,7 @@ export function CallLogsListPagination<TData>({
           >
             <SelectTrigger
               size="sm"
-              className="w-20 cursor-pointer"
+              className="w-20 cursor-pointer bg-white dark:bg-transparent"
               id="call-logs-rows-per-page"
             >
               <SelectValue placeholder={currentPageSize} />

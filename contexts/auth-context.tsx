@@ -60,6 +60,7 @@ interface AuthContextType {
   hasPermission: (permission: Permission) => boolean;
   hasAnyPermission: (permissions: Permission[]) => boolean;
   hasAllPermissions: (permissions: Permission[]) => boolean;
+  isPlatformAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -115,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => (meData?.permissions ?? []) as Permission[],
     [meData?.permissions],
   );
+  const isPlatformAdmin = meData?.is_platform_admin === true;
 
   const isConnectionError =
     hasToken && isError && isNetworkAuthError(error);
@@ -220,6 +222,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         hasPermission,
         hasAnyPermission,
         hasAllPermissions,
+        isPlatformAdmin,
       }}
     >
       {children}
