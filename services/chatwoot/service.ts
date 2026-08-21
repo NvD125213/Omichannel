@@ -665,10 +665,28 @@ export const chatwootService = {
   ): Promise<ListTenantConversationsResponse> => {
     const requestParams = params
       ? (() => {
-          const { labels, ...rest } = params;
+          const { labels, status, ...rest } = params;
+          const statusValues = Array.isArray(status)
+            ? status
+            : typeof status === "string" && status.includes(",")
+              ? status
+                  .split(",")
+                  .map((value) => value.trim())
+                  .filter(Boolean)
+              : status
+                ? [status]
+                : [];
 
           return {
             ...rest,
+            ...(statusValues.length > 0
+              ? {
+                  status:
+                    statusValues.length === 1
+                      ? statusValues[0]
+                      : statusValues.join(","),
+                }
+              : {}),
             ...(Array.isArray(labels) && labels.length > 0
               ? { "labels[]": labels }
               : {}),

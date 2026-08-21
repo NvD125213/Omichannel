@@ -38,23 +38,24 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToggleTenantConversationStatus } from "@/hooks/chatwoot/use-chatwoot";
 import { cn } from "@/lib/utils";
 import type { ChatConversation, ChatUser } from "../utils/types";
+import {
+  CHAT_CONVERSATION_STATUS_OPTIONS,
+  conversationStatusBadgeStyle,
+} from "../utils/conversation-filter";
 
-type ConversationStatusValue = "resolved" | "open";
+type ConversationStatusValue = "open" | "pending" | "resolved";
 
-const CONVERSATION_STATUS_OPTIONS: {
-  value: ConversationStatusValue;
-  label: string;
-}[] = [
-  { value: "open", label: "Mở lại" },
-  { value: "resolved", label: "Đã giải quyết" },
-];
+const CONVERSATION_STATUS_OPTIONS = CHAT_CONVERSATION_STATUS_OPTIONS.filter(
+  (option) => option.value !== "all" && option.value !== "snoozed",
+);
 
 const getConversationStatusValue = (
   status?: string,
 ): ConversationStatusValue => {
-  if (status === "open") return "open";
-  // Mặc định: resolved (kể cả khi chưa có status từ API)
-  return "resolved";
+  if (status === "open" || status === "pending" || status === "resolved") {
+    return status;
+  }
+  return "open";
 };
 
 function getAvatarInitials(name: string) {
@@ -182,7 +183,10 @@ export function ChatHeader({
           </Avatar>
         </button>
 
-        <Dialog open={isAvatarPreviewOpen} onOpenChange={setIsAvatarPreviewOpen}>
+        <Dialog
+          open={isAvatarPreviewOpen}
+          onOpenChange={setIsAvatarPreviewOpen}
+        >
           <DialogContent
             showCloseButton
             className="max-w-fit gap-0 border-0 bg-transparent p-0 shadow-none sm:max-w-fit"
@@ -243,19 +247,28 @@ export function ChatHeader({
         >
           <SelectTrigger
             className={cn(
-              "h-8 w-[9.5rem] border-border/70 bg-transparent text-xs dark:bg-transparent",
-              conversationStatus === "resolved" &&
-                "text-emerald-700 dark:text-emerald-300",
+              "h-8 w-43 border bg-transparent text-xs dark:bg-transparent",
+              conversationStatusBadgeStyle(conversationStatus).text,
+              conversationStatusBadgeStyle(conversationStatus).border,
             )}
           >
             <SelectValue placeholder="Trạng thái" />
           </SelectTrigger>
           <SelectContent align="end">
-            {CONVERSATION_STATUS_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
+            {CONVERSATION_STATUS_OPTIONS.map((option) => {
+              const style = conversationStatusBadgeStyle(option.value);
+              return (
+                <SelectItem key={option.value} value={option.value}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className={cn("size-1.5 rounded-full", style.dot)}
+                      aria-hidden
+                    />
+                    <span className={style.text}>{option.label}</span>
+                  </span>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
 

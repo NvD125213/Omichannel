@@ -8,6 +8,12 @@ import { useChatwootRealtime } from "@/hooks/chatwoot/use-chatwoot-realtime";
 import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 import type { ListTenantConversationsResponse } from "@/services/chatwoot/interface";
 
+export const CHAT_UNREAD_LIST_PARAMS = {
+  status: "open",
+  sort_by: "last_activity_at_desc",
+  page: 1,
+} as const;
+
 const coerceConversationRecords = (
   value: unknown,
 ): Record<string, unknown>[] | null => {
@@ -70,9 +76,9 @@ const buildUnreadSignature = (
     .sort()
     .join("|");
 
-/** Đồng bộ unread toàn app: API + socket real-time */
+/** Đồng bộ unread toàn app: 1 lần list conversations + socket. */
 export function ChatUnreadSync() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const tenantId = user?.tenant_id ?? "";
   const searchParams = useSearchParams();
   const selectedConversationId = searchParams.get("conversation_id");
@@ -81,11 +87,11 @@ export function ChatUnreadSync() {
   );
   const lastMergedSignatureRef = useRef("");
 
-  const { data: conversationsList } = useListTenantConversations(tenantId, {
-    status: "open",
-    sort_by: "last_activity_at_desc",
-    page: 1,
-  });
+  const { data: conversationsList } = useListTenantConversations(
+    tenantId,
+    CHAT_UNREAD_LIST_PARAMS,
+    { enabled: isAuthenticated && !!tenantId },
+  );
 
   const unreadEntries = useMemo(() => {
     const pages = conversationsList?.pages ?? [];
@@ -111,7 +117,7 @@ export function ChatUnreadSync() {
   }, [mergeUnreadEntries, tenantId, unreadEntries, unreadSignature]);
 
   useChatwootRealtime({
-    tenantId,
+    tenantId: isAuthenticated ? tenantId : "",
     selectedConversationId,
   });
 

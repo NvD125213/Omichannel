@@ -143,8 +143,8 @@ export type DeleteChatwootAgentResponse = ApiResponse<void>;
 export interface ListTenantConversationsParams {
   page?: number;
   page_size?: number;
-  /** open | resolved | pending | snoozed | all */
-  status?: string;
+  /** open | resolved | pending | snoozed | all — hoặc nhiều status */
+  status?: string | string[];
   /** me | unassigned | all | assigned */
   assignee_type?: string;
   /** me | mention | unattended — khớp sidebar / Chatwoot proxy */

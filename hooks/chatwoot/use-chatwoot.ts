@@ -368,6 +368,7 @@ export const useGetTenantConversationLabels = (
 export const useListTenantConversations = (
   tenantId: string,
   params?: ListTenantConversationsParams,
+  options?: { enabled?: boolean },
 ) => {
   const paramsWithoutPage: ListTenantConversationsParams = {
     ...(params ?? {}),
@@ -400,7 +401,7 @@ export const useListTenantConversations = (
       }
       return typeof lastPageParam === "number" ? lastPageParam + 1 : 2;
     },
-    enabled: !!tenantId,
+    enabled: !!tenantId && (options?.enabled ?? true),
   });
 };
 

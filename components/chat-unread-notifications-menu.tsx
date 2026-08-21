@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ChatUnreadBadge } from "@/components/chat-unread-badge";
+import { CHAT_UNREAD_LIST_PARAMS } from "@/components/chat-unread-sync";
 import { useAuth } from "@/contexts/auth-context";
 import { useListTenantConversations } from "@/hooks/chatwoot/use-chatwoot";
 import { coerceToDate } from "@/helpers/format-message-time";
@@ -229,7 +230,7 @@ function NotificationListItem({
 }
 
 export function ChatUnreadNotificationsMenu() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const tenantId = user?.tenant_id ?? "";
   const pathname = usePathname();
   const router = useRouter();
@@ -240,11 +241,11 @@ export function ChatUnreadNotificationsMenu() {
   const unreadEntries = useChatUnreadStore((state) => state.entries);
   const hasUnread = totalUnread > 0;
 
-  const { data: conversationsList } = useListTenantConversations(tenantId, {
-    status: "open",
-    sort_by: "last_activity_at_desc",
-    page: 1,
-  });
+  const { data: conversationsList } = useListTenantConversations(
+    tenantId,
+    CHAT_UNREAD_LIST_PARAMS,
+    { enabled: isAuthenticated && !!tenantId },
+  );
 
   /**
    * Chat đọc conversation_id qua use-query-params (WindowHistoryAdapter).

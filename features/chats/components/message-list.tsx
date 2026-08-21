@@ -824,7 +824,7 @@ export function MessageList({
                     </div>
                   )}
                   <div className="flex justify-center py-1">
-                    <div className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground border border-muted-foreground/10">
+                    <div className="rounded-full bg-muted dark:bg-transparent px-3 py-1 text-xs text-muted-foreground border border-muted-foreground/10">
                       {getMessageContent(message) || "Thông báo hệ thống"}
                     </div>
                   </div>
@@ -944,15 +944,6 @@ export function MessageList({
                             isOwnMessage ? "order-1 mr-2" : "order-2 ml-2",
                           )}
                         >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-8 rounded-full bg-background/95 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
-                          >
-                            <SmilePlus className="size-4" />
-                          </Button>
-
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button

@@ -474,7 +474,7 @@ export function applyConversationStatusToListCache(
     tenantId,
     conversationId,
     (conversation) => ({ ...conversation, status }),
-    { remove: status === "resolved" },
+    { remove: status === "resolved" || status === "snoozed" },
   );
 }
 

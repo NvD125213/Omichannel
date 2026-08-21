@@ -22,6 +22,7 @@ import {
   CircleHelp,
   Dot,
   MessageSquareReply,
+  AlarmClockOff,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -82,6 +83,54 @@ const formatConversationLabel = (label: string) =>
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+
+const unixSecondsAtHour = (date: Date, hour: number) => {
+  const next = new Date(date);
+  next.setHours(hour, 0, 0, 0);
+  return Math.floor(next.getTime() / 1000);
+};
+
+const getSnoozeUntilTomorrow = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return unixSecondsAtHour(tomorrow, 9);
+};
+
+const getSnoozeUntilNextWeek = () => {
+  const nextWeek = new Date();
+  const day = nextWeek.getDay();
+  const daysUntilMonday = ((8 - day) % 7) || 7;
+  nextWeek.setDate(nextWeek.getDate() + daysUntilMonday);
+  return unixSecondsAtHour(nextWeek, 9);
+};
+
+function ConversationStatusChip({
+  status,
+  compact = false,
+}: {
+  status?: string;
+  compact?: boolean;
+}) {
+  const value = status || "open";
+  const style =
+    CONVERSATION_STATUS_BADGE_STYLES[value] ??
+    CONVERSATION_STATUS_BADGE_STYLES.open;
+
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded-full border font-medium leading-none",
+        compact ? "px-1.5 py-0.5 text-[10px]" : "px-2 py-0.5 text-[10px]",
+        style.bg,
+        style.text,
+        style.border,
+      )}
+    >
+      <span className={cn("size-1.5 rounded-full", style.dot)} aria-hidden />
+      {conversationStatusLabel(value)}
+    </span>
+  );
+}
 
 const TAB_CYCLE: ConversationTab[] = ["all", "me", "unassigned"];
 const TAB_COLORS: Record<ConversationTab, string> = {
@@ -313,8 +362,12 @@ import {
   getTime,
 } from "@/helpers/format-message-time";
 import { cn } from "@/lib/utils";
-import type { TenantConversationsListMeta } from "@/services/chatwoot/interface";
+import {
+  CONVERSATION_STATUS_BADGE_STYLES,
+  conversationStatusLabel,
+} from "../utils/conversation-filter";
 import type { ChatConversation, ChatUser } from "../utils/types";
+import type { TenantConversationsListMeta } from "@/services/chatwoot/interface";
 import {
   applyConversationStatusToListCache,
   clearConversationUnreadInListCache,
@@ -343,7 +396,7 @@ interface ConversationListProps {
   listScrollResetKey?: string;
   /** Meta từ GET conversations (mine_count, all_count, …) */
   conversationsMeta?: TenantConversationsListMeta | null;
-  /** assignee_type đang gửi lên API: all | me | unassigned */
+  /** Tab đang chọn trên list — lọc client-side, không gọi lại API */
   assigneeType?: ConversationAssigneeType;
   /** team_id từ sidebar — lọc danh sách hội thoại theo team */
   teamId?: string | null;
@@ -489,13 +542,66 @@ export function ChatConversationList({
     [hasMore, isLoadingMore, onLoadMore],
   );
 
+  const availableAgents = useMemo(
+    () =>
+      extractAgentRecords(agentsData)
+        .map((raw, index) => normalizeAgentOption(raw, index))
+        .filter((agent): agent is ConversationAgentOption => agent !== null),
+    [agentsData],
+  );
+  const availableTeams = useMemo(() => extractTeams(teamsData), [teamsData]);
+  const currentAgentUuid = useMemo(() => {
+    const currentUserEmail = currentUser?.email?.trim().toLowerCase();
+    const currentUserId = currentUser?.id?.trim();
+
+    const currentAgent = availableAgents.find((agent) => {
+      if (currentUserEmail && agent.email?.toLowerCase() === currentUserEmail) {
+        return true;
+      }
+
+      if (currentUserId && agent.id === currentUserId) {
+        return true;
+      }
+
+      return false;
+    });
+
+    return currentAgent ? resolveAgentUuid(currentAgent) : "";
+  }, [availableAgents, currentUser?.email, currentUser?.id]);
+
   const mineConversations = useMemo(
     () =>
       conversations.filter((conversation) => {
-        const assigneeId = conversation.meta?.assignee?.id;
-        return Boolean(assigneeId);
+        const assignee = conversation.meta?.assignee;
+        const assigneeId = String(assignee?.id ?? "").trim();
+        const assigneeEmail = assignee?.email?.trim().toLowerCase();
+        if (!assigneeId && !assigneeEmail) return false;
+
+        const currentEmail = currentUser?.email?.trim().toLowerCase();
+        const currentId = currentUser?.id?.trim();
+        const currentAgentId = currentUser?.agent_id?.trim();
+
+        if (currentEmail && assigneeEmail === currentEmail) return true;
+        if (currentId && assigneeId === currentId) return true;
+        if (currentAgentId && assigneeId === currentAgentId) return true;
+        if (currentAgentUuid && assigneeId === currentAgentUuid) return true;
+
+        const matchedAgent = findAgentByAssignee(
+          availableAgents,
+          assigneeId,
+          assignee?.email,
+        );
+        if (!matchedAgent || !currentAgentUuid) return false;
+        return resolveAgentUuid(matchedAgent) === currentAgentUuid;
       }),
-    [conversations],
+    [
+      availableAgents,
+      conversations,
+      currentAgentUuid,
+      currentUser?.agent_id,
+      currentUser?.email,
+      currentUser?.id,
+    ],
   );
 
   const unassignedConversations = useMemo(
@@ -543,17 +649,12 @@ export function ChatConversationList({
     syncConversationReadState(selectedConversation);
   }, [selectedConversation, syncConversationReadState]);
 
-  const tabMeCount =
-    conversationsMeta?.mine_count ??
-    (assigneeType === "me" ? conversations.length : mineConversations.length);
-  const tabUnassignedCount =
-    conversationsMeta?.unassigned_count ??
-    (assigneeType === "unassigned"
-      ? conversations.length
-      : unassignedConversations.length);
+  const tabMeCount = mineConversations.length;
+  const tabUnassignedCount = unassignedConversations.length;
   const tabAllCount =
-    conversationsMeta?.all_count ??
-    (assigneeType === "all" ? conversations.length : conversations.length);
+    typeof conversationsMeta?.all_count === "number"
+      ? conversationsMeta.all_count
+      : conversations.length;
   const isEmptyByMeta = conversationsMeta?.all_count === 0;
   const tabCounts: Record<ConversationTab, number> = {
     all: tabAllCount,
@@ -564,8 +665,14 @@ export function ChatConversationList({
   const activeTabCount = tabCounts[effectiveTab];
 
   const sortedConversations = useMemo(() => {
-    // Danh sách đã được lọc theo assignee_type phía API — tab chỉ hiển thị/search/sort.
-    const searchFilteredConversations = conversations.filter((conversation) =>
+    const tabConversations =
+      effectiveTab === "me"
+        ? mineConversations
+        : effectiveTab === "unassigned"
+          ? unassignedConversations
+          : conversations;
+
+    const searchFilteredConversations = tabConversations.filter((conversation) =>
       conversation.name.toLowerCase().includes(searchQuery.toLowerCase()),
     );
 
@@ -577,7 +684,13 @@ export function ChatConversationList({
         getTime(b.lastMessage.timestamp) - getTime(a.lastMessage.timestamp)
       );
     });
-  }, [conversations, searchQuery]);
+  }, [
+    conversations,
+    effectiveTab,
+    mineConversations,
+    searchQuery,
+    unassignedConversations,
+  ]);
 
   const conversationItemRefs = useRef(new Map<string, HTMLElement>());
   const loadMoreForScrollRef = useRef<string | null>(null);
@@ -661,32 +774,6 @@ export function ChatConversationList({
     sortedConversations,
   ]);
 
-  const availableAgents = useMemo(
-    () =>
-      extractAgentRecords(agentsData)
-        .map((raw, index) => normalizeAgentOption(raw, index))
-        .filter((agent): agent is ConversationAgentOption => agent !== null),
-    [agentsData],
-  );
-  const availableTeams = useMemo(() => extractTeams(teamsData), [teamsData]);
-  const currentAgentUuid = useMemo(() => {
-    const currentUserEmail = currentUser?.email?.trim().toLowerCase();
-    const currentUserId = currentUser?.id?.trim();
-
-    const currentAgent = availableAgents.find((agent) => {
-      if (currentUserEmail && agent.email?.toLowerCase() === currentUserEmail) {
-        return true;
-      }
-
-      if (currentUserId && agent.id === currentUserId) {
-        return true;
-      }
-
-      return false;
-    });
-
-    return currentAgent ? resolveAgentUuid(currentAgent) : "";
-  }, [availableAgents, currentUser?.email, currentUser?.id]);
   const labelOptions = useMemo(
     () =>
       extractRawLabels(labelData)
@@ -861,10 +948,14 @@ export function ChatConversationList({
     ],
   );
 
-  const handleMarkConversationPending = useCallback(
-    (conversation: ChatConversation) => {
+  const handleChangeConversationStatus = useCallback(
+    (
+      conversation: ChatConversation,
+      status: "pending" | "resolved" | "snoozed",
+      snoozedUntil: number | null = null,
+    ) => {
       if (!tenantId.trim() || isTogglingConversationStatus) return;
-      if (conversation.status === "pending") return;
+      if (conversation.status === status) return;
 
       const conversationId = conversation.id.trim();
       if (!conversationId) {
@@ -877,8 +968,8 @@ export function ChatConversationList({
           tenantId,
           conversationId,
           data: {
-            status: "pending",
-            snoozed_until: null,
+            status,
+            snoozed_until: status === "snoozed" ? snoozedUntil : null,
           },
         },
         {
@@ -887,7 +978,7 @@ export function ChatConversationList({
               queryClient,
               tenantId,
               conversation.id,
-              "pending",
+              status,
             );
           },
         },
@@ -919,12 +1010,12 @@ export function ChatConversationList({
       </ContextMenuItem> */}
       {/* <ContextMenuSeparator className="my-1" /> */}
       <ContextMenuItem
+        disabled={
+          isTogglingConversationStatus || conversation.status === "resolved"
+        }
         className={CONTEXT_MENU_ITEM_CLASSNAME}
         onSelect={() =>
-          showConversationActionToast(
-            "Đã đánh dấu đã xử lý",
-            `Cuộc trò chuyện với ${conversation.name} đã được chuyển sang trạng thái đã xử lý.`,
-          )
+          handleChangeConversationStatus(conversation, "resolved")
         }
       >
         <Check />
@@ -935,23 +1026,60 @@ export function ChatConversationList({
           isTogglingConversationStatus || conversation.status === "pending"
         }
         className={CONTEXT_MENU_ITEM_CLASSNAME}
-        onSelect={() => handleMarkConversationPending(conversation)}
+        onSelect={() => handleChangeConversationStatus(conversation, "pending")}
       >
         <Clock3 />
         Chờ xử lý
       </ContextMenuItem>
-      {/* <ContextMenuItem
-        className={CONTEXT_MENU_ITEM_CLASSNAME}
-        onSelect={() =>
-          showConversationActionToast(
-            "Đã tạm ẩn cuộc trò chuyện",
-            `Bạn sẽ không nhận làm phiền ngay cho cuộc trò chuyện với ${conversation.name}.`,
-          )
-        }
-      >
-        <AlarmClockOff />
-        Tạm ẩn
-      </ContextMenuItem> */}
+      <ContextMenuSub>
+        <ContextMenuSubTrigger className={CONTEXT_MENU_SUB_TRIGGER_CLASSNAME}>
+          <AlarmClockOff />
+          Tạm ẩn
+        </ContextMenuSubTrigger>
+        <ContextMenuSubContent className="w-52 rounded-lg p-1">
+          <ContextMenuItem
+            disabled={
+              isTogglingConversationStatus || conversation.status === "snoozed"
+            }
+            className={CONTEXT_MENU_ITEM_CLASSNAME}
+            onSelect={() =>
+              handleChangeConversationStatus(conversation, "snoozed", null)
+            }
+          >
+            Đến khi có tin nhắn mới
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={
+              isTogglingConversationStatus || conversation.status === "snoozed"
+            }
+            className={CONTEXT_MENU_ITEM_CLASSNAME}
+            onSelect={() =>
+              handleChangeConversationStatus(
+                conversation,
+                "snoozed",
+                getSnoozeUntilTomorrow(),
+              )
+            }
+          >
+            Đến ngày mai
+          </ContextMenuItem>
+          <ContextMenuItem
+            disabled={
+              isTogglingConversationStatus || conversation.status === "snoozed"
+            }
+            className={CONTEXT_MENU_ITEM_CLASSNAME}
+            onSelect={() =>
+              handleChangeConversationStatus(
+                conversation,
+                "snoozed",
+                getSnoozeUntilNextWeek(),
+              )
+            }
+          >
+            Đến tuần sau
+          </ContextMenuItem>
+        </ContextMenuSubContent>
+      </ContextMenuSub>
       <ContextMenuSeparator className="my-1" />
       <ContextMenuSub>
         <ContextMenuSubTrigger className={CONTEXT_MENU_SUB_TRIGGER_CLASSNAME}>
@@ -1324,7 +1452,14 @@ export function ChatConversationList({
                           sideOffset={8}
                           className="max-w-56 px-2 py-1 text-[11px]"
                         >
-                          {conversation.name}
+                          <span className="block truncate">
+                            {conversation.name}
+                          </span>
+                          <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                            {conversationStatusLabel(
+                              conversation.status || "open",
+                            )}
+                          </span>
                         </TooltipContent>
                       </Tooltip>
                     </motion.div>
@@ -1556,6 +1691,10 @@ export function ChatConversationList({
                               >
                                 {conversation.name}
                               </h3>
+                              <ConversationStatusChip
+                                status={conversation.status}
+                                compact
+                              />
                               {conversation.isPinned && (
                                 <Pin className="size-3.5 shrink-0 text-foreground/55" />
                               )}

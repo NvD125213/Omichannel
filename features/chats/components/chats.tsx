@@ -17,16 +17,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   chatwootOmniKeys,
-  useListTenantConversations,
   useInfiniteFilterConversations,
   useListAccountCustomFilters,
   useDeleteAccountCustomFilter,
 } from "@/hooks/chatwoot/use-chatwoot";
 import type {
   FilterConversationsRequest,
-  ListTenantConversationsData,
-  ListTenantConversationsParams,
-  ListTenantConversationsResponse,
   TenantConversationsListMeta,
 } from "@/services/chatwoot/interface";
 import { Button } from "@/components/ui/button";
@@ -72,6 +68,7 @@ import { ChatConversationFilterForm } from "./chat-conversation-filter-form";
 import { ChatFilterCustomDialog } from "./chat-filter-custom-dialog";
 import {
   buildFilterConversationsPayload,
+  buildConversationListFilterRequest,
   EMPTY_CHAT_CONVERSATION_FILTER,
   extractAccountCustomFilters,
   extractFilterConversationsMetaFromPages,
@@ -79,73 +76,46 @@ import {
   customFilterQueryToDraft,
   customFilterQueryToRequest,
   parseCustomFilterId,
-  CHAT_CONVERSATION_STATUS_OPTIONS,
+  DEFAULT_CHAT_CONVERSATION_STATUSES,
+  conversationStatusBadgeStyle,
+  conversationStatusLabel,
+  normalizeConversationStatuses,
   countActiveChatConversationFilters,
   hasActiveChatConversationFilter,
   type ChatConversationFilterDraft,
 } from "../utils/conversation-filter";
 import type { AccountCustomFilter } from "@/services/chatwoot/interface";
 
-/** Params list conversations — GET `/api/v1/chatwoot/tenants/:tenant_id/conversations` */
-const TENANT_CONVERSATION_LIST_BASE = {
-  status: "open",
-  assignee_type: "all",
-  page: 1,
-  sort_by: "last_activity_at_desc",
-} as const satisfies Partial<ListTenantConversationsParams>;
-
 /** Tuỳ chỉnh nền rail lọc chat — đổi class Tailwind tại đây (chỉ dark hoặc cả light) */
 const CHAT_FILTER_RAIL_OVERLAY_SURFACE = "dark:bg-slate-950/50";
 
-const CONVERSATION_STATUS_BADGE_STYLES: Record<
-  string,
-  { dot: string; bg: string; text: string; border: string }
-> = {
-  open: {
-    dot: "bg-emerald-500",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-700 dark:text-emerald-400",
-    border: "border-emerald-500/25",
-  },
-  resolved: {
-    dot: "bg-slate-400",
-    bg: "bg-muted/80",
-    text: "text-muted-foreground",
-    border: "border-border/80",
-  },
-  pending: {
-    dot: "bg-amber-500",
-    bg: "bg-amber-500/10",
-    text: "text-amber-700 dark:text-amber-400",
-    border: "border-amber-500/25",
-  },
-  snoozed: {
-    dot: "bg-sky-500",
-    bg: "bg-sky-500/10",
-    text: "text-sky-700 dark:text-sky-400",
-    border: "border-sky-500/25",
-  },
-};
-
-function ConversationListStatusBadge({ status }: { status: string }) {
-  const style =
-    CONVERSATION_STATUS_BADGE_STYLES[status] ??
-    CONVERSATION_STATUS_BADGE_STYLES.open;
-  const label =
-    CHAT_CONVERSATION_STATUS_OPTIONS.find((option) => option.value === status)
-      ?.label ?? status;
+function ConversationListStatusBadge({
+  status,
+}: {
+  status: string | string[];
+}) {
+  const statuses = normalizeConversationStatuses(status);
+  if (statuses.length === 0) return null;
 
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium leading-none",
-        style.bg,
-        style.text,
-        style.border,
-      )}
-    >
-      <span className={cn("size-1.5 rounded-full", style.dot)} aria-hidden />
-      {label}
+    <span className="flex min-w-0 flex-wrap items-center gap-1">
+      {statuses.map((value) => {
+        const style = conversationStatusBadgeStyle(value);
+        return (
+          <span
+            key={value}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium leading-none",
+              style.bg,
+              style.text,
+              style.border,
+            )}
+          >
+            <span className={cn("size-1.5 rounded-full", style.dot)} aria-hidden />
+            {conversationStatusLabel(value)}
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -658,79 +628,6 @@ const normalizeConversation = (
   };
 };
 
-const coerceConversationRecords = (
-  value: unknown,
-): Record<string, unknown>[] | null => {
-  if (!Array.isArray(value)) return null;
-  const rows = value.filter(
-    (item): item is Record<string, unknown> =>
-      Boolean(item) && typeof item === "object" && !Array.isArray(item),
-  );
-  return rows;
-};
-
-/** Lấy mảng hội thoại từ `ApiResponse.data` (nhiều dạng lồng backend). */
-const extractTenantListPayload = (
-  res: ListTenantConversationsResponse | null | undefined,
-): Record<string, unknown>[] | null => {
-  const data = res?.data as ListTenantConversationsData | undefined;
-  if (!data) return null;
-  const flat = coerceConversationRecords(data.payload);
-  if (flat) return flat;
-  const nested = coerceConversationRecords(data.data?.payload);
-  if (nested) return nested;
-  const viaChatwoot = coerceConversationRecords(data.messaging?.data?.payload);
-  if (viaChatwoot) return viaChatwoot;
-  return null;
-};
-
-const extractTenantListPayloadFromPages = (
-  pages: (ListTenantConversationsResponse | undefined)[] | undefined,
-): Record<string, unknown>[] | null => {
-  if (!pages || pages.length === 0) return null;
-
-  const merged: Record<string, unknown>[] = [];
-  let hasExtractablePayload = false;
-
-  pages.forEach((page) => {
-    const payload = extractTenantListPayload(page);
-    if (payload !== null) {
-      hasExtractablePayload = true;
-      merged.push(...payload);
-    }
-  });
-
-  return hasExtractablePayload ? merged : null;
-};
-
-const extractTenantListMeta = (
-  res: ListTenantConversationsResponse | null | undefined,
-): TenantConversationsListMeta | null => {
-  const data = res?.data as ListTenantConversationsData | undefined;
-  if (!data) return null;
-  if (data.meta && typeof data.meta === "object") return data.meta;
-  if (data.data?.meta && typeof data.data.meta === "object")
-    return data.data.meta;
-  if (
-    data.messaging?.data?.meta &&
-    typeof data.messaging.data.meta === "object"
-  ) {
-    return data.messaging.data.meta;
-  }
-  return null;
-};
-
-const extractTenantListMetaFromPages = (
-  pages: (ListTenantConversationsResponse | undefined)[] | undefined,
-): TenantConversationsListMeta | null => {
-  if (!pages || pages.length === 0) return null;
-  for (let i = pages.length - 1; i >= 0; i -= 1) {
-    const meta = extractTenantListMeta(pages[i]);
-    if (meta) return meta;
-  }
-  return null;
-};
-
 export function Chat() {
   const users: ChatUser[] = [];
   const [query, setQuery] = useQueryParams({
@@ -814,37 +711,29 @@ export function Chat() {
     [exitChatFilterMode],
   );
 
-  // Tham số query params cho API lấy danh sách hội thoại
-  const conversationListQueryParams = useMemo(
-    () =>
-      ({
-        ...TENANT_CONVERSATION_LIST_BASE,
-        assignee_type: conversationAssigneeType,
-        ...(typeof sidebarInboxId === "number" ||
-        (typeof sidebarTeamId === "string" && sidebarTeamId.length > 0)
-          ? {}
-          : { conversation_type: sidebarConversationAssignee }),
-        ...(typeof sidebarInboxId === "number"
-          ? { inbox_id: sidebarInboxId }
-          : {}),
-        ...(typeof sidebarTeamId === "string" && sidebarTeamId.length > 0
-          ? { team_id: sidebarTeamId }
-          : {}),
-        ...(sidebarLabel ? { labels: [sidebarLabel] } : {}),
-      }) satisfies ListTenantConversationsParams,
-    [
-      conversationAssigneeType,
-      sidebarConversationAssignee,
-      sidebarInboxId,
-      sidebarTeamId,
-      sidebarLabel,
-    ],
-  );
-
   // Lấy thông tin user đang đăng nhập
   const { user } = useAuth();
   const tenantId = user?.tenant_id ?? "";
   const queryClient = useQueryClient();
+
+  const listFilterRequest = useMemo((): FilterConversationsRequest => {
+    if (isChatFilterActive && activeFilterRequest?.payload?.length) {
+      return activeFilterRequest;
+    }
+
+    return buildConversationListFilterRequest({
+      status: [...DEFAULT_CHAT_CONVERSATION_STATUSES],
+      inboxId: typeof sidebarInboxId === "number" ? String(sidebarInboxId) : "",
+      labels: sidebarLabel ? [sidebarLabel] : [],
+      teamId: sidebarTeamId,
+    });
+  }, [
+    isChatFilterActive,
+    activeFilterRequest,
+    sidebarInboxId,
+    sidebarLabel,
+    sidebarTeamId,
+  ]);
 
   const conversationListNavigationKey = useMemo(() => {
     if (isChatFilterActive) {
@@ -893,16 +782,6 @@ export function Chat() {
     });
   }, [conversationListNavigationKey, tenantId, queryClient]);
 
-  // Lấy danh sách conversations từ API
-  const {
-    data: chatwootConversationsList,
-    isLoading: isChatwootLoading,
-    isFetching: isChatwootFetching,
-    isFetchingNextPage: isChatwootFetchingNextPage,
-    fetchNextPage: fetchNextConversationPage,
-    hasNextPage: hasNextConversationPage,
-  } = useListTenantConversations(tenantId, conversationListQueryParams);
-
   const {
     data: filteredConversationsList,
     isLoading: isFilterLoading,
@@ -912,119 +791,52 @@ export function Chat() {
     hasNextPage: hasNextFilterPage,
   } = useInfiniteFilterConversations(
     tenantId,
-    activeFilterRequest,
-    isChatFilterActive,
+    listFilterRequest,
+    Boolean(listFilterRequest.payload.length),
   );
 
-  const chatwootConversationPages = chatwootConversationsList?.pages;
   const filteredConversationPages = filteredConversationsList?.pages;
-
-  // Lấy payload từ data trả về (thành phần trong response là payload)
-  const chatwootPayload = useMemo(
-    () => extractTenantListPayloadFromPages(chatwootConversationPages),
-    [chatwootConversationPages],
-  );
-
-  // Map payload thành dạng ChatConversation
-  const mappedChatwootConversations = useMemo(
-    () => (chatwootPayload ?? []).map(normalizeConversation),
-    [chatwootPayload],
-  );
 
   const filteredChatwootPayload = useMemo(
     () => extractFilterConversationsPayloadFromPages(filteredConversationPages),
     [filteredConversationPages],
   );
 
-  const mappedFilteredConversations = useMemo(
+  const displayConversations = useMemo(
     () => (filteredChatwootPayload ?? []).map(normalizeConversation),
     [filteredChatwootPayload],
   );
 
-  const displayConversations = useMemo(
-    () =>
-      isChatFilterActive
-        ? mappedFilteredConversations
-        : mappedChatwootConversations,
-    [
-      isChatFilterActive,
-      mappedFilteredConversations,
-      mappedChatwootConversations,
-    ],
-  );
-
-  const isConversationListLoading = isChatFilterActive
-    ? isFilterLoading
-    : isChatwootLoading;
-  const isConversationListFetching = isChatFilterActive
-    ? isFilterFetching
-    : isChatwootFetching;
+  const isConversationListLoading = isFilterLoading;
+  const isConversationListFetching = isFilterFetching;
   const isApplyingChatFilter =
     isChatFilterActive && isFilterFetching && !isFilterFetchingNextPage;
 
-  // Lấy meta từ data trả về (thành phần trong response là meta)
   const chatwootConversationsMeta = useMemo(() => {
-    if (isChatFilterActive) {
-      const filterMeta = extractFilterConversationsMetaFromPages(
-        filteredConversationPages,
-      );
-      if (filterMeta) return filterMeta;
-      if (filteredChatwootPayload !== null) {
-        const total = mappedFilteredConversations.length;
-        return {
-          mine_count: total,
-          assigned_count: total,
-          unassigned_count: 0,
-          all_count: total,
-        } satisfies TenantConversationsListMeta;
-      }
-      return null;
-    }
-
-    const apiMeta = extractTenantListMetaFromPages(chatwootConversationPages);
-    if (apiMeta) return apiMeta;
-
-    // API có payload nhưng không trả meta -> tạo meta fallback để UI tab hiển thị đúng.
-    if (chatwootPayload !== null) {
-      const total = mappedChatwootConversations.length;
+    const filterMeta = extractFilterConversationsMetaFromPages(
+      filteredConversationPages,
+    );
+    if (filterMeta) return filterMeta;
+    if (filteredChatwootPayload !== null) {
+      const total = displayConversations.length;
       return {
-        mine_count: conversationAssigneeType === "me" ? total : 0,
-        assigned_count: conversationAssigneeType === "me" ? total : 0,
-        unassigned_count: conversationAssigneeType === "unassigned" ? total : 0,
-        all_count: conversationAssigneeType === "all" ? total : 0,
+        mine_count: 0,
+        assigned_count: 0,
+        unassigned_count: 0,
+        all_count: total,
       } satisfies TenantConversationsListMeta;
     }
-
     return null;
   }, [
-    isChatFilterActive,
     filteredConversationPages,
     filteredChatwootPayload,
-    mappedFilteredConversations.length,
-    chatwootConversationPages,
-    chatwootPayload,
-    mappedChatwootConversations.length,
-    conversationAssigneeType,
+    displayConversations.length,
   ]);
 
   const handleLoadMoreConversations = useCallback(() => {
-    if (isChatFilterActive) {
-      if (!hasNextFilterPage || isFilterFetchingNextPage) return;
-      void fetchNextFilterPage();
-      return;
-    }
-
-    if (!hasNextConversationPage || isChatwootFetchingNextPage) return;
-    void fetchNextConversationPage();
-  }, [
-    fetchNextConversationPage,
-    fetchNextFilterPage,
-    hasNextConversationPage,
-    hasNextFilterPage,
-    isChatFilterActive,
-    isChatwootFetchingNextPage,
-    isFilterFetchingNextPage,
-  ]);
+    if (!hasNextFilterPage || isFilterFetchingNextPage) return;
+    void fetchNextFilterPage();
+  }, [fetchNextFilterPage, hasNextFilterPage, isFilterFetchingNextPage]);
 
   // Lấy store chat từ context
   const chatStore = useChat();
@@ -1160,8 +972,9 @@ export function Chat() {
     handleClearChatFilters,
   ]);
 
-  const conversationListStatus =
-    conversationListQueryParams.status ?? TENANT_CONVERSATION_LIST_BASE.status;
+  const conversationListStatus = isChatFilterActive
+    ? appliedChatFilter.status
+    : [...DEFAULT_CHAT_CONVERSATION_STATUSES];
 
   const filteredConversationCount = useMemo(() => {
     if (!isChatFilterActive) return 0;
@@ -1407,13 +1220,14 @@ export function Chat() {
                   <span className="min-w-0 truncate py-1 whitespace-nowrap transition-opacity duration-300">
                     Danh sách trò chuyện
                   </span>
-                  {isChatFilterActive ? (
-                    <ConversationListCountBadge
-                      count={filteredConversationCount}
-                    />
-                  ) : (
+                  {conversationListStatus.length > 0 && (
                     <ConversationListStatusBadge
                       status={conversationListStatus}
+                    />
+                  )}
+                  {isChatFilterActive && (
+                    <ConversationListCountBadge
+                      count={filteredConversationCount}
                     />
                   )}
                 </h2>
@@ -1530,16 +1344,8 @@ export function Chat() {
                   hideTabs={isChatFilterActive}
                   teamId={sidebarTeamId}
                   listScrollResetKey={conversationListNavigationKey}
-                  isLoadingMore={
-                    isChatFilterActive
-                      ? isFilterFetchingNextPage
-                      : isChatwootFetchingNextPage
-                  }
-                  hasMore={
-                    isChatFilterActive
-                      ? Boolean(hasNextFilterPage)
-                      : Boolean(hasNextConversationPage)
-                  }
+                  isLoadingMore={isFilterFetchingNextPage}
+                  hasMore={Boolean(hasNextFilterPage)}
                   conversationsMeta={chatwootConversationsMeta}
                   assigneeType={conversationAssigneeType}
                   onAssigneeTypeChange={setConversationAssigneeType}
@@ -1610,16 +1416,8 @@ export function Chat() {
                   hideTabs={isChatFilterActive}
                   teamId={sidebarTeamId}
                   listScrollResetKey={conversationListNavigationKey}
-                  isLoadingMore={
-                    isChatFilterActive
-                      ? isFilterFetchingNextPage
-                      : isChatwootFetchingNextPage
-                  }
-                  hasMore={
-                    isChatFilterActive
-                      ? Boolean(hasNextFilterPage)
-                      : Boolean(hasNextConversationPage)
-                  }
+                  isLoadingMore={isFilterFetchingNextPage}
+                  hasMore={Boolean(hasNextFilterPage)}
                   conversationsMeta={chatwootConversationsMeta}
                   assigneeType={conversationAssigneeType}
                   onAssigneeTypeChange={setConversationAssigneeType}

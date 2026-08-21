@@ -18,7 +18,7 @@ import {
   IconTag,
   IconUsers,
 } from "@tabler/icons-react";
-import { Monitor, Palette, UserCog } from "lucide-react";
+import { Building2, Monitor, Palette, UserCog } from "lucide-react";
 import type { ElementType } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -30,6 +30,8 @@ type SettingsNavItem = {
   icon: ElementType<{ className?: string }>;
   /** hasAny — empty/undefined = luôn hiện (đã đăng nhập) */
   permissions?: Permission[];
+  /** Ẩn với platform admin (`is_platform_admin === true`). */
+  hideForPlatformAdmin?: boolean;
 };
 
 type SettingsNavGroup = {
@@ -51,6 +53,12 @@ const settingsNavGroups: SettingsNavGroup[] = [
   {
     title: "Vận hành",
     items: [
+      {
+        title: "Trạng thái doanh nghiệp",
+        href: "/settings/tenant",
+        icon: Building2,
+        hideForPlatformAdmin: true,
+      },
       {
         title: "Nhân viên hỗ trợ",
         href: "/settings/agent",
@@ -115,11 +123,13 @@ function isNavItemActive(pathname: string, href: string) {
 function filterSettingsGroups(
   groups: SettingsNavGroup[],
   userPermissions: string[],
+  isPlatformAdmin: boolean,
 ): SettingsNavGroup[] {
   return groups
     .map((group) => ({
       ...group,
       items: group.items.filter((item) => {
+        if (item.hideForPlatformAdmin && isPlatformAdmin) return false;
         if (!item.permissions?.length) return true;
         return item.permissions.some((p) => userPermissions.includes(p));
       }),
@@ -257,11 +267,16 @@ export default function SettingsLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { permissions } = useAuth();
+  const { permissions, isPlatformAdmin } = useAuth();
 
   const filteredGroups = useMemo(
-    () => filterSettingsGroups(settingsNavGroups, permissions ?? []),
-    [permissions],
+    () =>
+      filterSettingsGroups(
+        settingsNavGroups,
+        permissions ?? [],
+        isPlatformAdmin,
+      ),
+    [permissions, isPlatformAdmin],
   );
   const filteredItems = useMemo(
     () => filteredGroups.flatMap((g) => g.items),

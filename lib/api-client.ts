@@ -122,7 +122,6 @@ apiClient.interceptors.response.use(
       const refreshToken = getRefreshToken();
 
       if (!refreshToken) {
-        toast.error("Phiên đăng nhập đã hết hạn");
         clearTokens();
         triggerRedirectToLogin();
         return Promise.reject(new Error("No refresh token available"));
