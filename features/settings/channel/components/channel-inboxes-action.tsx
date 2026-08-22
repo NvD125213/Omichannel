@@ -83,6 +83,8 @@ type ChannelField = {
   maxLength?: number;
   default?: string | boolean;
   options?: ChannelFieldOption[];
+  /** Không trả về khi GET inbox — trống lúc sửa thì không bắt buộc nhập lại. */
+  secret?: boolean;
 };
 
 type ChannelDefinition = {
@@ -147,7 +149,7 @@ const CHANNEL_META: Record<
   },
   telegram: {
     title: "Telegram",
-    description: "Kết nối bot Telegram qua BotFather token.",
+    description: "Kết nối kênh Telegram và bắt đầu hỗ trợ khách hàng.",
     icon: Send,
     color:
       "bg-cyan-500/15 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400",
@@ -398,6 +400,7 @@ function mapInboxToFormValues(
       );
       break;
     case "telegram":
+      values.channel_name = String(pick("name", "channel_name") ?? "");
       values.bot_token = String(pick("bot_token") ?? "");
       break;
     case "line":
@@ -466,15 +469,17 @@ function buildInboxPayload(channelKey: ChannelKey, values: ChannelFormValues) {
           webhook_url: str("webhook_url"),
         },
       };
-    case "telegram":
+    case "telegram": {
+      const botToken = str("bot_token");
       return {
         ...base,
-        name: "Telegram",
+        name: str("channel_name") || "Telegram",
         channel: {
           type: "telegram",
-          bot_token: str("bot_token"),
+          ...(botToken ? { bot_token: botToken } : {}),
         },
       };
+    }
     case "line":
       return {
         ...base,
@@ -660,6 +665,9 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
       if (!field.required) continue;
       const value = values[field.key];
       if (field.type === "checkbox") continue;
+      if (isEdit && field.secret) {
+        if (typeof value !== "string" || !value.trim()) continue;
+      }
       if (typeof value !== "string" || !value.trim()) {
         form.setError(field.key, {
           type: "required",
@@ -928,11 +936,15 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
           <div className="space-y-4 px-1 pb-2 sm:px-1.5">
             <div className="space-y-1">
               <h3 className="text-base font-medium">
-                {isEdit ? "Cập nhật thông tin kênh" : "Điền thông tin kênh"}
+                {isEdit
+                  ? "Cập nhật thông tin kênh"
+                  : selectedDef
+                    ? selectedDef.name
+                    : "Điền thông tin kênh"}
               </h3>
               <p className="text-sm text-muted-foreground">
                 {selectedChannel
-                  ? `Cấu hình cho ${CHANNEL_META[selectedChannel].title}.`
+                  ? CHANNEL_META[selectedChannel].description
                   : "Vui lòng chọn loại kênh ở bước trước."}
               </p>
             </div>
@@ -950,7 +962,9 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
                       control={form.control}
                       name={field.key}
                       rules={
-                        field.required && field.type !== "checkbox"
+                        field.required &&
+                        field.type !== "checkbox" &&
+                        !(isEdit && field.secret)
                           ? {
                               required: `${field.label} không được để trống`,
                             }
@@ -987,7 +1001,7 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
                             <>
                               <FormLabel>
                                 {field.label}
-                                {field.required ? (
+                                {field.required && !(isEdit && field.secret) ? (
                                   <span className="text-destructive"> *</span>
                                 ) : null}
                               </FormLabel>
@@ -1069,8 +1083,16 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
                                             ? "url"
                                             : "text"
                                     }
-                                    placeholder={field.placeholder}
+                                    placeholder={
+                                      isEdit && field.secret
+                                        ? "Để trống nếu không đổi"
+                                        : field.placeholder
+                                    }
                                     maxLength={field.maxLength}
+                                    autoComplete={
+                                      field.secret ? "off" : undefined
+                                    }
+                                    spellCheck={field.secret ? false : undefined}
                                     className="border-2 border-border"
                                     disabled={isBusy || isSuccessStep}
                                     value={String(rhfField.value ?? "")}

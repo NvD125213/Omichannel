@@ -275,6 +275,10 @@
 
 /* Softphone widget — unlayered so it beats TeleSIP styles.css */
 #pwBackground,
+#ppContainer {
+  position: fixed !important;
+}
+#pwBackground,
 #pwBackground * {
   cursor: grab !important;
   touch-action: none;

@@ -171,12 +171,20 @@
     "name": "Kênh Telegram",
     "fields": [
       {
+        "key": "channel_name",
+        "label": "Tên kênh",
+        "type": "text",
+        "required": true,
+        "placeholder": "Nhập tên kênh (vd: Hỗ trợ Telegram)"
+      },
+      {
         "key": "bot_token",
         "label": "Bot Token",
-        "type": "password",
+        "type": "text",
         "required": true,
-        "placeholder": "Nhập Bot Token",
-        "helperText": "Token bot lấy từ Telegram BotFather."
+        "placeholder": "Bot Token",
+        "helperText": "Cấu hình bot token bạn đã lấy từ Telegram BotFather.",
+        "secret": true
       }
     ]
   },

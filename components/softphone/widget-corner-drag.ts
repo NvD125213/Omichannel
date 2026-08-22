@@ -60,6 +60,12 @@ function applyCorner(corner: SoftphoneCorner) {
   } catch {}
 }
 
+/** Gỡ tọa độ pixel Vue ghi khi viewport đổi (thanh thông báo Chrome). */
+export function reapplyStoredSoftphoneCorner() {
+  if (typeof document === "undefined") return;
+  applyCorner(readStoredCorner());
+}
+
 function nearestCorner(clientX: number, clientY: number): SoftphoneCorner {
   const midX = window.innerWidth / 2;
   const midY = window.innerHeight / 2;
