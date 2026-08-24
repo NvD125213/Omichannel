@@ -128,6 +128,8 @@ export const PERMISSIONS = {
   CREATE_TENANT: "create_tenant",
   EDIT_TENANT: "edit_tenant",
   DELETE_TENANT: "delete_tenant",
+  VIEW_OWN_TENANT_SETTINGS: "view_own_tenant_settings",
+  EDIT_OWN_TENANT_SETTINGS: "edit_own_tenant_settings",
 
   // Logs
   VIEW_LOGS: "view_logs",

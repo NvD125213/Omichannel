@@ -58,6 +58,10 @@ const settingsNavGroups: SettingsNavGroup[] = [
         href: "/settings/tenant",
         icon: Building2,
         hideForPlatformAdmin: true,
+        permissions: [
+          PERMISSIONS.VIEW_OWN_TENANT_SETTINGS,
+          PERMISSIONS.EDIT_OWN_TENANT_SETTINGS,
+        ],
       },
       {
         title: "Nhân viên hỗ trợ",

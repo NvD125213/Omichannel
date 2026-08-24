@@ -154,6 +154,13 @@ export function getRequiredPermissionsForPath(
     ];
   }
 
+  if (matches(path, "/settings/tenant")) {
+    return [
+      PERMISSIONS.VIEW_OWN_TENANT_SETTINGS,
+      PERMISSIONS.EDIT_OWN_TENANT_SETTINGS,
+    ];
+  }
+
   if (
     matches(path, "/settings/agent-bot") ||
     matches(path, "/settings/agentbots")

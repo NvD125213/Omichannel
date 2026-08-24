@@ -595,9 +595,13 @@ function CGVCallSDKProviderInner({ children }: { children: React.ReactNode }) {
 
   const sessionAllowsWidget =
     isMounted && isAuthenticated && !isAuthPending && !isConnectionError;
-  const widgetAllowed =
-    sessionAllowsWidget && isWidgetAllowedOnPath(pathname);
-  sharedSessionAllowsWidget = sessionAllowsWidget;
+  const widgetAllowed = sessionAllowsWidget && isWidgetAllowedOnPath(pathname);
+
+  // --- FIX: Only update sharedSessionAllowsWidget in an effect
+  useEffect(() => {
+    sharedSessionAllowsWidget = sessionAllowsWidget;
+  }, [sessionAllowsWidget]);
+  // ---
 
   const { data: currentUser } = useMe();
   const { data: webcall, fetchStatus: webcallFetchStatus } = useGetMyWebcall();
