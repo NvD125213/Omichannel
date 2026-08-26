@@ -7,6 +7,8 @@ import {
   BellOff,
   MoreVertical,
   Search,
+  Star,
+  Trash2,
   Users,
 } from "lucide-react";
 
@@ -36,6 +38,7 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/auth-context";
 import { useToggleTenantConversationStatus } from "@/hooks/chatwoot/use-chatwoot";
+import { useSendConversationRating } from "@/hooks/ratings/use-conversation-rating";
 import { cn } from "@/lib/utils";
 import type { ChatConversation, ChatUser } from "../utils/types";
 import {
@@ -85,6 +88,8 @@ export function ChatHeader({
   const tenantId = user?.tenant_id ?? "";
   const { mutate: toggleConversationStatus, isPending: isTogglingStatus } =
     useToggleTenantConversationStatus();
+  const { mutate: sendConversationRating, isPending: isSendingRating } =
+    useSendConversationRating();
 
   const conversationStatus: ConversationStatusValue =
     getConversationStatusValue(conversation?.status);
@@ -99,6 +104,16 @@ export function ChatHeader({
         status: value,
         snoozed_until: null,
       },
+    });
+  };
+
+  const handleSendRating = () => {
+    if (!conversation || !tenantId || isSendingRating) return;
+
+    sendConversationRating({
+      tenantId,
+      conversationId: conversation.id,
+      data: { force_resend: true },
     });
   };
 
@@ -247,9 +262,8 @@ export function ChatHeader({
         >
           <SelectTrigger
             className={cn(
-              "h-8 w-43 border bg-transparent text-xs dark:bg-transparent",
+              "h-8 w-43 border-neutral-500/25 text-xs dark:bg-transparent",
               conversationStatusBadgeStyle(conversationStatus).text,
-              conversationStatusBadgeStyle(conversationStatus).border,
             )}
           >
             <SelectValue placeholder="Trạng thái" />
@@ -279,7 +293,7 @@ export function ChatHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onToggleMute} className="cursor-pointer">
+            {/* <DropdownMenuItem onClick={onToggleMute} className="cursor-pointer">
               {conversation.isMuted ? (
                 <>
                   <Bell className="mr-2 size-4" />
@@ -291,11 +305,16 @@ export function ChatHeader({
                   Tắt thông báo
                 </>
               )}
+            </DropdownMenuItem> */}
+            <DropdownMenuItem
+              className="cursor-pointer"
+              disabled={!tenantId || isSendingRating}
+              onClick={handleSendRating}
+            >
+              <Star className="size-4" />
+              {isSendingRating ? "Đang gửi..." : "Gửi đánh giá chất lượng"}
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
-              <Search className="mr-2 size-4" />
-              Tìm kiếm tin nhắn
-            </DropdownMenuItem>
+
             {conversation.type === "group" && (
               <>
                 <DropdownMenuSeparator />
@@ -307,6 +326,7 @@ export function ChatHeader({
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer text-destructive">
+              <Trash2 className="size-4 text-destructive" />
               Xóa cuộc hội thoại
             </DropdownMenuItem>
           </DropdownMenuContent>

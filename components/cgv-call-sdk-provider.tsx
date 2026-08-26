@@ -291,7 +291,8 @@ function hideWidgetDom() {
 }
 
 /**
- * Các path KHÔNG được hiện widget: auth `(auth)` + trang lỗi `(errors)`.
+ * Các path KHÔNG được hiện widget: auth `(auth)`, lỗi `(errors)`,
+ * trang công khai `(public)` (vd. `/rate/:token`).
  * Route group không xuất hiện trên URL nên so theo prefix pathname.
  * Widget chỉ hiện trên `(dashboard)` — chatbot `/ai/*` cũng bị ẩn.
  */
@@ -304,6 +305,7 @@ const WIDGET_BLOCKED_PATH_PREFIXES = [
   "/not-found",
   "/internal-server-error",
   "/maintenance-error",
+  "/rate",
 ] as const;
 
 function isWidgetAllowedOnPath(pathname: string | null | undefined): boolean {
