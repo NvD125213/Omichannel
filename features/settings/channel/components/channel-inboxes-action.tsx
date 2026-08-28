@@ -14,6 +14,7 @@ import {
   Mail,
   MessageCircle,
   MessageSquareText,
+  Phone,
   Search,
   Send,
   UsersRound,
@@ -54,9 +55,20 @@ import {
 } from "@/hooks/chatwoot/use-chatwoot";
 import { useAuth } from "@/contexts/auth-context";
 import { chatwootService } from "@/services/chatwoot/service";
+import type {
+  CreateTenantInboxRequest,
+  UpdateTenantInboxRequest,
+} from "@/services/chatwoot/interface";
 import channelFormSchema from "./channel-form.json";
 
-type ChannelKey = "website" | "sms" | "email" | "api" | "telegram" | "line";
+type ChannelKey =
+  | "website"
+  | "sms"
+  | "whatsapp"
+  | "email"
+  | "api"
+  | "telegram"
+  | "line";
 
 type FieldType =
   | "text"
@@ -128,10 +140,17 @@ const CHANNEL_META: Record<
   },
   sms: {
     title: "SMS",
-    description: "Kênh SMS qua Twilio Messaging.",
+    description: "Kênh SMS theo chuẩn Chatwoot (provider_config).",
     icon: MessageSquareText,
     color:
       "bg-amber-500/15 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",
+  },
+  whatsapp: {
+    title: "WhatsApp",
+    description: "Kết nối WhatsApp Cloud API.",
+    icon: Phone,
+    color:
+      "bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
   },
   email: {
     title: "Email",
@@ -169,6 +188,7 @@ const CHANNEL_TYPE_TO_KEY: Record<string, ChannelKey> = {
   "Channel::Email": "email",
   "Channel::TwilioSms": "sms",
   "Channel::Sms": "sms",
+  "Channel::Whatsapp": "whatsapp",
   "Channel::Telegram": "telegram",
   "Channel::Line": "line",
   website: "website",
@@ -176,6 +196,7 @@ const CHANNEL_TYPE_TO_KEY: Record<string, ChannelKey> = {
   api: "api",
   email: "email",
   sms: "sms",
+  whatsapp: "whatsapp",
   telegram: "telegram",
   line: "line",
 };
@@ -232,7 +253,14 @@ function unwrapRecord(
     return record;
   }
 
-  for (const key of ["payload", "inbox", "chatwoot", "data", "channel"]) {
+  for (const key of [
+    "payload",
+    "inbox",
+    "chatwoot",
+    "data",
+    "channel",
+    "messaging",
+  ]) {
     const found = unwrapRecord(record[key], depth + 1);
     if (found) return found;
   }
@@ -369,6 +397,8 @@ function mapInboxToFormValues(
         pick("welcome_title", "welcome_heading") ?? "",
       );
       values.welcome_tagline = String(pick("welcome_tagline") ?? "");
+      values.reply_time = String(pick("reply_time") ?? "in_a_few_minutes");
+      values.continuity_via_email = pick("continuity_via_email") !== false;
       values.enable_channel_greeting =
         pick("greeting_enabled") === true ||
         pick("enable_channel_greeting") === "enabled"
@@ -376,79 +406,170 @@ function mapInboxToFormValues(
           : "disabled";
       values.greeting_message = String(pick("greeting_message") ?? "");
       break;
-    case "sms":
-      values.api_provider = String(
-        pick("provider", "api_provider") ?? "twilio",
-      );
+    case "sms": {
+      const providerConfig =
+        (pick("provider_config") as Record<string, unknown> | undefined) ??
+        (channel.provider_config as Record<string, unknown> | undefined) ??
+        {};
       values.inbox_name = String(pick("name", "inbox_name") ?? "");
       values.phone_number = String(pick("phone_number") ?? "");
-      values.account_sid = String(pick("account_sid") ?? "");
-      values.auth_token = String(pick("auth_token") ?? "");
-      values.use_twilio_messaging_service = Boolean(
-        pick("messaging_service_sid"),
+      values.provider_api_key = String(
+        providerConfig.api_key ?? pick("api_key") ?? "",
       );
-      values.use_api_key_authentication = false;
+      values.provider_api_secret = String(
+        providerConfig.api_secret ?? pick("api_secret") ?? "",
+      );
+      values.provider_application_id = String(
+        providerConfig.application_id ?? pick("application_id") ?? "",
+      );
+      values.provider_account_id = String(
+        providerConfig.account_id ?? pick("account_id") ?? "",
+      );
+      values.enable_channel_greeting =
+        pick("greeting_enabled") === true ? "enabled" : "disabled";
+      values.greeting_message = String(pick("greeting_message") ?? "");
       break;
+    }
+    case "whatsapp": {
+      const providerConfig =
+        (pick("provider_config") as Record<string, unknown> | undefined) ??
+        (channel.provider_config as Record<string, unknown> | undefined) ??
+        {};
+      values.inbox_name = String(pick("name", "inbox_name") ?? "");
+      values.phone_number = String(pick("phone_number") ?? "");
+      values.provider = String(pick("provider") ?? "whatsapp_cloud");
+      values.provider_api_key = String(
+        providerConfig.api_key ?? pick("api_key") ?? "",
+      );
+      values.phone_number_id = String(
+        providerConfig.phone_number_id ?? pick("phone_number_id") ?? "",
+      );
+      values.business_account_id = String(
+        providerConfig.business_account_id ?? pick("business_account_id") ?? "",
+      );
+      values.enable_channel_greeting =
+        pick("greeting_enabled") === true ? "enabled" : "disabled";
+      values.greeting_message = String(pick("greeting_message") ?? "");
+      break;
+    }
     case "email":
       values.channel_name = String(pick("name", "channel_name") ?? "");
       values.email = String(pick("email", "forward_to_email") ?? "");
+      values.enable_channel_greeting =
+        pick("greeting_enabled") === true ? "enabled" : "disabled";
+      values.greeting_message = String(pick("greeting_message") ?? "");
       break;
     case "api":
       values.channel_name = String(pick("name", "channel_name") ?? "");
       values.webhook_url = String(
         pick("webhook_url", "callback_webhook_url") ?? "",
       );
+      values.hmac_mandatory = Boolean(pick("hmac_mandatory"));
+      values.enable_channel_greeting =
+        pick("greeting_enabled") === true ? "enabled" : "disabled";
+      values.greeting_message = String(pick("greeting_message") ?? "");
       break;
     case "telegram":
       values.channel_name = String(pick("name", "channel_name") ?? "");
       values.bot_token = String(pick("bot_token") ?? "");
+      values.enable_channel_greeting =
+        pick("greeting_enabled") === true ? "enabled" : "disabled";
+      values.greeting_message = String(pick("greeting_message") ?? "");
       break;
     case "line":
       values.channel_name = String(pick("name", "channel_name") ?? "");
       values.line_channel_id = String(pick("line_channel_id") ?? "");
       values.line_channel_secret = String(pick("line_channel_secret") ?? "");
       values.line_channel_token = String(pick("line_channel_token") ?? "");
+      values.enable_channel_greeting =
+        pick("greeting_enabled") === true ? "enabled" : "disabled";
+      values.greeting_message = String(pick("greeting_message") ?? "");
       break;
   }
 
   return values;
 }
 
-function buildInboxPayload(channelKey: ChannelKey, values: ChannelFormValues) {
+function buildInboxPayload(
+  channelKey: ChannelKey,
+  values: ChannelFormValues,
+): CreateTenantInboxRequest {
   const str = (key: string) => String(values[key] ?? "").trim();
   const bool = (key: string) => Boolean(values[key]);
+  const greetingEnabled = values.enable_channel_greeting === "enabled";
+  const greetingMessage = str("greeting_message") || null;
 
-  const base: Record<string, unknown> = {
-    channel_type: channelKey,
+  const base = {
+    greeting_enabled: greetingEnabled,
+    greeting_message: greetingMessage,
+    enable_auto_assignment: true,
   };
 
   switch (channelKey) {
-    case "website":
+    case "website": {
+      const replyTime = str("reply_time") || "in_a_few_minutes";
       return {
         ...base,
         name: str("website_name"),
-        greeting_enabled: values.enable_channel_greeting === "enabled",
-        greeting_message: str("greeting_message"),
+        enable_email_collect: true,
+        allow_messages_after_resolved: true,
         channel: {
           type: "web_widget",
           website_url: str("website_domain"),
           widget_color: str("widget_color") || "#1f93ff",
           welcome_title: str("welcome_heading") || null,
           welcome_tagline: str("welcome_tagline") || null,
+          reply_time:
+            replyTime === "in_a_few_hours" || replyTime === "in_a_day"
+              ? replyTime
+              : "in_a_few_minutes",
+          continuity_via_email: bool("continuity_via_email"),
+          selected_feature_flags: [
+            "attachments",
+            "emoji_picker",
+            "end_conversation",
+          ],
         },
       };
-    case "sms":
+    }
+    case "sms": {
+      const providerConfig: Record<string, string> = {};
+      const apiKey = str("provider_api_key");
+      const apiSecret = str("provider_api_secret");
+      const applicationId = str("provider_application_id");
+      const accountId = str("provider_account_id");
+      if (apiKey) providerConfig.api_key = apiKey;
+      if (apiSecret) providerConfig.api_secret = apiSecret;
+      if (applicationId) providerConfig.application_id = applicationId;
+      if (accountId) providerConfig.account_id = accountId;
+
       return {
         ...base,
         name: str("inbox_name"),
+        lock_to_single_conversation: true,
         channel: {
           type: "sms",
-          provider: str("api_provider") || "twilio",
           phone_number: str("phone_number"),
-          account_sid: str("account_sid"),
-          auth_token: str("auth_token"),
-          use_twilio_messaging_service: bool("use_twilio_messaging_service"),
-          use_api_key_authentication: bool("use_api_key_authentication"),
+          ...(Object.keys(providerConfig).length > 0
+            ? { provider_config: providerConfig }
+            : {}),
+        },
+      };
+    }
+    case "whatsapp":
+      return {
+        ...base,
+        name: str("inbox_name"),
+        lock_to_single_conversation: true,
+        channel: {
+          type: "whatsapp",
+          phone_number: str("phone_number"),
+          provider: "whatsapp_cloud",
+          provider_config: {
+            api_key: str("provider_api_key"),
+            phone_number_id: str("phone_number_id"),
+            business_account_id: str("business_account_id"),
+          },
         },
       };
     case "email":
@@ -458,32 +579,36 @@ function buildInboxPayload(channelKey: ChannelKey, values: ChannelFormValues) {
         channel: {
           type: "email",
           email: str("email"),
+          imap_enabled: false,
+          smtp_enabled: false,
         },
       };
     case "api":
       return {
         ...base,
         name: str("channel_name"),
+        lock_to_single_conversation: true,
         channel: {
           type: "api",
-          webhook_url: str("webhook_url"),
+          webhook_url: str("webhook_url") || null,
+          hmac_mandatory: bool("hmac_mandatory"),
         },
       };
-    case "telegram": {
-      const botToken = str("bot_token");
+    case "telegram":
       return {
         ...base,
         name: str("channel_name") || "Telegram",
+        lock_to_single_conversation: true,
         channel: {
           type: "telegram",
-          ...(botToken ? { bot_token: botToken } : {}),
+          bot_token: str("bot_token"),
         },
       };
-    }
     case "line":
       return {
         ...base,
         name: str("channel_name"),
+        lock_to_single_conversation: true,
         channel: {
           type: "line",
           line_channel_id: str("line_channel_id"),
@@ -491,9 +616,22 @@ function buildInboxPayload(channelKey: ChannelKey, values: ChannelFormValues) {
           line_channel_token: str("line_channel_token"),
         },
       };
-    default:
-      return base;
+    default: {
+      throw new Error(`Unsupported channel: ${String(channelKey)}`);
+    }
   }
+}
+
+/** PATCH update — bỏ `channel.type` theo Chatwoot inbox_update_payload. */
+function toUpdateInboxPayload(
+  createPayload: CreateTenantInboxRequest,
+): UpdateTenantInboxRequest {
+  const { channel, ...rest } = createPayload;
+  const { type: _type, ...channelWithoutType } = channel;
+  return {
+    ...rest,
+    channel: channelWithoutType,
+  };
 }
 
 function normalizeAgent(
@@ -699,7 +837,7 @@ export function ChannelInboxesAction({ inboxId }: ChannelInboxesActionProps) {
         const res = await updateInbox.mutateAsync({
           tenantId,
           inboxId,
-          data: payload,
+          data: toUpdateInboxPayload(payload),
         });
         if (!isSuccessResponse(res)) return false;
         resolvedInboxId = extractNumericInboxId(res, inboxId);

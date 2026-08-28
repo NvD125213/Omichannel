@@ -5,17 +5,18 @@
     "fields": [
       {
         "key": "website_name",
-        "label": "Tên website",
+        "label": "Tên inbox",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập tên website (vd: Acme Inc)"
+        "placeholder": "Nhập tên inbox (vd: Support)"
       },
       {
         "key": "website_domain",
-        "label": "Tên miền website",
-        "type": "text",
+        "label": "Website URL",
+        "type": "url",
         "required": true,
-        "placeholder": "Nhập tên miền website (vd: acme.com)"
+        "placeholder": "https://example.com",
+        "helperText": "URL trang sẽ nhúng widget chat."
       },
       {
         "key": "widget_color",
@@ -25,18 +26,37 @@
       },
       {
         "key": "welcome_heading",
-        "label": "Tiêu đề chào mừng",
+        "label": "Welcome title",
         "type": "text",
         "required": false,
-        "placeholder": "Xin chào!"
+        "placeholder": "Welcome to our support"
       },
       {
         "key": "welcome_tagline",
-        "label": "Dòng mô tả chào mừng",
+        "label": "Welcome tagline",
         "type": "textarea",
         "required": false,
         "maxLength": 255,
-        "placeholder": "Chúng tôi sẵn sàng hỗ trợ bạn. Hãy hỏi bất cứ điều gì hoặc gửi phản hồi."
+        "placeholder": "We are here to help you"
+      },
+      {
+        "key": "reply_time",
+        "label": "Thời gian phản hồi",
+        "type": "select",
+        "required": false,
+        "default": "in_a_few_minutes",
+        "options": [
+          { "label": "Vài phút", "value": "in_a_few_minutes" },
+          { "label": "Vài giờ", "value": "in_a_few_hours" },
+          { "label": "Trong ngày", "value": "in_a_day" }
+        ]
+      },
+      {
+        "key": "continuity_via_email",
+        "label": "Tiếp tục hội thoại qua email",
+        "type": "checkbox",
+        "required": false,
+        "default": true
       },
       {
         "key": "enable_channel_greeting",
@@ -45,14 +65,8 @@
         "required": false,
         "default": "disabled",
         "options": [
-          {
-            "label": "Tắt",
-            "value": "disabled"
-          },
-          {
-            "label": "Bật",
-            "value": "enabled"
-          }
+          { "label": "Tắt", "value": "disabled" },
+          { "label": "Bật", "value": "enabled" }
         ]
       },
       {
@@ -61,7 +75,7 @@
         "type": "textarea",
         "required": false,
         "maxLength": 255,
-        "placeholder": "Xin chào! Chúng tôi có thể giúp gì cho bạn?"
+        "placeholder": "Hello, how can I help you?"
       }
     ]
   },
@@ -70,57 +84,137 @@
     "name": "Kênh SMS",
     "fields": [
       {
-        "key": "api_provider",
-        "label": "Nhà cung cấp API",
-        "type": "select",
-        "required": true,
-        "default": "twilio",
-        "options": [
-          {
-            "label": "Twilio",
-            "value": "twilio"
-          }
-        ]
-      },
-      {
         "key": "inbox_name",
-        "label": "Tên hộp thư đến",
+        "label": "Tên inbox",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập tên hộp thư đến"
+        "placeholder": "SMS Inbox"
       },
       {
         "key": "phone_number",
         "label": "Số điện thoại",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập số điện thoại dùng để gửi tin nhắn"
+        "placeholder": "+15551234567",
+        "helperText": "Số điện thoại SMS theo định dạng E.164."
       },
       {
-        "key": "use_twilio_messaging_service",
-        "label": "Dùng Twilio Messaging Service",
-        "type": "checkbox",
-        "required": false
-      },
-      {
-        "key": "account_sid",
-        "label": "Account SID",
-        "type": "text",
-        "required": true,
-        "placeholder": "Nhập Twilio Account SID của bạn"
-      },
-      {
-        "key": "use_api_key_authentication",
-        "label": "Xác thực bằng API Key",
-        "type": "checkbox",
-        "required": false
-      },
-      {
-        "key": "auth_token",
-        "label": "Auth Token",
+        "key": "provider_api_key",
+        "label": "Provider API Key",
         "type": "password",
         "required": true,
-        "placeholder": "Nhập Twilio Auth Token của bạn"
+        "placeholder": "your-api-key",
+        "secret": true
+      },
+      {
+        "key": "provider_api_secret",
+        "label": "Provider API Secret",
+        "type": "password",
+        "required": false,
+        "placeholder": "your-api-secret",
+        "secret": true
+      },
+      {
+        "key": "provider_application_id",
+        "label": "Application ID",
+        "type": "text",
+        "required": false,
+        "placeholder": "your-application-id"
+      },
+      {
+        "key": "provider_account_id",
+        "label": "Account ID",
+        "type": "text",
+        "required": false,
+        "placeholder": "your-account-id"
+      },
+      {
+        "key": "enable_channel_greeting",
+        "label": "Bật lời chào kênh",
+        "type": "select",
+        "required": false,
+        "default": "disabled",
+        "options": [
+          { "label": "Tắt", "value": "disabled" },
+          { "label": "Bật", "value": "enabled" }
+        ]
+      },
+      {
+        "key": "greeting_message",
+        "label": "Nội dung lời chào",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Hello, how can I help you?"
+      }
+    ]
+  },
+  {
+    "channel": "whatsapp",
+    "name": "Kênh WhatsApp",
+    "fields": [
+      {
+        "key": "inbox_name",
+        "label": "Tên inbox",
+        "type": "text",
+        "required": true,
+        "placeholder": "WhatsApp Inbox"
+      },
+      {
+        "key": "phone_number",
+        "label": "Số điện thoại WhatsApp",
+        "type": "text",
+        "required": true,
+        "placeholder": "+15551234567"
+      },
+      {
+        "key": "provider",
+        "label": "Nhà cung cấp",
+        "type": "select",
+        "required": true,
+        "default": "whatsapp_cloud",
+        "options": [{ "label": "WhatsApp Cloud", "value": "whatsapp_cloud" }]
+      },
+      {
+        "key": "provider_api_key",
+        "label": "API Key",
+        "type": "password",
+        "required": true,
+        "placeholder": "your-api-key",
+        "secret": true
+      },
+      {
+        "key": "phone_number_id",
+        "label": "Phone Number ID",
+        "type": "text",
+        "required": true,
+        "placeholder": "your-phone-number-id"
+      },
+      {
+        "key": "business_account_id",
+        "label": "Business Account ID",
+        "type": "text",
+        "required": true,
+        "placeholder": "your-business-account-id"
+      },
+      {
+        "key": "enable_channel_greeting",
+        "label": "Bật lời chào kênh",
+        "type": "select",
+        "required": false,
+        "default": "disabled",
+        "options": [
+          { "label": "Tắt", "value": "disabled" },
+          { "label": "Bật", "value": "enabled" }
+        ]
+      },
+      {
+        "key": "greeting_message",
+        "label": "Nội dung lời chào",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Hello, how can I help you?"
       }
     ]
   },
@@ -130,18 +224,37 @@
     "fields": [
       {
         "key": "channel_name",
-        "label": "Tên kênh",
+        "label": "Tên inbox",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập tên kênh"
+        "placeholder": "Email Inbox"
       },
       {
         "key": "email",
         "label": "Email",
         "type": "email",
         "required": true,
-        "placeholder": "Nhập địa chỉ email",
-        "helperText": "Địa chỉ email mà khách hàng dùng để gửi yêu cầu hỗ trợ."
+        "placeholder": "support@example.com",
+        "helperText": "Địa chỉ email khách dùng để gửi yêu cầu hỗ trợ."
+      },
+      {
+        "key": "enable_channel_greeting",
+        "label": "Bật lời chào kênh",
+        "type": "select",
+        "required": false,
+        "default": "disabled",
+        "options": [
+          { "label": "Tắt", "value": "disabled" },
+          { "label": "Bật", "value": "enabled" }
+        ]
+      },
+      {
+        "key": "greeting_message",
+        "label": "Nội dung lời chào",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Hello, how can I help you?"
       }
     ]
   },
@@ -151,18 +264,44 @@
     "fields": [
       {
         "key": "channel_name",
-        "label": "Tên kênh",
+        "label": "Tên inbox",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập tên kênh"
+        "placeholder": "API Inbox"
       },
       {
         "key": "webhook_url",
         "label": "Webhook URL",
         "type": "url",
-        "required": true,
-        "placeholder": "Nhập Webhook URL",
-        "helperText": "URL nhận callback khi có sự kiện từ kênh."
+        "required": false,
+        "placeholder": "https://example.com/webhook",
+        "helperText": "URL nhận callback khi có sự kiện từ kênh (tùy chọn)."
+      },
+      {
+        "key": "hmac_mandatory",
+        "label": "Bắt buộc HMAC",
+        "type": "checkbox",
+        "required": false,
+        "default": false
+      },
+      {
+        "key": "enable_channel_greeting",
+        "label": "Bật lời chào kênh",
+        "type": "select",
+        "required": false,
+        "default": "disabled",
+        "options": [
+          { "label": "Tắt", "value": "disabled" },
+          { "label": "Bật", "value": "enabled" }
+        ]
+      },
+      {
+        "key": "greeting_message",
+        "label": "Nội dung lời chào",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Hello, how can I help you?"
       }
     ]
   },
@@ -172,19 +311,38 @@
     "fields": [
       {
         "key": "channel_name",
-        "label": "Tên kênh",
+        "label": "Tên inbox",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập tên kênh (vd: Hỗ trợ Telegram)"
+        "placeholder": "Telegram Inbox"
       },
       {
         "key": "bot_token",
         "label": "Bot Token",
         "type": "text",
         "required": true,
-        "placeholder": "Bot Token",
-        "helperText": "Cấu hình bot token bạn đã lấy từ Telegram BotFather.",
+        "placeholder": "123456789:telegram-bot-token",
+        "helperText": "Token lấy từ Telegram BotFather.",
         "secret": true
+      },
+      {
+        "key": "enable_channel_greeting",
+        "label": "Bật lời chào kênh",
+        "type": "select",
+        "required": false,
+        "default": "disabled",
+        "options": [
+          { "label": "Tắt", "value": "disabled" },
+          { "label": "Bật", "value": "enabled" }
+        ]
+      },
+      {
+        "key": "greeting_message",
+        "label": "Nội dung lời chào",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Hello, how can I help you?"
       }
     ]
   },
@@ -194,31 +352,52 @@
     "fields": [
       {
         "key": "channel_name",
-        "label": "Tên kênh",
+        "label": "Tên inbox",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập tên kênh"
+        "placeholder": "LINE Inbox"
       },
       {
         "key": "line_channel_id",
         "label": "LINE Channel ID",
         "type": "text",
         "required": true,
-        "placeholder": "Nhập LINE Channel ID"
+        "placeholder": "1234567890"
       },
       {
         "key": "line_channel_secret",
         "label": "LINE Channel Secret",
         "type": "password",
         "required": true,
-        "placeholder": "Nhập LINE Channel Secret"
+        "placeholder": "line-channel-secret",
+        "secret": true
       },
       {
         "key": "line_channel_token",
         "label": "LINE Channel Token",
         "type": "password",
         "required": true,
-        "placeholder": "Nhập LINE Channel Token"
+        "placeholder": "line-channel-token",
+        "secret": true
+      },
+      {
+        "key": "enable_channel_greeting",
+        "label": "Bật lời chào kênh",
+        "type": "select",
+        "required": false,
+        "default": "disabled",
+        "options": [
+          { "label": "Tắt", "value": "disabled" },
+          { "label": "Bật", "value": "enabled" }
+        ]
+      },
+      {
+        "key": "greeting_message",
+        "label": "Nội dung lời chào",
+        "type": "textarea",
+        "required": false,
+        "maxLength": 255,
+        "placeholder": "Hello, how can I help you?"
       }
     ]
   }

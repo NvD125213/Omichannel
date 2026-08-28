@@ -29,6 +29,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChatUnreadBadge } from "@/components/chat-unread-badge";
 import {
   getInboxUnreadCount,
@@ -465,6 +466,73 @@ interface ChatNotificationSidebarProps {
 interface TenantInboxItem {
   id?: number | string;
   name?: string;
+  avatarUrl?: string;
+}
+
+function readOptionalInboxString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function inboxInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const first = parts[0]?.[0];
+    const last = parts[parts.length - 1]?.[0];
+    if (first && last) return (first + last).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase() || "?";
+}
+
+function normalizeSidebarInbox(
+  raw: Record<string, unknown>,
+  index: number,
+): TenantInboxItem | null {
+  const idRaw = raw.id;
+  const id =
+    typeof idRaw === "number"
+      ? idRaw
+      : typeof idRaw === "string"
+        ? Number(idRaw)
+        : Number.NaN;
+  const name =
+    typeof raw.name === "string" && raw.name.length > 0
+      ? raw.name
+      : "Kênh chưa đặt tên";
+  const avatarUrl = readOptionalInboxString(
+    raw.avatar_url,
+    raw.thumbnail,
+    raw.avatarUrl,
+  );
+
+  if (!Number.isFinite(id) && !name) return null;
+
+  return {
+    id: Number.isFinite(id) ? id : `inbox-${index + 1}`,
+    name,
+    ...(avatarUrl ? { avatarUrl } : {}),
+  };
+}
+
+function InboxMenuAvatar({
+  name,
+  avatarUrl,
+  className,
+}: {
+  name: string;
+  avatarUrl?: string;
+  className?: string;
+}) {
+  return (
+    <Avatar className={cn("size-3.5 shrink-0", className)}>
+      {avatarUrl ? <AvatarImage src={avatarUrl} alt={name} /> : null}
+      <AvatarFallback className="bg-muted text-[8px] font-semibold leading-none">
+        {inboxInitials(name)}
+      </AvatarFallback>
+    </Avatar>
+  );
 }
 
 function CollapsedSidebarHoverMenu({
@@ -534,9 +602,14 @@ export function ChatNotificationSidebar({
   const inboxPayload = (
     inboxData?.data as { messaging?: { payload?: unknown } } | undefined
   )?.messaging?.payload;
-  const inboxes: TenantInboxItem[] = Array.isArray(inboxPayload)
-    ? (inboxPayload as TenantInboxItem[])
-    : [];
+  const inboxes = useMemo(() => {
+    if (!Array.isArray(inboxPayload)) return [] as TenantInboxItem[];
+    return inboxPayload
+      .map((raw, index) =>
+        normalizeSidebarInbox(raw as Record<string, unknown>, index),
+      )
+      .filter((inbox): inbox is TenantInboxItem => inbox !== null);
+  }, [inboxPayload]);
   const labels = useMemo(
     () =>
       extractRawLabels(labelData)
@@ -668,9 +741,10 @@ export function ChatNotificationSidebar({
                         isSwitchingMenu && "opacity-80",
                       )}
                     >
-                      <MessageCircle
-                        className="h-3.5 w-3.5 shrink-0"
-                        aria-hidden="true"
+                      <InboxMenuAvatar
+                        name={inboxName}
+                        avatarUrl={inbox.avatarUrl}
+                        className="relative z-10"
                       />
                       <span className="truncate">{inboxName}</span>
                       {Number.isFinite(inboxId) && (
@@ -1224,9 +1298,10 @@ export function ChatNotificationSidebar({
                           aria-hidden="true"
                         />
                       )}
-                      <MessageCircle
-                        className="relative z-10 h-3.5 w-3.5 shrink-0"
-                        aria-hidden="true"
+                      <InboxMenuAvatar
+                        name={inboxName}
+                        avatarUrl={inbox.avatarUrl}
+                        className="relative z-10"
                       />
                       {!isCollapsed && (
                         <>

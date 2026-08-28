@@ -29,7 +29,7 @@ import type {
   UpdateChatwootAgentRequest,
   UpdateTenantConversationCustomAttributesRequest,
   UpdateTenantConversationRequest,
-  UpdateTenantInboxRequest,
+  UpdateTenantInboxRequestBody,
   UpdateTenantTeamRequest,
   UpdateChatwootUserRequest,
   UpdateTenantChatwootAccountRequest,
@@ -99,11 +99,16 @@ export const chatwootOmniKeys = {
   tenantConversationsFilter: (
     tenantId: string,
     data?: FilterConversationsRequest,
+    query?: Pick<
+      import("@/services/chatwoot/interface").ListTenantConversationsParams,
+      "conversation_type" | "assignee_type"
+    >,
   ) =>
     [
       ...chatwootOmniKeys.tenantConversationsBase(tenantId),
       "filter",
       data ?? { payload: [] },
+      query ?? {},
     ] as const,
   tenantConversation: (tenantId: string, conversationId: string) =>
     [
@@ -409,11 +414,16 @@ export const useInfiniteFilterConversations = (
   tenantId: string,
   data: FilterConversationsRequest | null,
   enabled = false,
+  query?: Pick<
+    import("@/services/chatwoot/interface").ListTenantConversationsParams,
+    "conversation_type" | "assignee_type"
+  >,
 ) => {
   return useInfiniteQuery({
     queryKey: chatwootOmniKeys.tenantConversationsFilter(
       tenantId,
       data ?? { payload: [] },
+      query,
     ),
     initialPageParam: 1,
     queryFn: ({ pageParam }) =>
@@ -423,6 +433,7 @@ export const useInfiniteFilterConversations = (
         typeof pageParam === "number" && Number.isFinite(pageParam)
           ? pageParam
           : 1,
+        query,
       ),
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       const payload = extractFilterConversationsPayload(lastPage);
@@ -1182,7 +1193,7 @@ export const useUpdateTenantInbox = () => {
     }: {
       tenantId: string;
       inboxId: string;
-      data: UpdateTenantInboxRequest;
+      data: UpdateTenantInboxRequestBody;
     }) => chatwootService.updateTenantInbox(tenantId, inboxId, data),
     onSuccess: (res, variables) => {
       if (res.status_code === 200) {

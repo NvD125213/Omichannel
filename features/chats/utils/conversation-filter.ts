@@ -2,6 +2,8 @@ import type {
   ConversationFilter,
   FilterConversationsRequest,
   FilterConversationsResponse,
+  ListTenantConversationsParams,
+  ListTenantConversationsResponse,
   TenantConversationsListMeta,
   AccountCustomFilter,
   AccountCustomFilterQuery,
@@ -9,6 +11,9 @@ import type {
   ListAccountCustomFiltersData,
   CreateAccountCustomFilterRequest,
 } from "@/services/chatwoot/interface";
+import { getMessagingEnvelope } from "./messaging-envelope";
+
+export type SidebarConversationAssigneeFilter = "me" | "mention" | "unattended";
 
 export type ChatConversationFilterDraft = {
   status: string[];
@@ -92,83 +97,305 @@ export function conversationStatusLabel(status: string) {
   );
 }
 
+type FilterPayloadEntry = {
+  attribute_key: string;
+  values: Array<string | number>;
+  filter_operator?: string;
+};
+
+function finalizeFilterPayload(
+  entries: FilterPayloadEntry[],
+): ConversationFilter[] {
+  return entries.map((entry, index) => {
+    const isLast = index === entries.length - 1;
+    const isLabels = entry.attribute_key === "labels";
+
+    const filter: ConversationFilter = {
+      attribute_key: entry.attribute_key,
+      filter_operator: entry.filter_operator ?? "equal_to",
+      values: entry.values,
+    };
+
+    if (!isLabels) {
+      filter.attribute_model = "standard";
+      filter.custom_attribute_type = "";
+    }
+
+    if (!isLast) {
+      filter.query_operator = "and";
+    }
+
+    return filter;
+  });
+}
+
 export function buildFilterConversationsPayload(
   draft: ChatConversationFilterDraft,
 ): FilterConversationsRequest {
-  const payload: ConversationFilter[] = [];
-
-  const pushFilter = (
-    attribute_key: string,
-    values: Array<string | number>,
-  ) => {
-    payload.push({
-      attribute_key,
-      attribute_model: "standard",
-      filter_operator: "equal_to",
-      values,
-      ...(payload.length > 0 ? { query_operator: "and" } : {}),
-    });
-  };
+  const entries: FilterPayloadEntry[] = [];
 
   if (draft.status.length > 0) {
-    pushFilter("status", draft.status);
+    entries.push({ attribute_key: "status", values: draft.status });
   }
   if (draft.assigneeId) {
-    pushFilter("assignee_id", [draft.assigneeId]);
+    entries.push({ attribute_key: "assignee_id", values: [draft.assigneeId] });
   }
   if (draft.inboxId) {
-    pushFilter("inbox_id", [Number(draft.inboxId)]);
+    const inboxId = Number(draft.inboxId);
+    if (Number.isFinite(inboxId)) {
+      entries.push({ attribute_key: "inbox_id", values: [inboxId] });
+    }
   }
   if (draft.labels.length > 0) {
-    pushFilter("labels", draft.labels);
+    entries.push({ attribute_key: "labels", values: draft.labels });
   }
 
-  return { payload };
+  return { payload: finalizeFilterPayload(entries) };
 }
 
 export function buildConversationListFilterRequest(options?: {
   status?: string[];
-  inboxId?: string;
+  inboxId?: string | number;
   labels?: string[];
   teamId?: string | null;
   assigneeType?: "all" | "me" | "unassigned";
   currentAssigneeId?: string;
 }): FilterConversationsRequest {
-  const draft: ChatConversationFilterDraft = {
-    status:
+  const entries: FilterPayloadEntry[] = [];
+
+  entries.push({
+    attribute_key: "status",
+    values:
       options?.status && options.status.length > 0
         ? options.status
         : [...DEFAULT_CHAT_CONVERSATION_STATUSES],
-    assigneeId:
-      options?.assigneeType === "me" ? (options.currentAssigneeId ?? "") : "",
-    inboxId: options?.inboxId ?? "",
-    labels: options?.labels ?? [],
-  };
+  });
 
-  const { payload } = buildFilterConversationsPayload(draft);
+  if (options?.assigneeType === "me" && options.currentAssigneeId) {
+    entries.push({
+      attribute_key: "assignee_id",
+      values: [options.currentAssigneeId],
+    });
+  }
 
-  if (options?.teamId) {
-    payload.push({
+  if (options?.inboxId !== undefined && options.inboxId !== "") {
+    const inboxId = Number(options.inboxId);
+    if (Number.isFinite(inboxId)) {
+      entries.push({ attribute_key: "inbox_id", values: [inboxId] });
+    }
+  }
+
+  if (options?.labels && options.labels.length > 0) {
+    entries.push({ attribute_key: "labels", values: options.labels });
+  }
+
+  if (options?.teamId?.trim()) {
+    const teamId = Number(options.teamId.trim());
+    entries.push({
       attribute_key: "team_id",
-      attribute_model: "standard",
-      filter_operator: "equal_to",
-      values: [options.teamId],
-      ...(payload.length > 0 ? { query_operator: "and" } : {}),
+      values: [Number.isFinite(teamId) ? teamId : options.teamId.trim()],
     });
   }
 
   if (options?.assigneeType === "unassigned") {
-    payload.push({
+    entries.push({
       attribute_key: "assignee_id",
-      attribute_model: "standard",
       filter_operator: "is_not_present",
       values: [""],
-      ...(payload.length > 0 ? { query_operator: "and" } : {}),
     });
   }
 
-  return { payload };
+  return { payload: finalizeFilterPayload(entries) };
 }
+
+export type FilterConversationsQueryParams = Pick<
+  ListTenantConversationsParams,
+  "conversation_type" | "assignee_type"
+>;
+
+export interface SidebarFilterRequestResult {
+  request: FilterConversationsRequest;
+  query?: FilterConversationsQueryParams;
+}
+
+export function buildSidebarFilterRequest(options: {
+  conversationAssignee: SidebarConversationAssigneeFilter;
+  inboxId?: number | null;
+  teamId?: string | null;
+  label?: string | null;
+  status?: string[];
+}): SidebarFilterRequestResult {
+  const hasScopedFilter =
+    (typeof options.inboxId === "number" && Number.isFinite(options.inboxId)) ||
+    Boolean(options.teamId?.trim()) ||
+    Boolean(options.label?.trim());
+
+  const request = buildConversationListFilterRequest({
+    status: options.status,
+    inboxId:
+      typeof options.inboxId === "number" && Number.isFinite(options.inboxId)
+        ? options.inboxId
+        : undefined,
+    labels: options.label ? [options.label] : [],
+    teamId: options.teamId,
+  });
+
+  if (hasScopedFilter) {
+    return { request };
+  }
+
+  if (options.conversationAssignee === "mention") {
+    return {
+      request,
+      query: { conversation_type: "mention" },
+    };
+  }
+
+  if (options.conversationAssignee === "unattended") {
+    return {
+      request,
+      query: {
+        conversation_type: "unattended",
+        assignee_type: "me",
+      },
+    };
+  }
+
+  return {
+    request,
+    query: { conversation_type: "me" },
+  };
+}
+
+export function buildSidebarListConversationsParams(options: {
+  conversationAssignee: SidebarConversationAssigneeFilter;
+  inboxId?: number | null;
+  teamId?: string | null;
+  label?: string | null;
+  status?: string[];
+}): ListTenantConversationsParams {
+  const params: ListTenantConversationsParams = {
+    status:
+      options.status && options.status.length > 0
+        ? options.status
+        : [...DEFAULT_CHAT_CONVERSATION_STATUSES],
+  };
+
+  if (typeof options.inboxId === "number" && Number.isFinite(options.inboxId)) {
+    params.inbox_id = options.inboxId;
+  }
+
+  if (options.teamId?.trim()) {
+    params.team_id = options.teamId.trim();
+  }
+
+  if (options.label?.trim()) {
+    params.labels = [options.label.trim()];
+  }
+
+  const hasScopedFilter =
+    (typeof options.inboxId === "number" && Number.isFinite(options.inboxId)) ||
+    Boolean(options.teamId?.trim()) ||
+    Boolean(options.label?.trim());
+
+  if (!hasScopedFilter) {
+    params.conversation_type = options.conversationAssignee;
+  }
+
+  return params;
+}
+
+const coerceConversationRecords = (
+  value: unknown,
+): Record<string, unknown>[] | null => {
+  if (!Array.isArray(value)) return null;
+  return value.filter(
+    (item): item is Record<string, unknown> =>
+      Boolean(item) && typeof item === "object" && !Array.isArray(item),
+  );
+};
+
+export const extractListConversationsPayload = (
+  res: ListTenantConversationsResponse | null | undefined,
+): Record<string, unknown>[] | null => {
+  const data = res?.data as Record<string, unknown> | undefined;
+  if (!data) return null;
+
+  const flat = coerceConversationRecords(data.payload);
+  if (flat) return flat;
+
+  const nested = coerceConversationRecords(
+    (data.data as Record<string, unknown> | undefined)?.payload,
+  );
+  if (nested) return nested;
+
+  const messaging = getMessagingEnvelope(data);
+  const messagingPayload = coerceConversationRecords(messaging?.payload);
+  if (messagingPayload) return messagingPayload;
+
+  const messagingData = messaging?.data as Record<string, unknown> | undefined;
+  const messagingNested = coerceConversationRecords(messagingData?.payload);
+  if (messagingNested) return messagingNested;
+
+  return null;
+};
+
+export const extractListConversationsMeta = (
+  res: ListTenantConversationsResponse | null | undefined,
+): TenantConversationsListMeta | null => {
+  const data = res?.data as Record<string, unknown> | undefined;
+  if (!data) return null;
+
+  const flatMeta = data.meta;
+  if (flatMeta && typeof flatMeta === "object") {
+    return flatMeta as TenantConversationsListMeta;
+  }
+
+  const nestedMeta = (data.data as Record<string, unknown> | undefined)?.meta;
+  if (nestedMeta && typeof nestedMeta === "object") {
+    return nestedMeta as TenantConversationsListMeta;
+  }
+
+  const messaging = getMessagingEnvelope(data);
+  const messagingMeta = messaging?.meta;
+  if (messagingMeta && typeof messagingMeta === "object") {
+    return messagingMeta as TenantConversationsListMeta;
+  }
+
+  const messagingData = messaging?.data as Record<string, unknown> | undefined;
+  const messagingNestedMeta = messagingData?.meta;
+  if (messagingNestedMeta && typeof messagingNestedMeta === "object") {
+    return messagingNestedMeta as TenantConversationsListMeta;
+  }
+
+  return null;
+};
+
+export const extractListConversationsPayloadFromPages = (
+  pages: (ListTenantConversationsResponse | undefined)[] | undefined,
+): Record<string, unknown>[] | null => {
+  if (!pages || pages.length === 0) return null;
+
+  const merged: Record<string, unknown>[] = [];
+  let hasExtractablePayload = false;
+
+  for (const page of pages) {
+    const payload = extractListConversationsPayload(page);
+    if (payload !== null) {
+      hasExtractablePayload = true;
+      merged.push(...payload);
+    }
+  }
+
+  return hasExtractablePayload ? merged : null;
+};
+
+export const extractListConversationsMetaFromPages = (
+  pages: (ListTenantConversationsResponse | undefined)[] | undefined,
+): TenantConversationsListMeta | null => {
+  if (!pages?.length) return null;
+  return extractListConversationsMeta(pages[0]);
+};
 
 export const ACCOUNT_CUSTOM_FILTER_TYPE = "conversation";
 
@@ -214,17 +441,6 @@ export function countActiveChatConversationFilters(
     draft.labels.length
   );
 }
-
-const coerceConversationRecords = (
-  value: unknown,
-): Record<string, unknown>[] | null => {
-  if (!Array.isArray(value)) return null;
-  const rows = value.filter(
-    (item): item is Record<string, unknown> =>
-      Boolean(item) && typeof item === "object" && !Array.isArray(item),
-  );
-  return rows;
-};
 
 export const extractFilterConversationsPayload = (
   res: FilterConversationsResponse | null | undefined,

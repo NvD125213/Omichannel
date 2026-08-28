@@ -177,7 +177,6 @@ interface MessageListProps {
 
 export function MessageList({
   messages,
-  users,
   currentUserId = "current-user",
   tenantId = "",
   conversationId = null,
@@ -511,6 +510,13 @@ export function MessageList({
     return "unknown-user";
   };
 
+  /** Luôn lấy tên từ payload `sender` — không dùng "Bạn"/"You". */
+  const getMessageSenderName = (message: ChatMessage): string => {
+    const sender = message.sender;
+    const name = sender?.available_name?.trim() || sender?.name?.trim() || "";
+    return name || "Không rõ";
+  };
+
   const getMessageTimestamp = (message: ChatMessage): string =>
     String(coerceToDate(message.created_at ?? message.updated_at));
 
@@ -519,22 +525,6 @@ export function MessageList({
 
   const getMessageId = (message: ChatMessage, index: number): string =>
     message.id ? String(message.id) : `message-${index}`;
-
-  const getUserById = (userId: string, isOwnMessage: boolean) => {
-    if (isOwnMessage) {
-      return {
-        id: currentUserId,
-        name: "You",
-        avatar: "https://github.com/shadcn.png",
-        status: "online" as const,
-        email: "you@example.com",
-        lastSeen: new Date().toISOString(),
-        role: "Developer",
-        department: "Engineering",
-      };
-    }
-    return users.find((user) => user.id === userId);
-  };
 
   const formatMessageTime = (timestamp: string) => {
     const date = coerceToDate(timestamp);
@@ -836,16 +826,9 @@ export function MessageList({
             const isCustomerMessage = message.sender?.type !== "user";
             const isOwnMessage =
               message.sender?.type === "user" || senderId === currentUserId;
-            const user = getUserById(senderId, isOwnMessage);
-            const avatarName =
-              user?.name ??
-              message.sender?.available_name ??
-              message.sender?.name ??
-              "Guest";
+            const avatarName = getMessageSenderName(message);
             const avatarSrc =
-              message.sender?.avatar_url ??
-              message.sender?.thumbnail ??
-              user?.avatar;
+              message.sender?.avatar_url ?? message.sender?.thumbnail;
 
             const showName =
               isCustomerMessage && shouldShowName(message, globalIndex);
@@ -865,21 +848,9 @@ export function MessageList({
               replyParentId != null
                 ? (messageById.get(replyParentId) ?? null)
                 : null;
-            const quotedSenderId = quotedMessage
-              ? getMessageSenderId(quotedMessage)
-              : "";
             const quotedLabel =
               quotedMessage != null
-                ? (() => {
-                    const qOwn = quotedSenderId === currentUserId;
-                    const qu = getUserById(quotedSenderId, qOwn);
-                    return (
-                      qu?.name ??
-                      quotedMessage.sender?.available_name ??
-                      quotedMessage.sender?.name ??
-                      (qOwn ? "Bạn" : "Khách")
-                    );
-                  })()
+                ? getMessageSenderName(quotedMessage)
                 : replyParentId != null
                   ? `Tin #${replyParentId}`
                   : "";
@@ -924,12 +895,12 @@ export function MessageList({
                       isOwnMessage && "ml-auto items-end",
                     )}
                   >
-                    {showName && user && isCustomerMessage && (
+                    {/* {showName && isCustomerMessage && (
                       <div className="mb-1 flex items-center gap-1 text-sm font-medium text-foreground">
                         <User2 className="size-3.5 shrink-0 text-muted-foreground" />
-                        <span className="truncate">{user.name}</span>
+                        <span className="truncate">{avatarName}</span>
                       </div>
-                    )}
+                    )} */}
 
                     <div
                       className={cn(
@@ -1071,15 +1042,23 @@ export function MessageList({
 
                         <div
                           className={cn(
-                            "flex items-center gap-1 mt-1 text-xs",
+                            "mt-1 flex min-w-0 items-center gap-1 text-xs",
                             isOwnMessage
-                              ? "text-primary-foreground/70 justify-end"
+                              ? "justify-end text-primary-foreground/70"
                               : "text-muted-foreground",
                           )}
                         >
-                          <span>{formatMessageTime(messageTimestamp)}</span>
+                          <span className="truncate font-medium opacity-90">
+                            {avatarName}
+                          </span>
+                          <span aria-hidden className="opacity-60">
+                            ·
+                          </span>
+                          <span className="shrink-0">
+                            {formatMessageTime(messageTimestamp)}
+                          </span>
                           {isOwnMessage && (
-                            <div className="flex">
+                            <div className="flex shrink-0">
                               <CheckCheck className="size-3" />
                             </div>
                           )}

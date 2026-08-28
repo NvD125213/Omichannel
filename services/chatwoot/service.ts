@@ -73,6 +73,7 @@ import type {
   UpdateTenantConversationRequest,
   UpdateTenantConversationResponse,
   UpdateTenantInboxRequest,
+  UpdateTenantInboxRequestBody,
   UpdateTenantInboxResponse,
   CreateTenantTeamRequest,
   CreateTenantTeamResponse,
@@ -357,11 +358,14 @@ export const chatwootService = {
   updateTenantInbox: async (
     tenantId: string,
     inboxId: string,
-    data: UpdateTenantInboxRequest,
+    data: UpdateTenantInboxRequestBody,
   ): Promise<UpdateTenantInboxResponse> => {
     const response = await apiClient.patch<UpdateTenantInboxResponse>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/inboxes/${inboxId}`,
       data,
+      data instanceof FormData
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : undefined,
     );
     return response.data;
   },
@@ -645,6 +649,10 @@ export const chatwootService = {
     tenantId: string,
     data: FilterConversationsRequest,
     page?: number,
+    query?: Pick<
+      ListTenantConversationsParams,
+      "conversation_type" | "assignee_type"
+    >,
   ): Promise<FilterConversationsResponse> => {
     const response = await apiClient.post<FilterConversationsResponse>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/filter`,
@@ -652,6 +660,12 @@ export const chatwootService = {
       {
         params: {
           page: typeof page === "number" && Number.isFinite(page) ? page : 1,
+          ...(query?.conversation_type
+            ? { conversation_type: query.conversation_type }
+            : {}),
+          ...(query?.assignee_type
+            ? { assignee_type: query.assignee_type }
+            : {}),
         },
       },
     );

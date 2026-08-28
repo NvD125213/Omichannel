@@ -59,7 +59,7 @@ import { ChatHeader } from "./chat-header";
 import { MessageInput } from "./message-input";
 import { MessageList } from "./message-list";
 import { EmptyData } from "@/components/empty-data";
-import { StringParam, useQueryParams } from "use-query-params";
+import { StringParam, NumberParam, useQueryParams } from "use-query-params";
 import { coerceToDate } from "@/helpers/format-message-time";
 import { useChatUnreadStore } from "../utils/chat-unread-store";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -68,7 +68,7 @@ import { ChatConversationFilterForm } from "./chat-conversation-filter-form";
 import { ChatFilterCustomDialog } from "./chat-filter-custom-dialog";
 import {
   buildFilterConversationsPayload,
-  buildConversationListFilterRequest,
+  buildSidebarFilterRequest,
   EMPTY_CHAT_CONVERSATION_FILTER,
   extractAccountCustomFilters,
   extractFilterConversationsMetaFromPages,
@@ -84,6 +84,15 @@ import {
   hasActiveChatConversationFilter,
   type ChatConversationFilterDraft,
 } from "../utils/conversation-filter";
+import {
+  buildAppliedFilterDraftFromQuery,
+  buildRailFilterQueryFromDraft,
+  CLEAR_RAIL_FILTER_QUERY,
+  CLEAR_SIDEBAR_SCOPE_QUERY,
+  CommaArrayParam,
+  hasRailFilterQuery,
+  parseSidebarAssigneeFilter,
+} from "../utils/chat-filter-query-params";
 import type { AccountCustomFilter } from "@/services/chatwoot/interface";
 
 /** Tuỳ chỉnh nền rail lọc chat — đổi class Tailwind tại đây (chỉ dark hoặc cả light) */
@@ -632,108 +641,188 @@ export function Chat() {
   const users: ChatUser[] = [];
   const [query, setQuery] = useQueryParams({
     conversation_id: StringParam,
+    assignee: StringParam,
+    inbox_id: NumberParam,
+    team_id: StringParam,
+    label: StringParam,
+    custom_filter: NumberParam,
+    status: CommaArrayParam,
+    filter_assignee: StringParam,
+    filter_inbox: StringParam,
+    filter_labels: CommaArrayParam,
   });
   const selectedConversationFromQuery = query.conversation_id ?? null;
 
-  // Biến state để lọc danh sách hội thoại theo assignee
-  const [sidebarConversationAssignee, setSidebarConversationAssignee] =
-    useState<ConversationSidebarAssigneeFilter>("me");
+  const sidebarConversationAssignee = parseSidebarAssigneeFilter(
+    query.assignee,
+  );
+  const sidebarInboxId =
+    typeof query.inbox_id === "number" && Number.isFinite(query.inbox_id)
+      ? query.inbox_id
+      : null;
+  const sidebarTeamId = query.team_id?.trim() ? query.team_id.trim() : null;
+  const sidebarLabel = query.label?.trim() ? query.label.trim() : null;
+  const sidebarCustomFilterId =
+    typeof query.custom_filter === "number" &&
+    Number.isFinite(query.custom_filter)
+      ? query.custom_filter
+      : null;
+
   const [conversationAssigneeType, setConversationAssigneeType] =
     useState<ConversationAssigneeType>("all");
-  const [sidebarInboxId, setSidebarInboxId] = useState<number | null>(null);
-  const [sidebarTeamId, setSidebarTeamId] = useState<string | null>(null);
-  const [sidebarLabel, setSidebarLabel] =
-    useState<ConversationSidebarLabelFilter>(null);
-  const [sidebarCustomFilterId, setSidebarCustomFilterId] = useState<
-    number | null
-  >(null);
 
   const [isChatFilterRailOpen, setIsChatFilterRailOpen] = useState(false);
   const [chatFilterDraft, setChatFilterDraft] =
     useState<ChatConversationFilterDraft>(EMPTY_CHAT_CONVERSATION_FILTER);
-  const [appliedChatFilter, setAppliedChatFilter] =
-    useState<ChatConversationFilterDraft>(EMPTY_CHAT_CONVERSATION_FILTER);
-  const [activeFilterRequest, setActiveFilterRequest] =
-    useState<FilterConversationsRequest | null>(null);
-  const [isChatFilterActive, setIsChatFilterActive] = useState(false);
   const [isCustomFilterDialogOpen, setIsCustomFilterDialogOpen] =
     useState(false);
   const [isCustomFilterDeleteDialogOpen, setIsCustomFilterDeleteDialogOpen] =
     useState(false);
 
+  const isChatFilterActive =
+    sidebarCustomFilterId !== null || hasRailFilterQuery(query);
+
+  const appliedChatFilter = useMemo(
+    () => buildAppliedFilterDraftFromQuery(query),
+    [query],
+  );
+
+  const { user } = useAuth();
+  const tenantId = user?.tenant_id ?? "";
+  const queryClient = useQueryClient();
+
+  const { data: customFiltersResponse } = useListAccountCustomFilters(tenantId);
+
+  const savedCustomFilters = useMemo(
+    () => extractAccountCustomFilters(customFiltersResponse),
+    [customFiltersResponse],
+  );
+
+  const selectedSidebarCustomFilter = useMemo(
+    () =>
+      sidebarCustomFilterId
+        ? (savedCustomFilters.find(
+            (filter) =>
+              parseCustomFilterId(filter.id) === sidebarCustomFilterId,
+          ) ?? null)
+        : null,
+    [savedCustomFilters, sidebarCustomFilterId],
+  );
+
+  const activeFilterRequest = useMemo((): FilterConversationsRequest | null => {
+    if (!isChatFilterActive) return null;
+
+    if (sidebarCustomFilterId && selectedSidebarCustomFilter) {
+      return customFilterQueryToRequest(selectedSidebarCustomFilter.query);
+    }
+
+    if (hasRailFilterQuery(query)) {
+      return buildFilterConversationsPayload(appliedChatFilter);
+    }
+
+    return null;
+  }, [
+    appliedChatFilter,
+    isChatFilterActive,
+    query,
+    selectedSidebarCustomFilter,
+    sidebarCustomFilterId,
+  ]);
+
   const exitChatFilterMode = useCallback(() => {
     setChatFilterDraft(EMPTY_CHAT_CONVERSATION_FILTER);
-    setAppliedChatFilter(EMPTY_CHAT_CONVERSATION_FILTER);
-    setActiveFilterRequest(null);
-    setIsChatFilterActive(false);
     setIsChatFilterRailOpen(false);
-    setSidebarCustomFilterId(null);
-  }, []);
+    setQuery(CLEAR_RAIL_FILTER_QUERY, "replaceIn");
+  }, [setQuery]);
 
   const handleSidebarConversationAssigneeChange = useCallback(
     (value: ConversationSidebarAssigneeFilter) => {
-      exitChatFilterMode();
-      setSidebarConversationAssignee(value);
-      setSidebarInboxId(null);
-      setSidebarTeamId(null);
-      setSidebarLabel(null);
+      setQuery(
+        {
+          assignee: value,
+          ...CLEAR_SIDEBAR_SCOPE_QUERY,
+        },
+        "replaceIn",
+      );
     },
-    [exitChatFilterMode],
+    [setQuery],
   );
 
   const handleSidebarInboxChange = useCallback(
     (inboxId: number | null) => {
-      exitChatFilterMode();
-      setSidebarInboxId(inboxId);
-      setSidebarTeamId(null);
-      setSidebarLabel(null);
+      setQuery(
+        {
+          assignee: undefined,
+          inbox_id: inboxId ?? undefined,
+          team_id: undefined,
+          label: undefined,
+          ...CLEAR_RAIL_FILTER_QUERY,
+        },
+        "replaceIn",
+      );
     },
-    [exitChatFilterMode],
+    [setQuery],
   );
 
   const handleSidebarTeamChange = useCallback(
     (teamId: string | null) => {
-      exitChatFilterMode();
-      setSidebarTeamId(teamId);
-      setSidebarInboxId(null);
-      setSidebarLabel(null);
+      setQuery(
+        {
+          assignee: undefined,
+          inbox_id: undefined,
+          team_id: teamId ?? undefined,
+          label: undefined,
+          ...CLEAR_RAIL_FILTER_QUERY,
+        },
+        "replaceIn",
+      );
     },
-    [exitChatFilterMode],
+    [setQuery],
   );
 
   const handleSidebarLabelChange = useCallback(
     (label: ConversationSidebarLabelFilter) => {
-      exitChatFilterMode();
-      setSidebarLabel(label);
-      setSidebarInboxId(null);
-      setSidebarTeamId(null);
+      setQuery(
+        {
+          assignee: undefined,
+          inbox_id: undefined,
+          team_id: undefined,
+          label: label ?? undefined,
+          ...CLEAR_RAIL_FILTER_QUERY,
+        },
+        "replaceIn",
+      );
     },
-    [exitChatFilterMode],
+    [setQuery],
   );
 
-  // Lấy thông tin user đang đăng nhập
-  const { user } = useAuth();
-  const tenantId = user?.tenant_id ?? "";
-  const queryClient = useQueryClient();
+  const sidebarFilterBundle = useMemo(
+    () =>
+      buildSidebarFilterRequest({
+        conversationAssignee: sidebarConversationAssignee,
+        inboxId: sidebarInboxId,
+        teamId: sidebarTeamId,
+        label: sidebarLabel,
+      }),
+    [
+      sidebarConversationAssignee,
+      sidebarInboxId,
+      sidebarTeamId,
+      sidebarLabel,
+    ],
+  );
 
   const listFilterRequest = useMemo((): FilterConversationsRequest => {
     if (isChatFilterActive && activeFilterRequest?.payload?.length) {
       return activeFilterRequest;
     }
+    return sidebarFilterBundle.request;
+  }, [activeFilterRequest, isChatFilterActive, sidebarFilterBundle.request]);
 
-    return buildConversationListFilterRequest({
-      status: [...DEFAULT_CHAT_CONVERSATION_STATUSES],
-      inboxId: typeof sidebarInboxId === "number" ? String(sidebarInboxId) : "",
-      labels: sidebarLabel ? [sidebarLabel] : [],
-      teamId: sidebarTeamId,
-    });
-  }, [
-    isChatFilterActive,
-    activeFilterRequest,
-    sidebarInboxId,
-    sidebarLabel,
-    sidebarTeamId,
-  ]);
+  const listFilterQuery = useMemo(
+    () => (isChatFilterActive ? undefined : sidebarFilterBundle.query),
+    [isChatFilterActive, sidebarFilterBundle.query],
+  );
 
   const conversationListNavigationKey = useMemo(() => {
     if (isChatFilterActive) {
@@ -792,7 +881,8 @@ export function Chat() {
   } = useInfiniteFilterConversations(
     tenantId,
     listFilterRequest,
-    Boolean(listFilterRequest.payload.length),
+    Boolean(tenantId && listFilterRequest.payload.length),
+    listFilterQuery,
   );
 
   const filteredConversationPages = filteredConversationsList?.pages;
@@ -828,15 +918,22 @@ export function Chat() {
     }
     return null;
   }, [
-    filteredConversationPages,
-    filteredChatwootPayload,
     displayConversations.length,
+    filteredChatwootPayload,
+    filteredConversationPages,
   ]);
 
   const handleLoadMoreConversations = useCallback(() => {
     if (!hasNextFilterPage || isFilterFetchingNextPage) return;
     void fetchNextFilterPage();
   }, [fetchNextFilterPage, hasNextFilterPage, isFilterFetchingNextPage]);
+
+  const shouldHideConversationTabs =
+    isChatFilterActive ||
+    sidebarInboxId !== null ||
+    sidebarLabel !== null ||
+    sidebarTeamId !== null ||
+    sidebarConversationAssignee !== "me";
 
   // Lấy store chat từ context
   const chatStore = useChat();
@@ -863,59 +960,40 @@ export function Chat() {
     exitChatFilterMode();
   }, [exitChatFilterMode]);
 
-  const isFirstSidebarNavigationRender = useRef(true);
-
-  useEffect(() => {
-    if (isFirstSidebarNavigationRender.current) {
-      isFirstSidebarNavigationRender.current = false;
-      return;
-    }
-
-    handleClearChatFilters();
-  }, [
-    sidebarConversationAssignee,
-    sidebarInboxId,
-    sidebarTeamId,
-    sidebarLabel,
-    handleClearChatFilters,
-  ]);
-
   const handleApplyChatFilters = useCallback(() => {
     if (!tenantId || !hasActiveChatConversationFilter(chatFilterDraft)) {
       return;
     }
 
-    setSidebarCustomFilterId(null);
-    const requestData = buildFilterConversationsPayload(chatFilterDraft);
-    setAppliedChatFilter(chatFilterDraft);
-    setActiveFilterRequest(requestData);
-    setIsChatFilterActive(true);
+    setQuery(buildRailFilterQueryFromDraft(chatFilterDraft), "replaceIn");
     setIsChatFilterRailOpen(false);
-  }, [chatFilterDraft, tenantId]);
+  }, [chatFilterDraft, setQuery, tenantId]);
 
   const handleSidebarCustomFilterSelect = useCallback(
     (filter: AccountCustomFilter) => {
       if (!tenantId) return;
 
-      const requestData = customFilterQueryToRequest(filter.query);
-      if (!requestData) return;
-
       const filterId = parseCustomFilterId(filter.id);
       if (filterId === null) return;
 
-      const nextDraft = customFilterQueryToDraft(filter.query);
-
-      setSidebarCustomFilterId(filterId);
-      setSidebarInboxId(null);
-      setSidebarTeamId(null);
-      setSidebarLabel(null);
-      setChatFilterDraft(nextDraft);
-      setAppliedChatFilter(nextDraft);
-      setActiveFilterRequest(requestData);
-      setIsChatFilterActive(true);
+      setQuery(
+        {
+          assignee: undefined,
+          inbox_id: undefined,
+          team_id: undefined,
+          label: undefined,
+          custom_filter: filterId,
+          status: undefined,
+          filter_assignee: undefined,
+          filter_inbox: undefined,
+          filter_labels: undefined,
+        },
+        "replaceIn",
+      );
+      setChatFilterDraft(customFilterQueryToDraft(filter.query));
       setIsChatFilterRailOpen(false);
     },
-    [tenantId],
+    [setQuery, tenantId],
   );
 
   const appliedChatFilterCount = useMemo(
@@ -924,24 +1002,6 @@ export function Chat() {
         ? countActiveChatConversationFilters(appliedChatFilter)
         : 0,
     [appliedChatFilter, isChatFilterActive],
-  );
-
-  const { data: customFiltersResponse } = useListAccountCustomFilters(tenantId);
-
-  const savedCustomFilters = useMemo(
-    () => extractAccountCustomFilters(customFiltersResponse),
-    [customFiltersResponse],
-  );
-
-  const selectedSidebarCustomFilter = useMemo(
-    () =>
-      sidebarCustomFilterId
-        ? (savedCustomFilters.find(
-            (filter) =>
-              parseCustomFilterId(filter.id) === sidebarCustomFilterId,
-          ) ?? null)
-        : null,
-    [savedCustomFilters, sidebarCustomFilterId],
   );
 
   const customFilterDialogMode = sidebarCustomFilterId ? "update" : "create";
@@ -1341,7 +1401,7 @@ export function Chat() {
                   selectedConversation={selectedConversation}
                   isCollapsed
                   isLoading={isConversationListLoading}
-                  hideTabs={isChatFilterActive}
+                  hideTabs={shouldHideConversationTabs}
                   teamId={sidebarTeamId}
                   listScrollResetKey={conversationListNavigationKey}
                   isLoadingMore={isFilterFetchingNextPage}
@@ -1413,7 +1473,7 @@ export function Chat() {
                   selectedConversation={selectedConversation}
                   isCollapsed={isConversationListCollapsed}
                   isLoading={isConversationListLoading}
-                  hideTabs={isChatFilterActive}
+                  hideTabs={shouldHideConversationTabs}
                   teamId={sidebarTeamId}
                   listScrollResetKey={conversationListNavigationKey}
                   isLoadingMore={isFilterFetchingNextPage}

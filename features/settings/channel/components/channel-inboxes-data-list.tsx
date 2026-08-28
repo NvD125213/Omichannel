@@ -10,6 +10,7 @@ import {
   Mail,
   MessageCircle,
   Pencil,
+  Play,
   Search,
   Trash2,
   X,
@@ -367,6 +368,14 @@ function InboxDetailDialog({
   );
 }
 
+function isWebWidgetChannel(channelType: string) {
+  const normalized = channelType.trim();
+  return (
+    normalized === "Channel::WebWidget" ||
+    normalized.toLowerCase() === "web_widget"
+  );
+}
+
 export default function ChannelInboxesDataList() {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -409,6 +418,10 @@ export default function ChannelInboxesDataList() {
 
   const handleEdit = (inbox: ChannelInboxItem) => {
     router.push(`/settings/channel/${inbox.id}/edit`);
+  };
+
+  const handleTestWidget = (inbox: ChannelInboxItem) => {
+    window.open(`/widget-test/${inbox.id}`, "_blank", "noopener,noreferrer");
   };
 
   const handleDelete = () => {
@@ -543,6 +556,26 @@ export default function ChannelInboxesDataList() {
                           </TooltipTrigger>
                           <TooltipContent>Xem</TooltipContent>
                         </Tooltip>
+                        {isWebWidgetChannel(inbox.channelType) ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 cursor-pointer text-primary/80 hover:bg-primary/10 hover:text-primary"
+                                onClick={() => handleTestWidget(inbox)}
+                              >
+                                <Play className="size-3.5" />
+                                <span className="sr-only">
+                                  Sandbox kiểm thử widget
+                                </span>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Sandbox kiểm thử widget
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

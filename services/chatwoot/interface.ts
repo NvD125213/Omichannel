@@ -257,13 +257,214 @@ export type UpdateTenantConversationCustomAttributesResponse =
 
 // —— Inboxes / teams / labels ——
 
-export interface CreateTenantInboxRequest {
-  [key: string]: unknown;
+/** Channel payloads theo Chatwoot POST /accounts/:id/inboxes */
+export type InboxCreateChannelType =
+  | "web_widget"
+  | "api"
+  | "email"
+  | "line"
+  | "telegram"
+  | "whatsapp"
+  | "sms";
+
+export interface InboxCreateWebWidgetChannel {
+  type: "web_widget";
+  website_url: string;
+  welcome_title?: string | null;
+  welcome_tagline?: string | null;
+  widget_color?: string | null;
+  reply_time?: "in_a_few_minutes" | "in_a_few_hours" | "in_a_day" | null;
+  pre_chat_form_enabled?: boolean;
+  continuity_via_email?: boolean;
+  hmac_mandatory?: boolean;
+  allowed_domains?: string | null;
+  selected_feature_flags?: string[] | null;
 }
 
-export interface UpdateTenantInboxRequest {
-  [key: string]: unknown;
+export interface InboxCreateApiChannel {
+  type: "api";
+  webhook_url?: string | null;
+  hmac_mandatory?: boolean;
+  additional_attributes?: Record<string, unknown>;
 }
+
+export interface InboxCreateEmailChannel {
+  type: "email";
+  email: string;
+  imap_enabled?: boolean;
+  smtp_enabled?: boolean;
+  provider?: string | null;
+}
+
+export interface InboxCreateLineChannel {
+  type: "line";
+  line_channel_id: string;
+  line_channel_secret: string;
+  line_channel_token: string;
+}
+
+export interface InboxCreateTelegramChannel {
+  type: "telegram";
+  bot_token: string;
+}
+
+export interface InboxCreateWhatsappChannel {
+  type: "whatsapp";
+  phone_number: string;
+  provider: "whatsapp_cloud" | "default";
+  provider_config: {
+    api_key: string;
+    phone_number_id?: string;
+    business_account_id?: string;
+  };
+}
+
+export interface InboxCreateSmsChannel {
+  type: "sms";
+  phone_number: string;
+  provider_config?: {
+    api_key?: string;
+    api_secret?: string;
+    application_id?: string;
+    account_id?: string;
+    [key: string]: unknown;
+  };
+}
+
+export type InboxCreateChannel =
+  | InboxCreateWebWidgetChannel
+  | InboxCreateApiChannel
+  | InboxCreateEmailChannel
+  | InboxCreateLineChannel
+  | InboxCreateTelegramChannel
+  | InboxCreateWhatsappChannel
+  | InboxCreateSmsChannel;
+
+/** Body chuẩn Chatwoot create inbox — không dùng top-level channel_type. */
+export interface CreateTenantInboxRequest {
+  name: string;
+  greeting_enabled?: boolean;
+  greeting_message?: string | null;
+  enable_email_collect?: boolean;
+  csat_survey_enabled?: boolean;
+  enable_auto_assignment?: boolean;
+  working_hours_enabled?: boolean;
+  out_of_office_message?: string | null;
+  timezone?: string | null;
+  allow_messages_after_resolved?: boolean;
+  lock_to_single_conversation?: boolean;
+  portal_id?: number | null;
+  sender_name_type?: "friendly" | "professional" | null;
+  business_name?: string | null;
+  channel: InboxCreateChannel;
+}
+
+/** Channel payloads theo Chatwoot PATCH /accounts/:id/inboxes/:id — không có `type`. */
+export interface InboxUpdateWebWidgetChannel {
+  website_url?: string | null;
+  welcome_title?: string | null;
+  welcome_tagline?: string | null;
+  widget_color?: string | null;
+  reply_time?: "in_a_few_minutes" | "in_a_few_hours" | "in_a_day" | null;
+  pre_chat_form_enabled?: boolean;
+  pre_chat_form_options?: Record<string, unknown>;
+  continuity_via_email?: boolean;
+  hmac_mandatory?: boolean;
+  allowed_domains?: string | null;
+  selected_feature_flags?: string[] | null;
+}
+
+export interface InboxUpdateApiChannel {
+  webhook_url?: string | null;
+  hmac_mandatory?: boolean;
+  additional_attributes?: Record<string, unknown>;
+}
+
+export interface InboxUpdateEmailChannel {
+  email?: string | null;
+  imap_enabled?: boolean;
+  imap_login?: string | null;
+  imap_password?: string | null;
+  imap_address?: string | null;
+  imap_port?: number | null;
+  imap_enable_ssl?: boolean;
+  imap_authentication?: string | null;
+  smtp_enabled?: boolean;
+  smtp_login?: string | null;
+  smtp_password?: string | null;
+  smtp_address?: string | null;
+  smtp_port?: number | null;
+  smtp_domain?: string | null;
+  smtp_enable_starttls_auto?: boolean;
+  smtp_enable_ssl_tls?: boolean;
+  smtp_openssl_verify_mode?: string | null;
+  smtp_authentication?: string | null;
+  provider?: string | null;
+  verified_for_sending?: boolean;
+}
+
+export interface InboxUpdateLineChannel {
+  line_channel_id?: string | null;
+  line_channel_secret?: string | null;
+  line_channel_token?: string | null;
+}
+
+export interface InboxUpdateTelegramChannel {
+  bot_token?: string | null;
+}
+
+export interface InboxUpdateWhatsappChannel {
+  phone_number?: string | null;
+  provider?: "whatsapp_cloud" | "default" | null;
+  provider_config?: {
+    api_key?: string;
+    phone_number_id?: string;
+    business_account_id?: string;
+  };
+}
+
+export interface InboxUpdateSmsChannel {
+  phone_number?: string | null;
+  provider_config?: {
+    api_key?: string;
+    api_secret?: string;
+    application_id?: string;
+    account_id?: string;
+    [key: string]: unknown;
+  };
+}
+
+export type InboxUpdateChannel =
+  | InboxUpdateWebWidgetChannel
+  | InboxUpdateApiChannel
+  | InboxUpdateEmailChannel
+  | InboxUpdateLineChannel
+  | InboxUpdateTelegramChannel
+  | InboxUpdateWhatsappChannel
+  | InboxUpdateSmsChannel;
+
+/** Body chuẩn Chatwoot update inbox — channel không gồm `type`. */
+export interface UpdateTenantInboxRequest {
+  name?: string;
+  avatar_url?: string | null;
+  greeting_enabled?: boolean;
+  greeting_message?: string | null;
+  enable_email_collect?: boolean;
+  csat_survey_enabled?: boolean;
+  enable_auto_assignment?: boolean;
+  working_hours_enabled?: boolean;
+  out_of_office_message?: string | null;
+  timezone?: string | null;
+  allow_messages_after_resolved?: boolean;
+  lock_to_single_conversation?: boolean;
+  portal_id?: number | null;
+  sender_name_type?: "friendly" | "professional" | null;
+  business_name?: string | null;
+  branded_email_layout?: string | null;
+  channel?: InboxUpdateChannel;
+}
+
+export type UpdateTenantInboxRequestBody = UpdateTenantInboxRequest | FormData;
 
 export interface TenantTeam {
   id?: string | number;
