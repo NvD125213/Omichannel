@@ -21,6 +21,7 @@
 
   var state = {
     open: false,
+    chatting: false,
     showQuickReplies: true,
   };
 
@@ -58,7 +59,10 @@
     style.textContent =
       "#" +
       ROOT_ID +
-      "{position:fixed;right:20px;bottom:20px;z-index:2147483000;font-family:Inter,Segoe UI,Roboto,sans-serif}" +
+      "{position:fixed;right:20px;bottom:20px;z-index:2147483000;font-family:Inter,Segoe UI,Roboto,sans-serif;pointer-events:none}" +
+      "#" +
+      ROOT_ID +
+      " .omni-fsel-dock{pointer-events:auto}" +
       "#" +
       ROOT_ID +
       " *{box-sizing:border-box}" +
@@ -67,6 +71,9 @@
       THEME.border +
       ";border-radius:20px;background:#fff;box-shadow:0 16px 40px rgba(110,133,250,.18),0 4px 12px rgba(26,36,86,.05);overflow:hidden;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease}" +
       ".omni-fsel-panel.is-open{opacity:1;pointer-events:auto;transform:translateY(0)}" +
+      "#" +
+      ROOT_ID +
+      ".is-chatting .omni-fsel-panel{opacity:0;pointer-events:none;transform:translateY(8px)}" +
       ".omni-fsel-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid " +
       THEME.border +
       ";padding:12px 16px;background:linear-gradient(180deg,#fff 0%," +
@@ -125,14 +132,22 @@
       "}" +
       ".omni-fsel-quota.is-placeholder{visibility:hidden}" +
       ".omni-fsel-input-row{display:flex;gap:8px;align-items:center}" +
-      ".omni-fsel-input{flex:1;min-height:36px;border:1px solid " +
+      ".omni-fsel-input{flex:1;min-width:0;min-height:36px;height:36px;border:1px solid " +
       THEME.borderStrong +
       ";border-radius:12px;padding:8px 12px;font-size:12px;font-weight:500;color:" +
+      THEME.inkBody +
+      ";background:#fff;box-shadow:inset 0 1px 2px rgba(110,133,250,.07);outline:none;pointer-events:auto;caret-color:" +
+      THEME.ink +
+      "}" +
+      ".omni-fsel-input::placeholder{color:" +
       THEME.muted +
-      ";background:#fff;box-shadow:inset 0 1px 2px rgba(110,133,250,.07);display:flex;align-items:center}" +
+      "}" +
+      ".omni-fsel-input:focus{border-color:" +
+      THEME.primary +
+      ";box-shadow:0 0 0 3px rgba(110,133,250,.16)}" +
       ".omni-fsel-send{width:36px;height:36px;border:0;border-radius:12px;background:" +
       THEME.primary +
-      ";color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(110,133,250,.32);transition:filter .2s,transform .2s}" +
+      ";color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(110,133,250,.32);transition:filter .2s,transform .2s;flex-shrink:0}" +
       ".omni-fsel-send:hover{filter:brightness(.95)}" +
       ".omni-fsel-send:active{transform:scale(.95)}" +
       ".omni-fsel-dock{display:flex;align-items:flex-end;justify-content:flex-end;gap:10px}" +
@@ -142,9 +157,6 @@
       THEME.ink +
       ";cursor:pointer;box-shadow:0 8px 22px rgba(110,133,250,.14);transition:border-color .2s,box-shadow .2s}" +
       ".omni-fsel-prompt.is-visible{display:block}" +
-      ".omni-fsel-prompt:hover{border-color:" +
-      THEME.borderStrong +
-      ";box-shadow:0 10px 28px rgba(110,133,250,.2)}" +
       ".omni-fsel-launcher{width:48px;height:48px;border:0;border-radius:999px;background:" +
       THEME.primary +
       ";color:#fff;box-shadow:0 12px 28px rgba(110,133,250,.38);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s,box-shadow .2s;padding:0;overflow:hidden}" +
@@ -155,7 +167,8 @@
       "}" +
       ".omni-fsel-launcher-logo{width:28px;height:28px;border-radius:999px;object-fit:cover;display:block}" +
       ".omni-fsel-icon{width:20px;height:20px;display:block}" +
-      ".woot-widget-holder,.woot--bubble-holder,.woot-widget-bubble,#woot-widget-holder{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}";
+      ".woot-widget-bubble,.woot--bubble-holder{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}" +
+      ".woot-widget-holder{z-index:2147483645!important;right:20px!important;bottom:84px!important;max-width:calc(100vw - 32px)!important}";
     document.head.appendChild(style);
   }
 
@@ -166,10 +179,49 @@
     chat: '<svg class="omni-fsel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
   };
 
-  function openChatwoot() {
-    if (window.$chatwoot && typeof window.$chatwoot.toggle === "function") {
-      window.$chatwoot.toggle("open");
+  function withChatwoot(callback) {
+    if (window.$chatwoot) {
+      callback(window.$chatwoot);
+      return true;
     }
+    return false;
+  }
+
+  function openChatwoot() {
+    var opened = withChatwoot(function (chatwoot) {
+      if (typeof chatwoot.toggle === "function") chatwoot.toggle("open");
+    });
+    if (opened) return;
+
+    window.addEventListener(
+      "chatwoot:ready",
+      function onReady() {
+        withChatwoot(function (chatwoot) {
+          if (typeof chatwoot.toggle === "function") chatwoot.toggle("open");
+        });
+      },
+      { once: true },
+    );
+  }
+
+  function closeChatwoot() {
+    withChatwoot(function (chatwoot) {
+      if (typeof chatwoot.toggle === "function") chatwoot.toggle("close");
+    });
+  }
+
+  function startConversation() {
+    state.showQuickReplies = false;
+    state.chatting = true;
+    state.open = true;
+    render();
+    openChatwoot();
+  }
+
+  function submitComposer() {
+    var input = document.querySelector("#" + ROOT_ID + " .omni-fsel-input");
+    if (input) input.blur();
+    startConversation();
   }
 
   function renderQuickReplies(container) {
@@ -189,11 +241,7 @@
       button.type = "button";
       button.className = "omni-fsel-action";
       button.textContent = item.label;
-      button.addEventListener("click", function () {
-        state.showQuickReplies = false;
-        render();
-        openChatwoot();
-      });
+      button.addEventListener("click", startConversation);
       container.appendChild(button);
     });
   }
@@ -233,7 +281,8 @@
     var quotaWrap = root.querySelector(".omni-fsel-quota-wrap");
     var input = root.querySelector(".omni-fsel-input");
 
-    if (panel) panel.classList.toggle("is-open", state.open);
+    root.classList.toggle("is-chatting", state.chatting && state.open);
+    if (panel) panel.classList.toggle("is-open", state.open && !state.chatting);
 
     if (prompt) {
       var label = config.launcherPromptLabel || "Bạn có cần hỗ trợ gì không?";
@@ -259,16 +308,23 @@
     }
 
     if (input) {
-      input.textContent = state.showQuickReplies
-        ? config.inputPlaceholder
-        : config.inputPlaceholderWithActions || config.inputPlaceholder;
+      input.placeholder = state.showQuickReplies
+        ? config.inputPlaceholder || "Nhập tin nhắn..."
+        : config.inputPlaceholderWithActions ||
+          config.inputPlaceholder ||
+          "Nhập tin nhắn...";
+      input.disabled = false;
+      input.readOnly = false;
     }
   }
 
   function setOpen(next) {
     state.open = !!next;
+    if (!state.open) {
+      state.chatting = false;
+      closeChatwoot();
+    }
     render();
-    if (state.open) openChatwoot();
   }
 
   function mountWidget() {
@@ -304,12 +360,12 @@
       "</div>" +
       '<div class="omni-fsel-footer">' +
       '<div class="omni-fsel-quota-wrap"><p class="omni-fsel-quota"></p></div>' +
-      '<div class="omni-fsel-input-row">' +
-      '<div class="omni-fsel-input"></div>' +
-      '<button type="button" class="omni-fsel-send" aria-label="Gửi">' +
+      '<form class="omni-fsel-input-row">' +
+      '<input class="omni-fsel-input" type="text" autocomplete="off" enterkeyhint="send" />' +
+      '<button type="submit" class="omni-fsel-send" aria-label="Gửi">' +
       ICONS.send +
       "</button>" +
-      "</div>" +
+      "</form>" +
       "</div>" +
       "</div>" +
       '<div class="omni-fsel-dock">' +
@@ -338,7 +394,11 @@
     root
       .querySelector(".omni-fsel-launcher")
       .addEventListener("click", function () {
-        setOpen(!state.open);
+        if (state.open) {
+          setOpen(false);
+          return;
+        }
+        setOpen(true);
       });
 
     root
@@ -348,19 +408,22 @@
       });
 
     root
-      .querySelector(".omni-fsel-send")
-      .addEventListener("click", function () {
-        openChatwoot();
+      .querySelector(".omni-fsel-input-row")
+      .addEventListener("submit", function (event) {
+        event.preventDefault();
+        submitComposer();
       });
 
     render();
   }
 
   function loadChatwootSdk() {
-    var script = document.createElement("script");
-    script.src = config.baseUrl + "/packs/js/sdk.js";
-    script.async = true;
-    script.onload = function () {
+    window.chatwootSettings = Object.assign({}, window.chatwootSettings || {}, {
+      hideMessageBubble: true,
+      showPopoutButton: false,
+    });
+
+    function runSdk() {
       if (!window.chatwootSDK || typeof window.chatwootSDK.run !== "function") {
         console.warn("[fsel-techie] Chatwoot SDK unavailable.");
         return;
@@ -369,7 +432,24 @@
         websiteToken: config.websiteToken,
         baseUrl: config.baseUrl,
       });
-    };
+    }
+
+    if (window.$chatwoot || window.chatwootSDK) {
+      runSdk();
+      return;
+    }
+
+    var existing = document.getElementById("omni-fsel-chatwoot-sdk");
+    if (existing) {
+      existing.addEventListener("load", runSdk);
+      return;
+    }
+
+    var script = document.createElement("script");
+    script.id = "omni-fsel-chatwoot-sdk";
+    script.src = config.baseUrl + "/packs/js/sdk.js";
+    script.async = true;
+    script.onload = runSdk;
     document.head.appendChild(script);
   }
 
