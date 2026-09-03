@@ -494,10 +494,6 @@ export function buildChatEmbedScript(
   return [
     `<!-- ${options.template.label} · script tuỳ chỉnh -->`,
     "<script>",
-    "  window.chatwootSettings = Object.assign({}, window.chatwootSettings || {}, {",
-    "    hideMessageBubble: true,",
-    "    showPopoutButton: false",
-    "  });",
     `  window.__OMNICHANNEL_CHAT_WIDGET__ = ${configJson};`,
     "</script>",
     `<script src="${options.widgetAssetsOrigin}${widgetScriptPath}" async></script>`,

@@ -64,8 +64,9 @@ export function ChannelWidgetLivePage({ inboxId }: ChannelWidgetLivePageProps) {
 
         <h1 className="mt-4 text-3xl font-bold tracking-tight">{inboxName}</h1>
         <p className="mt-2 max-w-xl text-sm leading-6 text-[#7b88b8]">
-          Đây là trang giả lập website khách hàng. Widget chat sẽ xuất hiện ở
-          góc dưới bên phải — thử mở/đóng bubble và chọn quick reply.
+          Đây là trang giả lập website khách hàng. Widget FSEL giữ nguyên giao
+          diện khung chat tùy chỉnh — thử mở bubble, chọn quick reply và nhắn
+          tin.
         </p>
 
         {isLoading ? (
@@ -95,8 +96,8 @@ export function ChannelWidgetLivePage({ inboxId }: ChannelWidgetLivePageProps) {
             <div className="rounded-2xl border border-[#d4dcfa] bg-white p-5 shadow-[0_12px_32px_rgba(110,133,250,0.12)]">
               <h2 className="text-base font-semibold">Nội dung demo</h2>
               <p className="mt-2 text-sm leading-6 text-[#7b88b8]">
-                Trang này chạy script nhúng trực tiếp — không qua iframe — nên
-                widget hoạt động giống khi gắn lên website thật.
+                Trang này chạy widget FSEL tùy chỉnh (không dùng khung Chatwoot
+                mặc định). Tin nhắn gửi qua Widget API của Chatwoot.
               </p>
             </div>
             <div className="rounded-2xl border border-dashed border-[#d4dcfa] bg-white/60 p-5 text-sm text-[#7b88b8]">

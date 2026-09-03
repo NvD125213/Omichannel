@@ -102,29 +102,17 @@ export function injectEmbedScript(embedScript: string) {
   });
 
   return () => {
-    const chatwoot = (
-      window as Window & {
-        $chatwoot?: { toggle?: (state?: string) => void; reset?: () => void };
-      }
-    ).$chatwoot;
-    chatwoot?.toggle?.("close");
-    chatwoot?.reset?.();
-
     document.getElementById("omni-fsel-techie-root")?.remove();
     document.getElementById("omni-fsel-techie-style")?.remove();
     document.getElementById("omni-fsel-chatwoot-sdk")?.remove();
     document
       .querySelectorAll(
-        ".woot-widget-holder,.woot--bubble-holder,.woot-widget-bubble,#woot-widget-holder",
+        ".woot-widget-holder,.woot--bubble-holder,.woot-widget-bubble,#woot-widget-holder,#cw-widget-holder",
       )
       .forEach((node) => node.remove());
 
-    const widgetWindow = window as Window & {
-      __OMNICHANNEL_CHAT_WIDGET__?: unknown;
-      $chatwoot?: unknown;
-    };
-    delete widgetWindow.__OMNICHANNEL_CHAT_WIDGET__;
-    delete widgetWindow.$chatwoot;
+    delete (window as Window & { __OMNICHANNEL_CHAT_WIDGET__?: unknown })
+      .__OMNICHANNEL_CHAT_WIDGET__;
 
     injectedScripts.forEach((script) => script.remove());
   };
