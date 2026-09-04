@@ -1,5 +1,6 @@
 import apiClient from "@/lib/api-client";
 import { cleanParams } from "@/utils/clean-params";
+import type { TenantKgAgentBinding } from "@/services/tenant/kg-agents";
 
 export interface TenantListItem {
   id: string;
@@ -16,6 +17,9 @@ export interface TenantListItem {
     default_responder?: "bot" | "agent";
     [key: string]: unknown;
   } | null;
+  graph_id?: string | null;
+  kg_agents?: TenantKgAgentBinding[] | null;
+  conversation_rating_enabled?: boolean | null;
 }
 
 export interface Tenant {
@@ -38,6 +42,8 @@ export interface Tenant {
   agent_id?: string | null;
   graph_activated?: number | null;
   webcall_config?: Record<string, unknown> | null;
+  conversation_rating_enabled?: boolean | null;
+  kg_agents?: TenantKgAgentBinding[] | null;
 }
 
 /** Response list: GET /tenants (không truyền id) */
@@ -75,6 +81,12 @@ export interface TenantQueryParams {
   search?: string;
   id?: string;
   is_active?: number;
+  /** Lọc theo graph KG */
+  graph_id?: string;
+  /** Lọc tenant có gắn KG agent này */
+  kg_agent_id?: string;
+  /** 0: chưa kích hoạt graph, 1: đã kích hoạt */
+  graph_activated?: number;
 }
 
 export function isTenantListData(
@@ -142,6 +154,11 @@ export interface CreateTenantRequest {
     chatbot_enabled: boolean;
     default_responder: "bot" | "agent";
   };
+  graph_id?: string | null;
+  graph_activated?: number | null;
+  webcall_config?: Record<string, unknown> | null;
+  conversation_rating_enabled?: boolean | null;
+  kg_agents?: TenantKgAgentBinding[] | null;
 }
 
 export interface UpdateTenantRequest {
@@ -156,6 +173,11 @@ export interface UpdateTenantRequest {
     chatbot_enabled: boolean;
     default_responder: "bot" | "agent";
   };
+  graph_id?: string | null;
+  graph_activated?: number | null;
+  webcall_config?: Record<string, unknown> | null;
+  conversation_rating_enabled?: boolean | null;
+  kg_agents?: TenantKgAgentBinding[] | null;
 }
 
 export async function createTenantApi(data: CreateTenantRequest) {

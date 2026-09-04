@@ -7,6 +7,8 @@ export interface OwnTenantSettings {
   conversation_rating_enabled?: boolean | null;
   chatbot_enabled?: boolean | null;
   default_responder?: TenantDefaultResponder | null;
+  /** Cấu hình bot messaging (nếu BE trả về) */
+  messaging_bots?: Record<string, unknown> | unknown[] | null;
 }
 
 export interface OwnTenantSettingsResponse {
@@ -16,11 +18,12 @@ export interface OwnTenantSettingsResponse {
   data: OwnTenantSettings;
 }
 
-/** PATCH chỉ nhận 3 field này; field không gửi thì giữ nguyên. */
+/** PATCH: field không gửi thì giữ nguyên. */
 export interface UpdateOwnTenantSettingsRequest {
   conversation_rating_enabled?: boolean | null;
   chatbot_enabled?: boolean | null;
   default_responder?: TenantDefaultResponder | null;
+  messaging_bots?: Record<string, unknown> | unknown[] | null;
 }
 
 /** GET /api/v1/tenants/me/settings — admin-partner */

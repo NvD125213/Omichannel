@@ -20,42 +20,78 @@
   };
 
   var AUTH_KEY = "omni_fsel_auth_" + config.websiteToken;
-  var POLL_MS = 3000;
+  var SESSION_KEY = "omni_fsel_session_" + config.websiteToken;
+
+  var initialGreeting = String(config.greetingMessage || "").trim();
 
   var state = {
     open: false,
     showQuickReplies: true,
+    /** Lời chào chỉ hiện trước khi chọn persona / bắt đầu chat */
+    showGreeting: Boolean(initialGreeting),
     sending: false,
+    selectingPersona: false,
+    loadingPersonas: false,
     authToken: "",
     hasConversation: false,
     messages: [],
     error: "",
+    /** [{ id, label }] — ưu tiên từ GET personas */
+    quickReplies: Array.isArray(config.quickReplies)
+      ? config.quickReplies
+          .map(function (item) {
+            return {
+              id:
+                item && (item.id || item.persona_id)
+                  ? String(item.id || item.persona_id)
+                  : "",
+              label:
+                item && item.label ? String(item.label) : String(item || ""),
+            };
+          })
+          .filter(function (item) {
+            return item.label;
+          })
+      : [],
   };
-
-  var pollTimer = null;
 
   function pad(value) {
     return String(value).padStart(2, "0");
   }
 
   function formatTimestamp(date) {
+    var d = date instanceof Date ? date : new Date(date);
+    if (isNaN(d.getTime())) d = new Date();
     return (
-      pad(date.getDate()) +
+      pad(d.getDate()) +
       "/" +
-      pad(date.getMonth() + 1) +
+      pad(d.getMonth() + 1) +
       "/" +
-      date.getFullYear() +
+      d.getFullYear() +
       " - " +
-      pad(date.getHours()) +
+      pad(d.getHours()) +
       ":" +
-      pad(date.getMinutes())
+      pad(d.getMinutes())
     );
+  }
+
+  /** Reload = phiên mới: xóa token/session cũ, không khôi phục lịch sử. */
+  function resetSessionForNewVisit() {
+    state.authToken = "";
+    state.hasConversation = false;
+    state.messages = [];
+    try {
+      localStorage.removeItem(AUTH_KEY);
+      localStorage.removeItem(SESSION_KEY);
+    } catch (error) {
+      /* ignore */
+    }
   }
 
   function messageAreaMinHeight() {
     var count =
-      config.quickReplies && config.quickReplies.length
-        ? config.quickReplies.length
+      state.quickReplies && state.quickReplies.length
+        ? state.quickReplies.length
         : 0;
     if (!count) return "10rem";
     return Math.max(count * 2.65 + (count - 1) * 0.5, 10) + "rem";
@@ -70,21 +106,199 @@
   }
 
   function readStoredAuth() {
-    try {
-      return localStorage.getItem(AUTH_KEY) || "";
-    } catch (error) {
-      return "";
-    }
+    // Không khôi phục auth qua reload — luôn phiên mới trong tab hiện tại.
+    return state.authToken || "";
   }
 
   function writeStoredAuth(token) {
     state.authToken = token || "";
-    try {
-      if (token) localStorage.setItem(AUTH_KEY, token);
-      else localStorage.removeItem(AUTH_KEY);
-    } catch (error) {
-      /* ignore */
+    // Chỉ giữ trong memory trong phiên trang; không persist để reload = chat mới.
+  }
+
+  function getClientSessionId() {
+    if (state._clientSessionId) return state._clientSessionId;
+    state._clientSessionId =
+      "sess_" +
+      Date.now().toString(36) +
+      "_" +
+      Math.random().toString(36).slice(2, 10);
+    return state._clientSessionId;
+  }
+
+  function omniApiBase() {
+    return String(config.omniApiBaseUrl || "").replace(/\/$/, "");
+  }
+
+  function personaApiUrl(path) {
+    var base = omniApiBase();
+    if (!base) return "";
+    return base + path;
+  }
+
+  function extractPersonaRecords(payload) {
+    if (!payload) return [];
+    if (Array.isArray(payload)) return payload;
+    if (typeof payload !== "object") return [];
+
+    var candidates = [
+      payload.payload,
+      payload.personas,
+      payload.items,
+      payload.results,
+      payload.data,
+    ];
+
+    for (var i = 0; i < candidates.length; i++) {
+      if (Array.isArray(candidates[i])) return candidates[i];
     }
+
+    if (
+      payload.data &&
+      typeof payload.data === "object" &&
+      !Array.isArray(payload.data)
+    ) {
+      var nested = payload.data;
+      var nestedCandidates = [
+        nested.payload,
+        nested.personas,
+        nested.items,
+        nested.messaging && nested.messaging.payload,
+      ];
+      for (var j = 0; j < nestedCandidates.length; j++) {
+        if (Array.isArray(nestedCandidates[j])) return nestedCandidates[j];
+      }
+    }
+
+    return [];
+  }
+
+  function normalizePersona(raw, index) {
+    if (!raw || typeof raw !== "object") return null;
+    var id = String(
+      raw.persona_id || raw.id || raw.uuid || raw.key || "",
+    ).trim();
+    var label = String(
+      raw.name ||
+        raw.label ||
+        raw.title ||
+        raw.available_name ||
+        raw.display_name ||
+        "",
+    ).trim();
+    if (!label) label = id ? "Đối tượng " + (index + 1) : "";
+    if (!id && !label) return null;
+    return {
+      id: id || "persona-" + (index + 1),
+      label: label,
+    };
+  }
+
+  /** Tương đương useGetLiveChatPersonas */
+  function fetchLiveChatPersonas() {
+    var base = omniApiBase();
+    if (!base || !config.websiteToken) {
+      return Promise.resolve(state.quickReplies);
+    }
+
+    state.loadingPersonas = true;
+    var url = personaApiUrl(
+      "/public/live-chat/" +
+        encodeURIComponent(config.websiteToken) +
+        "/personas",
+    );
+
+    return fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+    })
+      .then(function (response) {
+        return response.text().then(function (text) {
+          var data = null;
+          if (text) {
+            try {
+              data = JSON.parse(text);
+            } catch (error) {
+              data = null;
+            }
+          }
+          if (!response.ok) {
+            throw new Error(
+              (data && data.message) ||
+                "Không tải được danh sách đối tượng (" + response.status + ")",
+            );
+          }
+          return data;
+        });
+      })
+      .then(function (body) {
+        var records = extractPersonaRecords(body);
+        if (!records.length && body && body.data != null) {
+          records = extractPersonaRecords(body.data);
+        }
+        var personas = records.map(normalizePersona).filter(function (item) {
+          return Boolean(item);
+        });
+        if (personas.length) {
+          state.quickReplies = personas;
+        }
+        state.loadingPersonas = false;
+        return state.quickReplies;
+      })
+      .catch(function (error) {
+        state.loadingPersonas = false;
+        console.warn("[fsel-techie] personas GET failed:", error);
+        return state.quickReplies;
+      });
+  }
+
+  /** Tương đương useSelectLiveChatPersona */
+  function selectLiveChatPersona(persona) {
+    var base = omniApiBase();
+    if (!base || !config.websiteToken || !persona || !persona.id) {
+      return Promise.resolve(null);
+    }
+
+    var url = personaApiUrl(
+      "/public/live-chat/" +
+        encodeURIComponent(config.websiteToken) +
+        "/personas/select",
+    );
+
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        persona_id: String(persona.id),
+        client_session_id: getClientSessionId(),
+        meta: {
+          label: persona.label || "",
+          referer_url: window.location.href,
+        },
+      }),
+    }).then(function (response) {
+      return response.text().then(function (text) {
+        var data = null;
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (error) {
+            data = null;
+          }
+        }
+        if (!response.ok) {
+          throw new Error(
+            (data && data.message) ||
+              "Không chọn được đối tượng (" + response.status + ")",
+          );
+        }
+        return data;
+      });
+    });
   }
 
   function apiUrl(path) {
@@ -109,6 +323,8 @@
     return fetch(apiUrl(path), {
       method: method,
       headers: headers,
+      // Không gửi cookie Chatwoot → mỗi lần load trang là contact/phiên mới
+      credentials: "omit",
       body: body ? JSON.stringify(body) : undefined,
     }).then(function (response) {
       return response.text().then(function (text) {
@@ -210,7 +426,6 @@
           (Array.isArray(data) ? data : []);
         if (payload && payload.length) {
           state.hasConversation = true;
-          state.showQuickReplies = false;
         }
         mergeMessages(payload);
         state.error = "";
@@ -280,6 +495,7 @@
 
     state.sending = true;
     state.showQuickReplies = false;
+    state.showGreeting = false;
     state.error = "";
     render();
 
@@ -290,7 +506,6 @@
       })
       .then(function () {
         renderMessages();
-        startPolling();
         return fetchMessages();
       })
       .catch(function (error) {
@@ -304,22 +519,6 @@
         render();
         focusInput();
       });
-  }
-
-  function startPolling() {
-    stopPolling();
-    if (!state.open) return;
-    pollTimer = window.setInterval(function () {
-      if (!state.open || !state.authToken) return;
-      fetchMessages();
-    }, POLL_MS);
-  }
-
-  function stopPolling() {
-    if (pollTimer) {
-      window.clearInterval(pollTimer);
-      pollTimer = null;
-    }
   }
 
   function injectStyles() {
@@ -337,7 +536,7 @@
       ROOT_ID +
       " *{box-sizing:border-box}" +
       ".omni-fsel-stack{display:flex;flex-direction:column;align-items:flex-end;gap:16px}" +
-      ".omni-fsel-panel{width:360px;max-width:calc(100vw - 32px);height:min(32rem,calc(100dvh - 96px));display:flex;flex-direction:column;border:1px solid " +
+      ".omni-fsel-panel{width:420px;max-width:calc(100vw - 24px);height:min(40rem,calc(100dvh - 88px));display:flex;flex-direction:column;border:1px solid " +
       THEME.border +
       ";border-radius:20px;background:#fff;box-shadow:0 16px 40px rgba(110,133,250,.18),0 4px 12px rgba(26,36,86,.05);overflow:hidden;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s ease,transform .2s ease}" +
       ".omni-fsel-panel.is-open{opacity:1;pointer-events:auto;transform:translateY(0)}" +
@@ -362,22 +561,17 @@
       ".omni-fsel-close:hover{background:" +
       THEME.primarySoft +
       "}" +
-      ".omni-fsel-body{flex:1;display:flex;flex-direction:column;background:" +
-      THEME.primarySurface +
-      ";padding:16px;min-height:0;overflow:hidden}" +
-      ".omni-fsel-message-block{max-width:80%;flex-shrink:0}" +
-      ".omni-fsel-meta{display:flex;justify-content:space-between;gap:8px;font-size:11px;line-height:1;padding:0 12px;margin-bottom:4px}" +
+      ".omni-fsel-body{flex:1;display:flex;flex-direction:column;background:#F7F8FA;padding:16px;min-height:0;overflow:hidden}" +
+      ".omni-fsel-message-block{max-width:88%;flex-shrink:0;margin-bottom:4px}" +
+      ".omni-fsel-message-block.is-hidden{display:none}" +
+      ".omni-fsel-meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:11px;line-height:1.2;padding:0 4px;margin-bottom:6px;width:100%}" +
       ".omni-fsel-meta strong{color:" +
-      THEME.ink +
-      ";font-weight:600}" +
-      ".omni-fsel-meta span{color:" +
       THEME.muted +
       ";font-weight:500}" +
-      ".omni-fsel-bubble{border:1px solid " +
-      THEME.border +
-      ";background:#fff;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:500;line-height:1.45;color:" +
-      THEME.inkBody +
-      ";box-shadow:0 2px 10px rgba(110,133,250,.12)}" +
+      ".omni-fsel-meta span{color:" +
+      THEME.muted +
+      ";font-weight:500;white-space:nowrap}" +
+      ".omni-fsel-bubble{border:1px solid #E5E7EB;background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:400;line-height:1.5;color:#111827;box-shadow:none}" +
       ".omni-fsel-message-area{flex:1;min-height:0;margin-top:8px;display:flex;flex-direction:column;overflow:hidden}" +
       ".omni-fsel-actions{display:grid;gap:8px;flex-shrink:0}" +
       ".omni-fsel-action{border:1px solid " +
@@ -390,22 +584,31 @@
       ";background:" +
       THEME.primarySoft +
       ";box-shadow:0 4px 14px rgba(110,133,250,.18)}" +
-      ".omni-fsel-messages{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding-right:2px}" +
-      ".omni-fsel-msg{max-width:80%;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:500;line-height:1.45;word-break:break-word}" +
-      ".omni-fsel-msg.is-agent{align-self:flex-start;border:1px solid " +
-      THEME.border +
-      ";background:#fff;color:" +
-      THEME.inkBody +
-      ";box-shadow:0 2px 10px rgba(110,133,250,.12)}" +
-      ".omni-fsel-msg.is-user{align-self:flex-end;background:" +
-      THEME.primary +
-      ";color:#fff;box-shadow:0 4px 14px rgba(110,133,250,.28)}" +
+      ".omni-fsel-action:disabled{opacity:.6;cursor:not-allowed}" +
+      ".omni-fsel-messages{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding-right:2px}" +
+      ".omni-fsel-msg-row{display:flex;flex-direction:column;gap:6px;max-width:88%}" +
+      ".omni-fsel-msg-row.is-agent{align-self:flex-start;align-items:stretch;width:88%}" +
+      ".omni-fsel-msg-row.is-user{align-self:flex-end;align-items:stretch;width:fit-content}" +
+      ".omni-fsel-msg-meta{display:flex;align-items:baseline;gap:10px;font-size:11px;line-height:1.2;padding:0 4px;color:" +
+      THEME.muted +
+      ";font-weight:500}" +
+      ".omni-fsel-msg-row.is-agent .omni-fsel-msg-meta{justify-content:space-between}" +
+      ".omni-fsel-msg-row.is-user .omni-fsel-msg-meta{justify-content:flex-end}" +
+      ".omni-fsel-msg-name{color:" +
+      THEME.muted +
+      ";font-weight:500}" +
+      ".omni-fsel-msg-time{color:" +
+      THEME.muted +
+      ";font-weight:500;white-space:nowrap}" +
+      ".omni-fsel-msg{border-radius:12px;padding:12px 14px;font-size:14px;font-weight:400;line-height:1.5;word-break:break-word}" +
+      ".omni-fsel-msg.is-agent{border:1px solid #E5E7EB;background:#fff;color:#111827;box-shadow:none}" +
+      ".omni-fsel-msg.is-user{border:0;background:#EEF2F7;color:#111827;box-shadow:none}" +
       ".omni-fsel-error{margin-top:8px;font-size:11px;font-weight:500;color:#c2410c;flex-shrink:0}" +
       ".omni-fsel-footer{flex-shrink:0;border-top:1px solid " +
       THEME.border +
       ";background:#fff;padding:12px 16px}" +
       ".omni-fsel-quota-wrap{min-height:16px;margin-bottom:8px}" +
-      ".omni-fsel-quota{margin:0;text-align:center;font-size:11px;font-weight:500;color:" +
+      ".omni-fsel-quota{margin:0;text-align:left;font-size:12px;font-weight:500;color:" +
       THEME.muted +
       "}" +
       ".omni-fsel-quota.is-placeholder{visibility:hidden}" +
@@ -464,25 +667,55 @@
     container.innerHTML = "";
     if (
       !state.showQuickReplies ||
-      !config.quickReplies ||
-      !config.quickReplies.length
+      !state.quickReplies ||
+      !state.quickReplies.length
     ) {
+      if (state.loadingPersonas && state.showQuickReplies) {
+        container.style.display = "grid";
+        container.style.minHeight = "4rem";
+        container.innerHTML =
+          '<div style="grid-column:1/-1;text-align:center;font-size:12px;color:' +
+          THEME.muted +
+          ';padding:12px 0">Đang tải lựa chọn…</div>';
+        return;
+      }
       container.style.display = "none";
       return;
     }
 
     container.style.display = "grid";
     container.style.minHeight = messageAreaMinHeight();
-    config.quickReplies.forEach(function (item) {
+    state.quickReplies.forEach(function (item) {
       var button = document.createElement("button");
       button.type = "button";
       button.className = "omni-fsel-action";
       button.textContent = item.label;
+      button.disabled = state.selectingPersona || state.sending;
       button.addEventListener("click", function () {
-        sendText(item.label);
+        selectPersonaAndContinue(item);
       });
       container.appendChild(button);
     });
+  }
+
+  function selectPersonaAndContinue(persona) {
+    if (!persona || state.selectingPersona || state.sending) return;
+
+    state.selectingPersona = true;
+    state.error = "";
+    render();
+
+    selectLiveChatPersona(persona)
+      .catch(function (error) {
+        console.warn("[fsel-techie] personas SELECT failed:", error);
+      })
+      .then(function () {
+        state.selectingPersona = false;
+        state.showQuickReplies = false;
+        state.showGreeting = false;
+        render();
+        return sendText(persona.label);
+      });
   }
 
   function renderMessages() {
@@ -499,13 +732,30 @@
       return;
     }
 
+    var assistantName = config.assistantName || "Trợ lý";
     var html = state.messages
       .map(function (message) {
+        var side = message.fromVisitor ? "is-user" : "is-agent";
+        var timeLabel = formatTimestamp(message.createdAt);
+        var meta = message.fromVisitor
+          ? '<div class="omni-fsel-msg-meta"><span class="omni-fsel-msg-time">' +
+            escapeHtml(timeLabel) +
+            "</span></div>"
+          : '<div class="omni-fsel-msg-meta"><span class="omni-fsel-msg-name">' +
+            escapeHtml(assistantName) +
+            '</span><span class="omni-fsel-msg-time">' +
+            escapeHtml(timeLabel) +
+            "</span></div>";
         return (
+          '<div class="omni-fsel-msg-row ' +
+          side +
+          '">' +
+          meta +
           '<div class="omni-fsel-msg ' +
-          (message.fromVisitor ? "is-user" : "is-agent") +
+          side +
           '">' +
           escapeHtml(message.content) +
+          "</div>" +
           "</div>"
         );
       })
@@ -558,6 +808,10 @@
     var panel = root.querySelector(".omni-fsel-panel");
     var launcher = root.querySelector(".omni-fsel-launcher");
     var prompt = root.querySelector(".omni-fsel-prompt");
+    var greetingBlock = root.querySelector(".omni-fsel-message-block");
+    var greetingBubble = root.querySelector(".omni-fsel-bubble");
+    var greetingTime = root.querySelector(".omni-fsel-meta-time");
+    var greetingName = root.querySelector(".omni-fsel-meta-name");
     var actions = root.querySelector(".omni-fsel-actions");
     var quota = root.querySelector(".omni-fsel-quota");
     var quotaWrap = root.querySelector(".omni-fsel-quota-wrap");
@@ -571,6 +825,19 @@
       var label = config.launcherPromptLabel || "Bạn có cần hỗ trợ gì không?";
       prompt.textContent = label;
       prompt.classList.toggle("is-visible", !state.open && !!label);
+    }
+
+    if (greetingBlock) {
+      var canShowGreeting =
+        state.showGreeting &&
+        Boolean(initialGreeting) &&
+        state.showQuickReplies;
+      greetingBlock.classList.toggle("is-hidden", !canShowGreeting);
+      if (greetingBubble) greetingBubble.textContent = initialGreeting;
+      if (greetingTime) greetingTime.textContent = formatTimestamp(new Date());
+      if (greetingName) {
+        greetingName.textContent = config.assistantName || "Trợ lý";
+      }
     }
 
     renderLauncherContent(launcher);
@@ -602,32 +869,28 @@
         : config.inputPlaceholderWithActions ||
           config.inputPlaceholder ||
           "Nhập tin nhắn...";
-      input.disabled = state.sending;
+      input.disabled = state.sending || state.selectingPersona;
     }
 
-    if (send) send.disabled = state.sending;
+    if (send) send.disabled = state.sending || state.selectingPersona;
   }
 
   function setOpen(next) {
     state.open = !!next;
     render();
     if (state.open) {
-      ensureSession()
-        .then(function () {
-          return fetchMessages();
-        })
-        .then(function () {
-          startPolling();
-          focusInput();
-        })
-        .catch(function (error) {
-          state.error =
-            (error && error.message) ||
-            "Không kết nối được Chatwoot widget API.";
-          render();
-        });
-    } else {
-      stopPolling();
+      // Chỉ fetch 1 lần khi mở lại phiên hiện tại — không poll liên tục
+      if (state.hasConversation && state.authToken) {
+        fetchMessages()
+          .then(function () {
+            focusInput();
+          })
+          .catch(function () {
+            focusInput();
+          });
+      } else {
+        focusInput();
+      }
     }
   }
 
@@ -642,7 +905,7 @@
 
   function mountWidget() {
     injectStyles();
-    state.authToken = readStoredAuth();
+    resetSessionForNewVisit();
 
     var root = document.createElement("div");
     root.id = ROOT_ID;
@@ -654,7 +917,9 @@
       '<div class="omni-fsel-title-wrap">' +
       '<div class="omni-fsel-logo-wrap">' +
       (config.logoUrl
-        ? '<img class="omni-fsel-logo" src="' + config.logoUrl + '" alt="" />'
+        ? '<img class="omni-fsel-logo" src="' +
+          escapeHtml(config.logoUrl) +
+          '" alt="" />'
         : "") +
       "</div>" +
       '<div class="omni-fsel-title"></div>' +
@@ -664,7 +929,9 @@
       "</button>" +
       "</div>" +
       '<div class="omni-fsel-body">' +
-      '<div class="omni-fsel-message-block">' +
+      '<div class="omni-fsel-message-block' +
+      (state.showGreeting ? "" : " is-hidden") +
+      '">' +
       '<div class="omni-fsel-meta"><strong class="omni-fsel-meta-name"></strong><span class="omni-fsel-meta-time"></span></div>' +
       '<div class="omni-fsel-bubble"></div>' +
       "</div>" +
@@ -692,14 +959,8 @@
 
     document.body.appendChild(root);
 
-    var assistantName = config.assistantName || "Trợ lý Techie";
+    var assistantName = config.assistantName || "Trợ lý";
     root.querySelector(".omni-fsel-title").textContent = assistantName;
-    root.querySelector(".omni-fsel-meta-name").textContent = assistantName;
-    root.querySelector(".omni-fsel-meta-time").textContent = formatTimestamp(
-      new Date(),
-    );
-    root.querySelector(".omni-fsel-bubble").textContent =
-      config.greetingMessage || "";
 
     root
       .querySelector(".omni-fsel-close")
@@ -724,6 +985,10 @@
       .addEventListener("submit", submitComposer);
 
     render();
+
+    fetchLiveChatPersonas().then(function () {
+      render();
+    });
   }
 
   mountWidget();

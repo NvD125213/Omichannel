@@ -474,10 +474,18 @@ export function buildChatEmbedScript(
     variant: variantId,
     baseUrl: credentials.baseUrl,
     websiteToken: credentials.websiteToken,
+    /** Base OmniHub API (`NEXT_PUBLIC_API_BASE_URL`) — GET/POST live-chat personas */
+    omniApiBaseUrl: (
+      process.env.NEXT_PUBLIC_API_BASE_URL || ""
+    ).replace(/\/$/, ""),
     assistantName: options.data.assistantName || options.template.assistantName,
+    // Không fallback template khi greeting tắt / rỗng ("" là hợp lệ)
     greetingMessage:
-      options.data.greetingMessage || options.template.greetingMessage,
+      typeof options.data.greetingMessage === "string"
+        ? options.data.greetingMessage
+        : options.template.greetingMessage,
     logoUrl,
+    /** Fallback khi API personas lỗi / trống */
     quickReplies: options.template.quickReplies ?? [],
     inputPlaceholder: options.template.inputPlaceholder,
     inputPlaceholderWithActions:

@@ -371,6 +371,7 @@ export interface InboxUpdateWebWidgetChannel {
   continuity_via_email?: boolean;
   hmac_mandatory?: boolean;
   allowed_domains?: string | null;
+  widget_enabled_in_mobile_apps?: boolean;
   selected_feature_flags?: string[] | null;
 }
 
@@ -461,7 +462,12 @@ export interface UpdateTenantInboxRequest {
   sender_name_type?: "friendly" | "professional" | null;
   business_name?: string | null;
   branded_email_layout?: string | null;
-  channel?: InboxUpdateChannel;
+  hmac_mandatory?: boolean;
+  channel?: InboxUpdateChannel & {
+    allowed_domains?: string | null;
+    widget_enabled_in_mobile_apps?: boolean;
+    hmac_mandatory?: boolean;
+  };
 }
 
 export type UpdateTenantInboxRequestBody = UpdateTenantInboxRequest | FormData;
@@ -509,6 +515,7 @@ export interface AccountInboxMembersRequest {
   user_ids: string[];
 }
 
+export type ListAccountInboxMembersResponse = ApiResponse<ChatwootJsonPayload>;
 export type CreateAccountInboxMembersResponse =
   ApiResponse<ChatwootJsonPayload>;
 export type UpdateAccountInboxMembersResponse =

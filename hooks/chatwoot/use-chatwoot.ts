@@ -74,8 +74,14 @@ export const chatwootOmniKeys = {
     [...chatwootOmniKeys.tenant(tenantId), "inboxes"] as const,
   tenantInbox: (tenantId: string, inboxId: string) =>
     [...chatwootOmniKeys.tenantInboxes(tenantId), inboxId] as const,
-  accountInboxMembers: (accountId: string) =>
-    [...chatwootOmniKeys.all, "account", accountId, "inbox-members"] as const,
+  accountInboxMembers: (accountId: string, inboxId?: string | number) =>
+    [
+      ...chatwootOmniKeys.all,
+      "account",
+      accountId,
+      "inbox-members",
+      inboxId == null ? "all" : String(inboxId),
+    ] as const,
   tenantTeams: (tenantId: string) =>
     [...chatwootOmniKeys.tenant(tenantId), "teams"] as const,
   tenantTeam: (tenantId: string, teamId: string) =>
@@ -177,6 +183,18 @@ export const useListChatwootAgents = (tenantId: string) => {
     queryKey: chatwootOmniKeys.tenantAgents(tenantId),
     queryFn: () => chatwootService.listChatwootAgents(tenantId),
     enabled: !!tenantId,
+  });
+};
+
+export const useListAccountInboxMembers = (
+  accountId: string,
+  inboxId: string,
+) => {
+  return useQuery({
+    queryKey: chatwootOmniKeys.accountInboxMembers(accountId, inboxId),
+    queryFn: () => chatwootService.listAccountInboxMembers(accountId, inboxId),
+    enabled: !!accountId && !!inboxId,
+    retry: false,
   });
 };
 
@@ -1235,7 +1253,12 @@ export const useCreateAccountInboxMembers = () => {
       if (res.status_code === 200 || res.status_code === 201) {
         toast.success(res.message || "Thêm nhân viên vào kênh thành công");
         queryClient.invalidateQueries({
-          queryKey: chatwootOmniKeys.accountInboxMembers(variables.accountId),
+          queryKey: [
+            ...chatwootOmniKeys.all,
+            "account",
+            variables.accountId,
+            "inbox-members",
+          ],
         });
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.tenantInboxes(variables.accountId),
@@ -1268,7 +1291,12 @@ export const useUpdateAccountInboxMembers = () => {
       if (res.status_code === 200 || res.status_code === 201) {
         toast.success(res.message || "Cập nhật nhân viên kênh thành công");
         queryClient.invalidateQueries({
-          queryKey: chatwootOmniKeys.accountInboxMembers(variables.accountId),
+          queryKey: [
+            ...chatwootOmniKeys.all,
+            "account",
+            variables.accountId,
+            "inbox-members",
+          ],
         });
         queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.tenantInboxes(variables.accountId),

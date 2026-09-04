@@ -1,46 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Sketch } from "@uiw/react-color";
-import {
-  ArrowLeft,
-  Check,
-  Copy,
-  Loader2,
-  MessageSquare,
-  Plus,
-  Search,
-} from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import {
   useGetTenantInbox,
+  useListAccountInboxMembers,
   useListChatwootAgents,
   useListTenantInboxes,
   useUpdateAccountInboxMembers,
@@ -49,124 +19,19 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import type { UpdateTenantInboxRequest } from "@/services/chatwoot/interface";
 import {
-  buildChatEmbedScript,
-  ChatPreviewFrame,
-  ChatPreviewVariantSelect,
-  getEmbedScriptFileName,
-  resolveChatPreviewFromInbox,
-  resolveChatPreviewTemplate,
-  type ChatPreviewFormSource,
-  type ChatPreviewVariantId,
-} from "./chat-preview-config";
-
-const REPLY_TIME_OPTIONS = [
-  { value: "in_a_few_minutes", label: "Trong vài phút" },
-  { value: "in_a_few_hours", label: "Trong vài giờ" },
-  { value: "in_a_day", label: "Trong một ngày" },
-] as const;
-
-const FEATURE_FLAGS = [
-  {
-    key: "attachments",
-    label: "Đính kèm tệp",
-  },
-  {
-    key: "emoji_picker",
-    label: "Bộ chọn emoji",
-  },
-  {
-    key: "end_conversation",
-    label: "Kết thúc hội thoại",
-  },
-  {
-    key: "use_inbox_avatar_for_bot",
-    label: "Avatar inbox cho bot",
-  },
-] as const;
-
-type FeatureFlagKey = (typeof FEATURE_FLAGS)[number]["key"];
-
-type ChannelKey =
-  | "website"
-  | "sms"
-  | "whatsapp"
-  | "email"
-  | "api"
-  | "telegram"
-  | "line";
-
-const CHANNEL_TYPE_TO_KEY: Record<string, ChannelKey> = {
-  website: "website",
-  web_widget: "website",
-  "Channel::WebWidget": "website",
-  sms: "sms",
-  "Channel::Sms": "sms",
-  whatsapp: "whatsapp",
-  "Channel::Whatsapp": "whatsapp",
-  email: "email",
-  "Channel::Email": "email",
-  api: "api",
-  "Channel::Api": "api",
-  telegram: "telegram",
-  "Channel::Telegram": "telegram",
-  line: "line",
-  "Channel::Line": "line",
-};
-
-const CHANNEL_LABELS: Record<ChannelKey, string> = {
-  website: "Website",
-  sms: "SMS",
-  whatsapp: "WhatsApp",
-  email: "Email",
-  api: "API",
-  telegram: "Telegram",
-  line: "LINE",
-};
-
-type InboxEditFormValues = {
-  name: string;
-  website_url: string;
-  widget_color: string;
-  welcome_title: string;
-  welcome_tagline: string;
-  greeting_enabled: boolean;
-  greeting_message: string;
-  enable_email_collect: boolean;
-  allow_messages_after_resolved: boolean;
-  lock_to_single_conversation: boolean;
-  continuity_via_email: boolean;
-  hmac_mandatory: boolean;
-  sender_name_type: "friendly" | "professional";
-  business_name: string;
-  reply_time: string;
-  webhook_url: string;
-  portal_id: string;
-  bubble_position: "left" | "right";
-  bubble_type: "standard" | "expanded_bubble";
-  launcher_title: string;
-  selected_feature_flags: FeatureFlagKey[];
-  phone_number: string;
-  provider_api_key: string;
-  provider_api_secret: string;
-  provider_application_id: string;
-  provider_account_id: string;
-  phone_number_id: string;
-  business_account_id: string;
-  email: string;
-  bot_token: string;
-  line_channel_id: string;
-  line_channel_secret: string;
-  line_channel_token: string;
-};
-
-type AgentOption = {
-  id: string;
-  /** UUID user gắn với agent — gửi lên inbox_members.user_ids */
-  userId: string | null;
-  name: string;
-  email: string;
-  thumbnail?: string;
-};
+  InboxCollaboratorsTab,
+  InboxConfigurationTab,
+  InboxSettingsTab,
+} from "./patch-components";
+import {
+  CHANNEL_LABELS,
+  CHANNEL_TYPE_TO_KEY,
+  FEATURE_FLAGS,
+  type AgentOption,
+  type ChannelKey,
+  type FeatureFlagKey,
+  type InboxEditFormValues,
+} from "./patch-components/shared";
 
 interface ChannelInboxesActionPatchProps {
   inboxId: string;
@@ -191,12 +56,19 @@ function extractRecords(response: unknown): Record<string, unknown>[] {
   if (fromDataArray) return fromDataArray;
 
   if (data && typeof data === "object" && !Array.isArray(data)) {
+    const messaging = data.messaging as
+      | Record<string, unknown>
+      | unknown[]
+      | undefined;
     return (
       coerceRecords(data.payload) ??
       coerceRecords(data.agents) ??
+      coerceRecords(data.members) ??
+      coerceRecords(data.inbox_members) ??
       coerceRecords(data.inboxes) ??
+      coerceRecords(messaging) ??
       coerceRecords(
-        (data.messaging as Record<string, unknown> | undefined)?.payload,
+        messaging && !Array.isArray(messaging) ? messaging.payload : null,
       ) ??
       []
     );
@@ -337,12 +209,7 @@ function mapInboxToEditValues(
 
   return {
     name: pickString(sources, "name"),
-    website_url: pickString(
-      sources,
-      "website_url",
-      "website_domain",
-      "allowed_domains",
-    ),
+    website_url: pickString(sources, "website_url", "website_domain"),
     widget_color: pickString(sources, "widget_color") || "#1f93ff",
     welcome_title: pickString(sources, "welcome_title", "welcome_heading"),
     welcome_tagline: pickString(sources, "welcome_tagline"),
@@ -361,6 +228,17 @@ function mapInboxToEditValues(
     ),
     continuity_via_email: pickBoolean(sources, "continuity_via_email", true),
     hmac_mandatory: pickBoolean(sources, "hmac_mandatory", false),
+    hmac_token: pickString(sources, "hmac_token"),
+    allowed_domains: pickString(
+      sources,
+      "allowed_domains",
+      "whitelisted_domains",
+    ),
+    widget_enabled_in_mobile_apps: pickBoolean(
+      sources,
+      "widget_enabled_in_mobile_apps",
+      false,
+    ),
     sender_name_type: senderRaw === "friendly" ? "friendly" : "professional",
     business_name: pickString(sources, "business_name"),
     reply_time: replyRaw || "in_a_few_minutes",
@@ -444,6 +322,9 @@ function buildUpdatePayload(
               : "in_a_few_minutes",
           continuity_via_email: values.continuity_via_email,
           selected_feature_flags: values.selected_feature_flags,
+          allowed_domains: values.allowed_domains.trim() || null,
+          widget_enabled_in_mobile_apps: values.widget_enabled_in_mobile_apps,
+          hmac_mandatory: values.hmac_mandatory,
         },
       };
     }
@@ -555,6 +436,20 @@ function buildUpdatePayload(
   }
 }
 
+/** PATCH chỉ phần Configuration — khớp payload Chatwoot channel.allowed_domains */
+function buildConfigurationPayload(
+  values: InboxEditFormValues,
+): UpdateTenantInboxRequest {
+  return {
+    hmac_mandatory: values.hmac_mandatory,
+    channel: {
+      allowed_domains: values.allowed_domains.trim() || null,
+      widget_enabled_in_mobile_apps: values.widget_enabled_in_mobile_apps,
+      hmac_mandatory: values.hmac_mandatory,
+    },
+  };
+}
+
 function appendFormDataEntry(
   formData: FormData,
   key: string,
@@ -606,275 +501,126 @@ function normalizeAgent(
   record: Record<string, unknown>,
   index: number,
 ): AgentOption {
-  const name = String(record.available_name ?? record.name ?? "").trim();
+  const name = String(record.name ?? record.available_name ?? "").trim();
   const email = String(record.email ?? "").trim();
   const userId =
     toUuidId(record.user_id) ??
     toUuidId(record.uuid) ??
     toUuidId(record.id) ??
     toUuidId(record.account_user_id);
+  const numericIdRaw =
+    toNumericId(record.id) ??
+    toNumericId(record.user_id) ??
+    toNumericId(record.account_user_id);
+  const numericId = numericIdRaw === null ? null : String(numericIdRaw);
   const id =
     userId ||
+    numericId ||
     String(record.id ?? record.user_id ?? record.uuid ?? "").trim() ||
     email ||
     `agent-${index + 1}`;
-  const thumbnail = String(
-    record.thumbnail ?? record.avatar_url ?? record.avatarUrl ?? "",
-  ).trim();
+  const thumbnail = pickAgentThumbnail(record);
 
   return {
     id,
     userId,
+    numericId,
     name: name || `Nhân viên ${index + 1}`,
     email: email || "Không có",
-    thumbnail: thumbnail || undefined,
+    thumbnail,
   };
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) {
-    const a = parts[0]?.[0];
-    const b = parts[parts.length - 1]?.[0];
-    if (a && b) return (a + b).toUpperCase();
+/** Avatar agent chuẩn từ API: field `thumbnail`. */
+function pickAgentThumbnail(
+  record: Record<string, unknown>,
+): string | undefined {
+  const raw = String(
+    record.thumbnail ?? record.avatar_url ?? record.avatarUrl ?? "",
+  ).trim();
+  return raw || undefined;
+}
+
+function collectIdentityKeys(record: Record<string, unknown>): string[] {
+  const keys = new Set<string>();
+  for (const value of [
+    record.user_id,
+    record.uuid,
+    record.id,
+    record.account_user_id,
+    record.email,
+  ]) {
+    const raw = String(value ?? "")
+      .trim()
+      .toLowerCase();
+    if (raw) keys.add(raw);
   }
-  return name.slice(0, 2).toUpperCase() || "?";
+  return Array.from(keys);
 }
 
-const INPUT_CLASSNAME = "border-border/80 p-2";
-const TEXTAREA_CLASSNAME = "border-border/80 p-2";
-const SELECT_TRIGGER_CLASSNAME = "w-full border-border/80 p-2";
+function agentIdentityKeys(agent: AgentOption): string[] {
+  return [agent.id, agent.userId, agent.numericId, agent.email]
+    .map((value) =>
+      String(value ?? "")
+        .trim()
+        .toLowerCase(),
+    )
+    .filter(Boolean);
+}
 
-function InboxAvatarSetup({
-  displayUrl,
-  disabled,
-  uploadInputId,
-  onFileSelect,
-}: {
-  displayUrl?: string;
-  disabled?: boolean;
-  uploadInputId: string;
-  onFileSelect: (file: File) => void;
-}) {
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    onFileSelect(file);
-  };
-
+function extractInboxMemberRecords(
+  response: unknown,
+  inboxRecord: Record<string, unknown> | null,
+): Record<string, unknown>[] {
+  const fromApi = extractRecords(response);
+  if (fromApi.length > 0) return fromApi;
+  if (!inboxRecord) return [];
   return (
-    <div className="flex items-center gap-3">
-      <label
-        htmlFor={uploadInputId}
-        className={cn(
-          "relative inline-flex shrink-0 cursor-pointer",
-          disabled && "pointer-events-none opacity-60",
-        )}
-      >
-        <Avatar className="size-14 rounded-full border border-border/80 bg-background">
-          {displayUrl ? (
-            <AvatarImage
-              src={displayUrl}
-              alt="Ảnh đại diện"
-              className="object-cover"
-            />
-          ) : null}
-          <AvatarFallback className="rounded-full bg-muted">
-            <MessageSquare className="size-5 text-muted-foreground" />
-          </AvatarFallback>
-        </Avatar>
-        <span className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-sm">
-          <Plus className="size-3.5" />
-        </span>
-        <input
-          id={uploadInputId}
-          type="file"
-          accept="image/*"
-          className="sr-only"
-          disabled={disabled}
-          onChange={handleFileChange}
-        />
-      </label>
-      <div className="min-w-0">
-        <p className="text-xs font-medium text-foreground">Ảnh đại diện</p>
-        <p className="text-[11px] leading-4 text-muted-foreground">
-          Nhấn dấu cộng để tải ảnh lên widget chat.
-        </p>
-      </div>
-    </div>
+    coerceRecords(inboxRecord.members) ??
+    coerceRecords(inboxRecord.inbox_members) ??
+    coerceRecords(inboxRecord.agents) ??
+    []
   );
 }
 
-function WebsiteChatPreview({
-  inboxRecord,
-  formValues,
-  script,
-}: {
-  inboxRecord: Record<string, unknown> | null;
-  formValues: ChatPreviewFormSource;
-  script: string;
-}) {
-  const [previewTab, setPreviewTab] = useState("widget");
-  const resolved = useMemo(
-    () => resolveChatPreviewFromInbox(inboxRecord, formValues),
-    [formValues, inboxRecord],
-  );
-  const [previewVariant, setPreviewVariant] = useState<ChatPreviewVariantId>(
-    resolved.variantId,
-  );
-  const [copied, setCopied] = useState(false);
+function resolveSelectedAgentIds(
+  members: Record<string, unknown>[],
+  agents: AgentOption[],
+): string[] {
+  if (members.length === 0 || agents.length === 0) return [];
 
-  useEffect(() => {
-    setPreviewVariant(resolved.variantId);
-  }, [resolved.variantId]);
+  const memberKeys = new Set(members.flatMap(collectIdentityKeys));
+  return agents
+    .filter((agent) =>
+      agentIdentityKeys(agent).some((key) => memberKeys.has(key)),
+    )
+    .map((agent) => agent.id);
+}
 
-  const previewTemplate = useMemo(
-    () => resolveChatPreviewTemplate(previewVariant, inboxRecord),
-    [inboxRecord, previewVariant],
-  );
+/** Ưu tiên `thumbnail` từ inbox_members khi list agents thiếu avatar. */
+function enrichAgentsWithMemberThumbnails(
+  agents: AgentOption[],
+  members: Record<string, unknown>[],
+): AgentOption[] {
+  if (agents.length === 0 || members.length === 0) return agents;
 
-  const previewData = resolved.runtime;
-
-  const widgetAssetsOrigin =
-    typeof window !== "undefined" ? window.location.origin : "";
-
-  const embedScript = useMemo(
-    () =>
-      buildChatEmbedScript(previewVariant, {
-        baseScript: script,
-        template: previewTemplate,
-        data: previewData,
-        widgetAssetsOrigin,
-      }),
-    [previewData, previewTemplate, previewVariant, script, widgetAssetsOrigin],
-  );
-
-  const scriptText =
-    embedScript.trim() || "// Script sẽ xuất hiện sau khi inbox tải xong.";
-  const scriptLines = useMemo(() => scriptText.split("\n"), [scriptText]);
-  const scriptFileName = getEmbedScriptFileName(previewVariant);
-
-  const handleCopy = async () => {
-    if (!embedScript.trim()) {
-      toast.error("Chưa có script nhúng");
-      return;
+  const thumbnailByKey = new Map<string, string>();
+  for (const member of members) {
+    const thumb = pickAgentThumbnail(member);
+    if (!thumb) continue;
+    for (const key of collectIdentityKeys(member)) {
+      thumbnailByKey.set(key, thumb);
     }
-    try {
-      await navigator.clipboard.writeText(embedScript);
-      setCopied(true);
-      toast.success("Đã sao chép script");
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      toast.error("Không sao chép được script");
-    }
-  };
+  }
+  if (thumbnailByKey.size === 0) return agents;
 
-  return (
-    <aside className="flex h-full min-h-0 min-w-0 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-background">
-        <Tabs
-          value={previewTab}
-          onValueChange={setPreviewTab}
-          className="flex min-h-0 flex-1 flex-col gap-0"
-        >
-          <div className="border-b border-border/70 px-4 pt-4">
-            <div className="mb-3 space-y-0.5">
-              <h3 className="text-sm font-medium">Widget & nhúng</h3>
-              <p className="text-xs text-muted-foreground">
-                Xem trước UI và script nhúng theo khung đã chọn.
-              </p>
-            </div>
-            <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b-0 bg-transparent p-0">
-              <TabsTrigger
-                value="widget"
-                className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                Xem trước
-              </TabsTrigger>
-              <TabsTrigger
-                value="script"
-                className="rounded-none border-b-2 border-transparent px-3 py-2 text-xs data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-              >
-                Script nhúng
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="widget" className="mt-0 flex-1 p-4 outline-none">
-            <div className="space-y-3 rounded-xl bg-[#f4f4f5] p-4">
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-foreground/90">
-                  Khung chat tuỳ chỉnh
-                </p>
-                <ChatPreviewVariantSelect
-                  value={previewVariant}
-                  onChange={setPreviewVariant}
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  {previewTemplate.description}
-                </p>
-              </div>
-
-              <ChatPreviewFrame
-                variantId={previewVariant}
-                data={previewData}
-              />
-            </div>
-          </TabsContent>
-
-          <TabsContent
-            value="script"
-            className="mt-0 flex min-h-0 flex-1 flex-col p-4 outline-none"
-          >
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#2b2b2b] bg-[#1e1e1e] shadow-[0_8px_24px_rgba(0,0,0,0.35)]">
-              <div className="flex shrink-0 items-center justify-between border-b border-[#2b2b2b] bg-[#252526] px-3 py-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="size-2.5 shrink-0 rounded-full bg-[#ff5f57]" />
-                  <span className="size-2.5 shrink-0 rounded-full bg-[#febc2e]" />
-                  <span className="size-2.5 shrink-0 rounded-full bg-[#28c840]" />
-                  <span className="ml-1 truncate font-mono text-[11px] text-[#cccccc]">
-                    {scriptFileName}
-                  </span>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 shrink-0 px-2 text-[11px] text-[#cccccc] hover:bg-[#2a2d2e] hover:text-white"
-                  onClick={() => void handleCopy()}
-                  disabled={!embedScript.trim()}
-                >
-                  {copied ? (
-                    <Check className="size-3.5" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                  Sao chép
-                </Button>
-              </div>
-
-              <div className="flex min-h-0 flex-1 overflow-auto">
-                <div className="sticky left-0 shrink-0 border-r border-[#2b2b2b] bg-[#1e1e1e] px-3 py-3 text-right font-mono text-[11px] leading-5 text-[#858585] select-none">
-                  {scriptLines.map((_, index) => (
-                    <div key={index}>{index + 1}</div>
-                  ))}
-                </div>
-                <pre className="min-w-0 flex-1 overflow-x-auto p-3 font-mono text-[11px] leading-5 text-[#d4d4d4]">
-                  <code>{scriptText}</code>
-                </pre>
-              </div>
-
-              <div className="flex shrink-0 items-center justify-between border-t border-[#007acc] bg-[#007acc] px-3 py-1 text-[10px] text-white">
-                <span>HTML</span>
-                <span>{scriptLines.length} dòng · UTF-8</span>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </aside>
-  );
+  return agents.map((agent) => {
+    const fromMember = agentIdentityKeys(agent)
+      .map((key) => thumbnailByKey.get(key))
+      .find(Boolean);
+    const thumbnail = fromMember || agent.thumbnail;
+    return thumbnail === agent.thumbnail ? agent : { ...agent, thumbnail };
+  });
 }
 
 const defaultValues: InboxEditFormValues = {
@@ -890,6 +636,9 @@ const defaultValues: InboxEditFormValues = {
   lock_to_single_conversation: false,
   continuity_via_email: true,
   hmac_mandatory: false,
+  hmac_token: "",
+  allowed_domains: "",
+  widget_enabled_in_mobile_apps: false,
   sender_name_type: "professional",
   business_name: "",
   reply_time: "in_a_few_minutes",
@@ -924,16 +673,18 @@ export function ChannelInboxesActionPatch({
   const [hydrated, setHydrated] = useState(false);
   const [channelKey, setChannelKey] = useState<ChannelKey>("website");
   const [widgetScript, setWidgetScript] = useState("");
-  const [inboxRecord, setInboxRecord] = useState<Record<string, unknown> | null>(
-    null,
-  );
+  const [inboxRecord, setInboxRecord] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
   const [avatarDisplayUrl, setAvatarDisplayUrl] = useState("");
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [memberSearch, setMemberSearch] = useState("");
+  const [membersHydrated, setMembersHydrated] = useState(false);
   const [isWidgetColorOpen, setIsWidgetColorOpen] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
+  const [savingConfiguration, setSavingConfiguration] = useState(false);
   const [savingMembers, setSavingMembers] = useState(false);
 
   const form = useForm<InboxEditFormValues>({
@@ -948,24 +699,24 @@ export function ChannelInboxesActionPatch({
     useListTenantInboxes(tenantId);
   const { data: agentsResponse, isLoading: isLoadingAgents } =
     useListChatwootAgents(tenantId);
+  const {
+    data: inboxMembersResponse,
+    isLoading: isLoadingInboxMembers,
+    isError: isInboxMembersError,
+  } = useListAccountInboxMembers(tenantId, inboxId);
 
   const updateInbox = useUpdateTenantInbox();
   const updateInboxMembers = useUpdateAccountInboxMembers();
 
-  const agents = useMemo(
-    () => extractRecords(agentsResponse).map(normalizeAgent),
-    [agentsResponse],
+  const inboxMemberRecords = useMemo(
+    () => extractInboxMemberRecords(inboxMembersResponse, inboxRecord),
+    [inboxMembersResponse, inboxRecord],
   );
 
-  const filteredAgents = useMemo(() => {
-    const q = memberSearch.trim().toLowerCase();
-    if (!q) return agents;
-    return agents.filter(
-      (agent) =>
-        agent.name.toLowerCase().includes(q) ||
-        agent.email.toLowerCase().includes(q),
-    );
-  }, [agents, memberSearch]);
+  const agents = useMemo(() => {
+    const fromAgents = extractRecords(agentsResponse).map(normalizeAgent);
+    return enrichAgentsWithMemberThumbnails(fromAgents, inboxMemberRecords);
+  }, [agentsResponse, inboxMemberRecords]);
 
   const watched = form.watch();
   const activeAvatarUrl = avatarPreviewUrl || avatarDisplayUrl;
@@ -1023,20 +774,6 @@ export function ChannelInboxesActionPatch({
       ),
     );
 
-    const memberIds = new Set<string>();
-    const members = coerceRecords(record.members) ?? [];
-    for (const member of members) {
-      const id =
-        toUuidId(member.user_id) ??
-        toUuidId(member.uuid) ??
-        toUuidId(member.id) ??
-        toUuidId(member.account_user_id) ??
-        String(
-          member.user_id ?? member.id ?? member.account_user_id ?? "",
-        ).trim();
-      if (id) memberIds.add(id);
-    }
-    setSelectedMemberIds(Array.from(memberIds));
     setHydrated(true);
   }, [
     form,
@@ -1046,6 +783,26 @@ export function ChannelInboxesActionPatch({
     inboxesListResponse,
     isLoadingInbox,
     isLoadingList,
+    tenantId,
+  ]);
+
+  useEffect(() => {
+    if (membersHydrated || !tenantId || !inboxId || !hydrated) return;
+    if (isLoadingAgents || (isLoadingInboxMembers && !isInboxMembersError))
+      return;
+
+    const memberRecords = inboxMemberRecords;
+    setSelectedMemberIds(resolveSelectedAgentIds(memberRecords, agents));
+    setMembersHydrated(true);
+  }, [
+    agents,
+    hydrated,
+    inboxId,
+    inboxMemberRecords,
+    isInboxMembersError,
+    isLoadingAgents,
+    isLoadingInboxMembers,
+    membersHydrated,
     tenantId,
   ]);
 
@@ -1131,6 +888,53 @@ export function ChannelInboxesActionPatch({
     }
   });
 
+  const handleSaveConfiguration = form.handleSubmit(async (values) => {
+    if (!tenantId) {
+      toast.error("Không tìm thấy đơn vị");
+      return;
+    }
+
+    setSavingConfiguration(true);
+    try {
+      const res = await updateInbox.mutateAsync({
+        tenantId,
+        inboxId,
+        data: buildConfigurationPayload(values),
+      });
+      if (!isSuccessResponse(res)) return;
+
+      const updatedRecord = extractSingleRecord(res);
+      if (updatedRecord) {
+        const nextToken = pickString(
+          [
+            updatedRecord,
+            (updatedRecord.channel as Record<string, unknown>) ?? {},
+          ],
+          "hmac_token",
+        );
+        if (nextToken) form.setValue("hmac_token", nextToken);
+      }
+    } catch {
+      // toast handled by hook
+    } finally {
+      setSavingConfiguration(false);
+    }
+  });
+
+  const handleCopyHmacToken = async () => {
+    const token = form.getValues("hmac_token").trim();
+    if (!token) {
+      toast.error("Chưa có secret key");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(token);
+      toast.success("Đã sao chép secret key");
+    } catch {
+      toast.error("Không thể sao chép secret key");
+    }
+  };
+
   const handleSaveCollaborators = async () => {
     if (!tenantId) {
       toast.error("Không tìm thấy đơn vị");
@@ -1174,7 +978,7 @@ export function ChannelInboxesActionPatch({
     }
   };
 
-  const isBusy = savingSettings || savingMembers;
+  const isBusy = savingSettings || savingConfiguration || savingMembers;
 
   if (!hydrated && (isLoadingInbox || isLoadingList)) {
     return (
@@ -1224,1020 +1028,69 @@ export function ChannelInboxesActionPatch({
           >
             Cộng tác viên
           </TabsTrigger>
+          <TabsTrigger
+            value="configuration"
+            className="rounded-none border-b-2 border-transparent px-4 py-2.5 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+          >
+            Cấu hình
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent
           value="settings"
           className="mt-0 overflow-x-hidden outline-none"
         >
-          <Form {...form}>
-            <form onSubmit={handleSaveSettings} className="space-y-6 pb-6">
-              <div
-                className={cn(
-                  "grid gap-4",
-                  channelKey === "website" &&
-                    "xl:grid-cols-[minmax(0,1fr)_minmax(352px,0.666fr)] xl:items-stretch xl:min-h-128",
-                )}
-              >
-                <Card className="flex h-full min-w-0 flex-col gap-0 border-border/70 bg-card py-0 shadow-none">
-                  <CardContent className="flex flex-1 flex-col space-y-4 p-4 sm:p-5">
-                    {channelKey === "website" ? (
-                      <section className="space-y-3">
-                        <div className="space-y-0.5">
-                          <h3 className="text-sm font-medium">
-                            Cấu hình widget
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            Chỉnh sửa bên trái, xem trước bên phải.
-                          </p>
-                        </div>
-
-                        <InboxAvatarSetup
-                          displayUrl={activeAvatarUrl}
-                          disabled={isBusy}
-                          uploadInputId="inbox-website-avatar-upload"
-                          onFileSelect={handleAvatarFileSelect}
-                        />
-
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                              <FormItem className="gap-1.5">
-                                <FormLabel className="text-xs">
-                                  Tên kênh
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...field}
-                                    disabled={isBusy}
-                                    className={INPUT_CLASSNAME}
-                                    placeholder="Nhập tên kênh"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="website_url"
-                            render={({ field }) => (
-                              <FormItem className="gap-1.5">
-                                <FormLabel className="text-xs">
-                                  Website URL
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...field}
-                                    disabled={isBusy}
-                                    className={INPUT_CLASSNAME}
-                                    placeholder="https://example.com"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="welcome_title"
-                            render={({ field }) => (
-                              <FormItem className="gap-1.5">
-                                <FormLabel className="text-xs">
-                                  Tiêu đề chào mừng
-                                </FormLabel>
-                                <FormControl>
-                                  <Input
-                                    {...field}
-                                    disabled={isBusy}
-                                    className={INPUT_CLASSNAME}
-                                    placeholder="Xin chào!"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="reply_time"
-                            render={({ field }) => (
-                              <FormItem className="gap-1.5">
-                                <FormLabel className="text-xs">
-                                  Thời gian phản hồi
-                                </FormLabel>
-                                <Select
-                                  value={field.value}
-                                  onValueChange={field.onChange}
-                                  disabled={isBusy}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger
-                                      className={SELECT_TRIGGER_CLASSNAME}
-                                    >
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {REPLY_TIME_OPTIONS.map((option) => (
-                                      <SelectItem
-                                        key={option.value}
-                                        value={option.value}
-                                      >
-                                        {option.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={form.control}
-                          name="welcome_tagline"
-                          render={({ field }) => (
-                            <FormItem className="gap-1.5">
-                              <FormLabel className="text-xs">
-                                Mô tả chào mừng
-                              </FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  {...field}
-                                  disabled={isBusy}
-                                  maxLength={255}
-                                  rows={2}
-                                  className={cn(
-                                    TEXTAREA_CLASSNAME,
-                                    "min-h-14 resize-y",
-                                  )}
-                                  placeholder="Chúng tôi sẵn sàng hỗ trợ bạn."
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
-                          <FormField
-                            control={form.control}
-                            name="widget_color"
-                            render={({ field }) => (
-                              <FormItem className="gap-1.5">
-                                <FormLabel className="text-xs">
-                                  Màu widget
-                                </FormLabel>
-                                <div className="space-y-2">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setIsWidgetColorOpen((prev) => !prev)
-                                    }
-                                    disabled={isBusy}
-                                    className="inline-flex items-center gap-2 rounded-lg border border-border/80 px-2.5 py-1.5"
-                                  >
-                                    <span
-                                      className="size-5 rounded-full border"
-                                      style={{
-                                        backgroundColor:
-                                          field.value || "#1f93ff",
-                                      }}
-                                    />
-                                    <span className=" text-xs">
-                                      {field.value || "#1f93ff"}
-                                    </span>
-                                  </button>
-                                  {isWidgetColorOpen ? (
-                                    <FormControl>
-                                      <div
-                                        className={cn(
-                                          "w-fit overflow-x-auto rounded-xl border bg-background p-2",
-                                          isBusy &&
-                                            "pointer-events-none opacity-60",
-                                        )}
-                                      >
-                                        <Sketch
-                                          color={field.value || "#1f93ff"}
-                                          onChange={(color) =>
-                                            field.onChange(color.hex)
-                                          }
-                                          style={
-                                            {
-                                              width: 220,
-                                              boxShadow: "none",
-                                              background: "transparent",
-                                              "--sketch-background":
-                                                "transparent",
-                                              "--sketch-box-shadow": "none",
-                                              "--sketch-swatch-border-top":
-                                                "1px solid hsl(var(--border))",
-                                            } as CSSProperties
-                                          }
-                                          disableAlpha
-                                        />
-                                      </div>
-                                    </FormControl>
-                                  ) : null}
-                                </div>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="greeting_message"
-                            render={({ field }) => (
-                              <FormItem className="gap-1.5">
-                                <div className="flex items-center justify-between gap-2">
-                                  <FormLabel className="text-xs">
-                                    Tin nhắn chào
-                                  </FormLabel>
-                                  <FormField
-                                    control={form.control}
-                                    name="greeting_enabled"
-                                    render={({ field: toggle }) => (
-                                      <FormItem className="flex flex-row items-center gap-2 space-y-0">
-                                        <FormLabel className="text-xs text-muted-foreground">
-                                          Bật
-                                        </FormLabel>
-                                        <FormControl>
-                                          <Switch
-                                            checked={toggle.value}
-                                            onCheckedChange={toggle.onChange}
-                                            disabled={isBusy}
-                                          />
-                                        </FormControl>
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-                                <FormControl>
-                                  <Textarea
-                                    {...field}
-                                    disabled={
-                                      isBusy || !watched.greeting_enabled
-                                    }
-                                    rows={2}
-                                    className={cn(
-                                      TEXTAREA_CLASSNAME,
-                                      "min-h-14 resize-y",
-                                    )}
-                                    placeholder="Xin chào! Chúng tôi có thể giúp gì cho bạn?"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {(
-                            [
-                              {
-                                name: "enable_email_collect" as const,
-                                label: "Thu thập email",
-                              },
-                              {
-                                name: "allow_messages_after_resolved" as const,
-                                label: "Nhắn sau khi xử lý",
-                              },
-                              {
-                                name: "continuity_via_email" as const,
-                                label: "Tiếp tục qua email",
-                              },
-                            ] as const
-                          ).map((item) => (
-                            <FormField
-                              key={item.name}
-                              control={form.control}
-                              name={item.name}
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between gap-3 rounded-lg border border-border/70 px-3 py-2">
-                                  <FormLabel className="mb-0 text-xs font-normal">
-                                    {item.label}
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Switch
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                      disabled={isBusy}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          ))}
-                        </div>
-
-                        <FormField
-                          control={form.control}
-                          name="selected_feature_flags"
-                          render={({ field }) => (
-                            <FormItem className="gap-1.5">
-                              <FormLabel className="text-xs">
-                                Tính năng widget
-                              </FormLabel>
-                              <div className="grid gap-2 sm:grid-cols-2">
-                                {FEATURE_FLAGS.map((feature) => {
-                                  const checked = field.value.includes(
-                                    feature.key,
-                                  );
-                                  return (
-                                    <label
-                                      key={feature.key}
-                                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-border/70 px-3 py-2"
-                                    >
-                                      <Checkbox
-                                        checked={checked}
-                                        disabled={isBusy}
-                                        onCheckedChange={(value) => {
-                                          const next = new Set(field.value);
-                                          if (value === true)
-                                            next.add(feature.key);
-                                          else next.delete(feature.key);
-                                          field.onChange(Array.from(next));
-                                        }}
-                                      />
-                                      <span className="text-xs leading-4">
-                                        {feature.label}
-                                      </span>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </section>
-                    ) : (
-                      <>
-                        <section className="space-y-4">
-                          <div className="space-y-0.5">
-                            <h3 className="text-sm font-medium">
-                              Thông tin kênh
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                              Cấu hình kênh {CHANNEL_LABELS[channelKey]}.
-                            </p>
-                          </div>
-
-                          <InboxAvatarSetup
-                            displayUrl={activeAvatarUrl}
-                            disabled={isBusy}
-                            uploadInputId="inbox-channel-avatar-upload"
-                            onFileSelect={handleAvatarFileSelect}
-                          />
-
-                          <div className="grid gap-3 sm:grid-cols-2">
-                            <FormField
-                              control={form.control}
-                              name="name"
-                              render={({ field }) => (
-                                <FormItem className="gap-1.5">
-                                  <FormLabel className="text-xs">
-                                    Tên kênh
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Input
-                                      {...field}
-                                      disabled={isBusy}
-                                      className={INPUT_CLASSNAME}
-                                      placeholder="Nhập tên kênh"
-                                    />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            {channelKey === "email" ? (
-                              <FormField
-                                control={form.control}
-                                name="email"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Email
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="email"
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="support@example.com"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            ) : null}
-
-                            {channelKey === "api" ? (
-                              <FormField
-                                control={form.control}
-                                name="webhook_url"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Webhook URL
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="https://example.com/webhook"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            ) : null}
-
-                            {channelKey === "sms" ||
-                            channelKey === "whatsapp" ? (
-                              <FormField
-                                control={form.control}
-                                name="phone_number"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Số điện thoại
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="+15551234567"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            ) : null}
-
-                            {channelKey === "telegram" ? (
-                              <FormField
-                                control={form.control}
-                                name="bot_token"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5 sm:col-span-2">
-                                    <FormLabel className="text-xs">
-                                      Bot Token
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="password"
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="Để trống nếu không đổi"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            ) : null}
-                          </div>
-
-                          {channelKey === "sms" ? (
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <FormField
-                                control={form.control}
-                                name="provider_api_key"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Provider API Key
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="password"
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="Để trống nếu không đổi"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="provider_api_secret"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Provider API Secret
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="password"
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="Để trống nếu không đổi"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="provider_application_id"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Application ID
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="your-application-id"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="provider_account_id"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Account ID
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="your-account-id"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          ) : null}
-
-                          {channelKey === "whatsapp" ? (
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <FormField
-                                control={form.control}
-                                name="provider_api_key"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      API Key
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="password"
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="Để trống nếu không đổi"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="phone_number_id"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Phone Number ID
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="your-phone-number-id"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="business_account_id"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Business Account ID
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="your-business-account-id"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          ) : null}
-
-                          {channelKey === "line" ? (
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <FormField
-                                control={form.control}
-                                name="line_channel_id"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      LINE Channel ID
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="1234567890"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="line_channel_secret"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      LINE Channel Secret
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="password"
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="Để trống nếu không đổi"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="line_channel_token"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5 sm:col-span-2">
-                                    <FormLabel className="text-xs">
-                                      LINE Channel Token
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        type="password"
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="Để trống nếu không đổi"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          ) : null}
-
-                          {channelKey === "api" ? (
-                            <FormField
-                              control={form.control}
-                              name="hmac_mandatory"
-                              render={({ field }) => (
-                                <FormItem className="flex flex-row items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                                  <FormLabel className="mb-0 text-xs font-normal">
-                                    Bắt buộc HMAC
-                                  </FormLabel>
-                                  <FormControl>
-                                    <Switch
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                      disabled={isBusy}
-                                    />
-                                  </FormControl>
-                                </FormItem>
-                              )}
-                            />
-                          ) : null}
-
-                          {channelKey === "email" ? (
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <FormField
-                                control={form.control}
-                                name="sender_name_type"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Tên người gửi
-                                    </FormLabel>
-                                    <Select
-                                      value={field.value}
-                                      onValueChange={field.onChange}
-                                      disabled={isBusy}
-                                    >
-                                      <FormControl>
-                                        <SelectTrigger
-                                          className={SELECT_TRIGGER_CLASSNAME}
-                                        >
-                                          <SelectValue />
-                                        </SelectTrigger>
-                                      </FormControl>
-                                      <SelectContent>
-                                        <SelectItem value="friendly">
-                                          Thân thiện
-                                        </SelectItem>
-                                        <SelectItem value="professional">
-                                          Chuyên nghiệp
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <FormField
-                                control={form.control}
-                                name="business_name"
-                                render={({ field }) => (
-                                  <FormItem className="gap-1.5">
-                                    <FormLabel className="text-xs">
-                                      Tên doanh nghiệp
-                                    </FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        {...field}
-                                        disabled={isBusy}
-                                        className={INPUT_CLASSNAME}
-                                        placeholder="Nhập tên doanh nghiệp"
-                                      />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                          ) : null}
-                        </section>
-
-                        <section className="space-y-3 border-t pt-4">
-                          <h3 className="text-sm font-medium">
-                            Cài đặt hội thoại
-                          </h3>
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            {(
-                              [
-                                {
-                                  name: "greeting_enabled" as const,
-                                  label: "Bật lời chào",
-                                  channels: null as ChannelKey[] | null,
-                                },
-                                {
-                                  name: "lock_to_single_conversation" as const,
-                                  label: "Giới hạn một hội thoại",
-                                  channels: [
-                                    "api",
-                                    "line",
-                                    "telegram",
-                                    "whatsapp",
-                                    "sms",
-                                  ] as ChannelKey[] | null,
-                                },
-                              ] as const
-                            )
-                              .filter(
-                                (item) =>
-                                  !item.channels ||
-                                  item.channels.includes(channelKey),
-                              )
-                              .map((item) => (
-                                <FormField
-                                  key={item.name}
-                                  control={form.control}
-                                  name={item.name}
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center justify-between gap-3 rounded-lg border px-3 py-2">
-                                      <FormLabel className="mb-0 text-xs font-normal">
-                                        {item.label}
-                                      </FormLabel>
-                                      <FormControl>
-                                        <Switch
-                                          checked={field.value}
-                                          onCheckedChange={field.onChange}
-                                          disabled={isBusy}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              ))}
-                          </div>
-                          <FormField
-                            control={form.control}
-                            name="greeting_message"
-                            render={({ field }) => (
-                              <FormItem className="gap-1.5">
-                                <FormLabel className="text-xs">
-                                  Tin nhắn chào
-                                </FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    {...field}
-                                    disabled={
-                                      isBusy || !watched.greeting_enabled
-                                    }
-                                    rows={2}
-                                    className={cn(
-                                      TEXTAREA_CLASSNAME,
-                                      "min-h-14 resize-y",
-                                    )}
-                                    placeholder="Xin chào! Chúng tôi có thể giúp gì cho bạn?"
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </section>
-                      </>
-                    )}
-
-                    <div className="mt-auto flex justify-end pt-1">
-                      <Button type="submit" disabled={isBusy}>
-                        {savingSettings ? (
-                          <>
-                            <Loader2 className="size-4 animate-spin" />
-                            Đang lưu...
-                          </>
-                        ) : (
-                          "Cập nhật cài đặt"
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {channelKey === "website" ? (
-                  <WebsiteChatPreview
-                    inboxRecord={inboxRecord}
-                    formValues={{
-                      name: watched.name,
-                      avatar_url: activeAvatarUrl,
-                      welcome_title: watched.welcome_title,
-                      welcome_tagline: watched.welcome_tagline,
-                      widget_color: watched.widget_color,
-                      reply_time: watched.reply_time,
-                      greeting_enabled: watched.greeting_enabled,
-                      greeting_message: watched.greeting_message,
-                    }}
-                    script={widgetScript}
-                  />
-                ) : null}
-              </div>
-            </form>
-          </Form>
+          <InboxSettingsTab
+            form={form}
+            channelKey={channelKey}
+            isBusy={isBusy}
+            savingSettings={savingSettings}
+            activeAvatarUrl={activeAvatarUrl}
+            inboxRecord={inboxRecord}
+            widgetScript={widgetScript}
+            isWidgetColorOpen={isWidgetColorOpen}
+            setIsWidgetColorOpen={setIsWidgetColorOpen}
+            onAvatarFileSelect={handleAvatarFileSelect}
+            onSubmit={handleSaveSettings}
+            watched={{
+              name: watched.name,
+              welcome_title: watched.welcome_title,
+              welcome_tagline: watched.welcome_tagline,
+              widget_color: watched.widget_color,
+              reply_time: watched.reply_time,
+              greeting_enabled: watched.greeting_enabled,
+              greeting_message: watched.greeting_message,
+            }}
+          />
         </TabsContent>
 
         <TabsContent
           value="collaborators"
           className="mt-0 space-y-4 overflow-x-hidden pb-6 outline-none"
         >
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <h3 className="text-base font-medium">Cộng tác viên</h3>
-              <p className="text-sm text-muted-foreground">
-                Chọn nhân viên được phép xử lý hội thoại trên kênh này.
-              </p>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {selectedMemberIds.length} đã chọn
-            </div>
-          </div>
+          <InboxCollaboratorsTab
+            agents={agents}
+            selectedMemberIds={selectedMemberIds}
+            isLoadingAgents={isLoadingAgents}
+            membersHydrated={membersHydrated}
+            isBusy={isBusy}
+            savingMembers={savingMembers}
+            onToggleMember={toggleMember}
+            onSave={() => void handleSaveCollaborators()}
+          />
+        </TabsContent>
 
-          <div className="relative max-w-md">
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={memberSearch}
-              onChange={(event) => setMemberSearch(event.target.value)}
-              placeholder="Tìm theo tên hoặc email"
-              className={cn(INPUT_CLASSNAME, "pl-9")}
-              disabled={isBusy}
-            />
-          </div>
-
-          <div className="overflow-hidden rounded-xl border">
-            {isLoadingAgents ? (
-              <div className="space-y-3 p-4">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <Skeleton className="size-9 rounded-full" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3.5 w-40" />
-                      <Skeleton className="h-3 w-56" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : filteredAgents.length === 0 ? (
-              <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-                Không tìm thấy nhân viên phù hợp.
-              </div>
-            ) : (
-              <ul className="divide-y">
-                {filteredAgents.map((agent) => {
-                  const checked = selectedMemberIds.includes(agent.id);
-                  return (
-                    <li key={agent.id}>
-                      <label
-                        className={cn(
-                          "flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors hover:bg-muted/40",
-                          checked && "bg-primary/5",
-                        )}
-                      >
-                        <Checkbox
-                          checked={checked}
-                          disabled={isBusy}
-                          onCheckedChange={(value) =>
-                            toggleMember(agent.id, value === true)
-                          }
-                        />
-                        <Avatar className="size-9">
-                          {agent.thumbnail ? (
-                            <AvatarImage
-                              src={agent.thumbnail}
-                              alt={agent.name}
-                            />
-                          ) : null}
-                          <AvatarFallback>
-                            {initials(agent.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {agent.name}
-                          </p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            <span translate="no">{agent.email}</span>
-                          </p>
-                        </div>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-
-          <div className="flex justify-end pt-4">
-            <Button
-              type="button"
-              onClick={() => void handleSaveCollaborators()}
-              disabled={isBusy}
-            >
-              {savingMembers ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Đang lưu...
-                </>
-              ) : (
-                "Cập nhật cộng tác viên"
-              )}
-            </Button>
-          </div>
+        <TabsContent
+          value="configuration"
+          className="mt-0 w-full overflow-x-hidden pb-6 outline-none"
+        >
+          <InboxConfigurationTab
+            form={form}
+            isBusy={isBusy}
+            savingConfiguration={savingConfiguration}
+            onSubmit={handleSaveConfiguration}
+            onCopyHmacToken={() => void handleCopyHmacToken()}
+          />
         </TabsContent>
       </Tabs>
     </div>
