@@ -22,14 +22,21 @@
   var AUTH_KEY = "omni_fsel_auth_" + config.websiteToken;
   var SESSION_KEY = "omni_fsel_session_" + config.websiteToken;
 
-  var initialGreeting = String(config.greetingMessage || "").trim();
+  /** Lời chào inbox (dùng để lọc tin chào server trùng, không hiện trên UI chọn persona) */
+  var inboxGreeting = String(config.greetingMessage || "").trim();
+  /** Tagline hiện phía trên nút chọn persona */
+  var prePersonaIntro = String(
+    config.welcomeTagline || config.welcome_tagline || "",
+  ).trim();
 
   var state = {
     open: false,
     showQuickReplies: true,
-    /** Lời chào chỉ hiện trước khi chọn persona / bắt đầu chat */
-    showGreeting: Boolean(initialGreeting),
+    /** Tagline chỉ hiện trước khi chọn persona / bắt đầu chat */
+    showGreeting: Boolean(prePersonaIntro),
     sending: false,
+    /** Đang chờ bot phản hồi — hiện indicator "đang suy nghĩ" */
+    awaitingReply: false,
     selectingPersona: false,
     loadingPersonas: false,
     /** Đã POST select + setUser xong — mới cho nhắn tin */
@@ -65,12 +72,43 @@
   var cableSocket = null;
   var cableIdentifier = "";
   var presenceTimer = null;
+  var awaitingReplyTimer = null;
   var reconnectTimer = null;
   var reconnectAttempt = 0;
   var fallbackPollTimers = [];
   var intentionalCableClose = false;
   var chatwootSdkPromise = null;
   var chatwootReadyPromise = null;
+  /** Đếm số lần SDK bắn chatwoot:ready — dùng để đợi ready LẠI sau reset(). */
+  var chatwootReadyCount = 0;
+
+  // ===== Debug log — tắt bằng window.__OMNICHANNEL_CHAT_WIDGET__.debug = false =====
+  var DEBUG = config.debug !== false;
+
+  function maskToken(token) {
+    var t = String(token || "");
+    if (!t) return "(trống)";
+    if (t.length <= 14) return t;
+    return t.slice(0, 10) + "…" + t.slice(-4) + " (len=" + t.length + ")";
+  }
+
+  function dlog(step, detail) {
+    if (!DEBUG) return;
+    try {
+      if (detail !== undefined) console.log("[fsel-techie] " + step, detail);
+      else console.log("[fsel-techie] " + step);
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  window.addEventListener("chatwoot:ready", function () {
+    chatwootReadyCount += 1;
+    state.chatwootReady = true;
+    dlog("SDK bắn chatwoot:ready (lần " + chatwootReadyCount + ")", {
+      cookie_cw_conversation: maskToken(readSdkAuthToken()),
+    });
+  });
 
   function pad(value) {
     return String(value).padStart(2, "0");
@@ -94,6 +132,9 @@
 
   /** Reload = phiên mới: xóa token/session cũ, không khôi phục lịch sử. */
   function resetSessionForNewVisit() {
+    dlog("B0. Khởi tạo widget — xóa phiên cũ", {
+      cookie_cw_conversation_truoc_khi_xoa: maskToken(readSdkAuthToken()),
+    });
     disconnectCable(true);
     clearFallbackPolls();
     state.authToken = "";
@@ -109,6 +150,11 @@
     } catch (error) {
       /* ignore */
     }
+    // Xóa luôn phiên SDK cũ (cookie cw_conversation) — tránh dính conv ẩn danh cũ
+    clearSdkStoredSession();
+    dlog("B0. Đã xóa phiên cũ", {
+      cookie_cw_conversation_sau_khi_xoa: maskToken(readSdkAuthToken()),
+    });
   }
 
   function messageAreaMinHeight() {
@@ -126,6 +172,39 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  /** Markdown tối thiểu: **đậm**, *nghiêng*, xuống dòng. Escape HTML trước. */
+  function formatMessageHtml(value) {
+    var escaped = escapeHtml(value).replace(/\r\n/g, "\n");
+    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    escaped = escaped.replace(/__([^_]+?)__/g, "<strong>$1</strong>");
+    escaped = escaped.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+    escaped = escaped.replace(
+      /(^|[^A-Za-z0-9_])_([^_\n]+)_(?![A-Za-z0-9_])/g,
+      "$1<em>$2</em>",
+    );
+    return escaped.replace(/\n/g, "<br>");
+  }
+
+  function getComposer() {
+    return document.querySelector("#" + ROOT_ID + " .omni-fsel-input");
+  }
+
+  function resizeComposer(el) {
+    var input = el || getComposer();
+    if (!input) return;
+    input.style.height = "auto";
+    var max = 132;
+    var contentHeight = input.scrollHeight;
+    var next = Math.min(Math.max(contentHeight, 42), max);
+    input.style.height = next + "px";
+    input.style.overflowY = contentHeight > max ? "auto" : "hidden";
+  }
+
+  function personaIntroMessage(persona) {
+    var label = String((persona && persona.label) || "").trim();
+    return label;
   }
 
   function readStoredAuth() {
@@ -146,6 +225,68 @@
       "_" +
       Math.random().toString(36).slice(2, 10);
     return state._clientSessionId;
+  }
+
+  function getCookieValue(name) {
+    var match = document.cookie.match(
+      new RegExp("(?:^|;\\s*)" + name + "=([^;]*)"),
+    );
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
+  function deleteCookie(name) {
+    var host = window.location.hostname;
+    var expiry = ";expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+    document.cookie = name + "=" + expiry;
+    document.cookie = name + "=" + expiry + ";domain=" + host;
+    document.cookie = name + "=" + expiry + ";domain=." + host;
+  }
+
+  /** Token phiên của SDK (cookie cw_conversation) — dùng chung cho REST. */
+  function readSdkAuthToken() {
+    return getCookieValue("cw_conversation");
+  }
+
+  /** Xóa phiên SDK cũ để không tách contact / dính conversation ẩn danh cũ. */
+  function clearSdkStoredSession() {
+    deleteCookie("cw_conversation");
+    // cw_user_<token>: SDK cache user-hash — nếu trùng sẽ BỎ QUA setUser lần sau
+    deleteCookie("cw_user_" + config.websiteToken);
+    try {
+      Object.keys(localStorage).forEach(function (key) {
+        if (key.indexOf("cw_") === 0) localStorage.removeItem(key);
+      });
+    } catch (error) {
+      /* ignore */
+    }
+  }
+
+  /** Đợi SDK mint token mới sau reset/setUser. */
+  function waitForSdkAuthToken(timeoutMs, notEqualTo) {
+    var timeout = typeof timeoutMs === "number" ? timeoutMs : 10000;
+    var started = Date.now();
+    return new Promise(function (resolve) {
+      (function check() {
+        var token = readSdkAuthToken();
+        if (token && token !== notEqualTo) {
+          dlog(
+            "B6. Đọc được token SDK sau " + (Date.now() - started) + "ms:",
+            maskToken(token),
+          );
+          return resolve(token);
+        }
+        if (Date.now() - started >= timeout) {
+          dlog(
+            "B6. TIMEOUT " + timeout + "ms chờ token SDK",
+            token
+              ? "cookie vẫn là token cũ: " + maskToken(token)
+              : "cookie cw_conversation trống",
+          );
+          return resolve(token || "");
+        }
+        window.setTimeout(check, 250);
+      })();
+    });
   }
 
   function omniApiBase() {
@@ -289,6 +430,12 @@
         "/personas/select",
     );
 
+    dlog("B1. POST personas/select", {
+      url: url,
+      persona_id: String(persona.id),
+      client_session_id_gui_len: getClientSessionId(),
+    });
+
     return fetch(url, {
       method: "POST",
       headers: {
@@ -314,11 +461,19 @@
           }
         }
         if (!response.ok) {
+          dlog("B1. POST select THẤT BẠI", {
+            status: response.status,
+            body: data,
+          });
           throw new Error(
             (data && data.message) ||
               "Không chọn được đối tượng (" + response.status + ")",
           );
         }
+        dlog("B1. POST select OK", {
+          status: response.status,
+          response: data,
+        });
         return data;
       });
     });
@@ -467,11 +622,51 @@
   }
 
   /**
-   * POST select → widget ready → setUser(client_session_id)
-   * Xong mới mở chat (chatReady).
+   * Đợi phiên SDK mới sẵn sàng sau reset(). Một số bản SDK không bắn lại
+   * chatwoot:ready khi reset — khi đó nhận biết bằng cookie cw_conversation
+   * xuất hiện token MỚI (khác token trước reset). Cái nào đến trước thì dùng.
+   */
+  function waitForSdkSessionRenewal(timeoutMs, previousToken) {
+    var timeout = typeof timeoutMs === "number" ? timeoutMs : 15000;
+    var baseline = chatwootReadyCount;
+    var started = Date.now();
+    return new Promise(function (resolve) {
+      (function check() {
+        if (chatwootReadyCount > baseline) {
+          return resolve({
+            ok: true,
+            via: "chatwoot:ready bắn lại",
+            elapsedMs: Date.now() - started,
+          });
+        }
+        var token = readSdkAuthToken();
+        if (token && token !== previousToken) {
+          return resolve({
+            ok: true,
+            via: "cookie có token mới",
+            elapsedMs: Date.now() - started,
+          });
+        }
+        if (Date.now() - started >= timeout) {
+          return resolve({
+            ok: false,
+            via: "timeout",
+            elapsedMs: Date.now() - started,
+          });
+        }
+        window.setTimeout(check, 150);
+      })();
+    });
+  }
+
+  /**
+   * POST select → reset phiên SDK cũ → widget ready → setUser(client_session_id)
+   * → REST dùng chung token SDK (cookie cw_conversation) → mới mở chat (chatReady).
+   * Đảm bảo conversation nằm trên contact có identifier = oh_sess_… (không tách 2 contact).
    */
   function activateChatAfterPersona(persona, selectPayload) {
     var sessionId = extractClientSessionId(selectPayload);
+    dlog("B2. client_session_id dùng cho setUser:", sessionId);
 
     return ensureChatwootSdk()
       .then(function () {
@@ -484,14 +679,110 @@
         ) {
           throw new Error("Omni SDK chưa sẵn sàng (thiếu setUser).");
         }
-        window.$chatwoot.setUser(sessionId, {
-          name: (persona && persona.label) || "Khách truy cập",
+
+        // 1) Bỏ hẳn phiên REST ẩn danh cũ (nếu lỡ có) — không dùng token cũ nữa
+        dlog("B3. Bỏ phiên REST cũ", {
+          token_rest_cu: maskToken(state.authToken),
+          da_co_conversation: state.hasConversation,
         });
-        state._clientSessionId = sessionId;
+        disconnectCable(true);
+        clearFallbackPolls();
+        writeStoredAuth("");
+        state.pubsubToken = "";
+        state.accountId = null;
+        state.hasConversation = false;
+        state.messages = [];
+
+        // 2) Reset phiên SDK (xóa cw_conversation + reload iframe)
+        var previousSdkToken = readSdkAuthToken();
+        var didReset = false;
+        if (typeof window.$chatwoot.reset === "function") {
+          try {
+            window.$chatwoot.reset();
+            didReset = true;
+          } catch (error) {
+            console.warn("[fsel-techie] SDK reset:", error);
+          }
+        }
+        clearSdkStoredSession();
+        dlog("B4. Reset phiên SDK", {
+          da_goi_reset: didReset,
+          token_sdk_truoc_reset: maskToken(previousSdkToken),
+        });
+
+        // 3) QUAN TRỌNG: sau reset() phải đợi phiên SDK mới sẵn sàng rồi mới
+        //    setUser (nếu không lệnh setUser bị iframe nuốt mất). Bản SDK này
+        //    không bắn lại chatwoot:ready khi reset → nhận biết thêm bằng
+        //    cookie cw_conversation có token mới.
+        var waitRenewal = didReset
+          ? waitForSdkSessionRenewal(15000, previousSdkToken)
+          : Promise.resolve({ ok: true, via: "không reset", elapsedMs: 0 });
+
+        return waitRenewal
+          .then(function (renewal) {
+            if (didReset) {
+              dlog(
+                "B5. Phiên SDK mới sau reset: " +
+                  (renewal.ok ? "OK" : "TIMEOUT — vẫn gọi setUser") +
+                  " (qua: " +
+                  renewal.via +
+                  ", " +
+                  renewal.elapsedMs +
+                  "ms)",
+              );
+            }
+            // Nhịp ngắn cho iframe gắn xong listener trước khi nhận set-user
+            if (didReset && renewal.ok) {
+              return new Promise(function (resolve) {
+                window.setTimeout(resolve, 250);
+              });
+            }
+            return undefined;
+          })
+          .then(function () {
+            // 4) setUser với client_session_id từ response select
+            dlog("B5. Gọi $chatwoot.setUser", {
+              identifier: sessionId,
+              name: (persona && persona.label) || "Khách truy cập",
+            });
+            window.$chatwoot.setUser(sessionId, {
+              name: (persona && persona.label) || "Khách truy cập",
+            });
+            state._clientSessionId = sessionId;
+
+            // 5) Chờ token phiên SDK (token mới nếu đã reset)
+            return waitForSdkAuthToken(12000, didReset ? previousSdkToken : "");
+          });
+      })
+      .then(function (sdkToken) {
+        if (sdkToken) {
+          // REST dùng chung token với SDK → conversation gắn đúng contact oh_sess_…
+          writeStoredAuth(sdkToken);
+          dlog("B7. REST adopt token SDK:", maskToken(sdkToken));
+        } else {
+          console.warn(
+            "[fsel-techie] B7. Không đọc được token phiên SDK — REST sẽ tự mint phiên riêng (SẼ TÁCH CONTACT — đây chính là bug BE báo).",
+          );
+        }
+
         state.chatReady = true;
         state.showQuickReplies = false;
         state.showGreeting = false;
         state.error = "";
+        render();
+
+        // Lấy pubsub_token / account theo đúng contact đã setUser
+        return ensureSession().catch(function (error) {
+          console.warn("[fsel-techie] ensureSession sau setUser:", error);
+        });
+      })
+      .then(function () {
+        dlog("B8. Chat sẵn sàng", {
+          chatReady: state.chatReady,
+          auth_token_rest: maskToken(state.authToken),
+          pubsub_token: maskToken(state.pubsubToken),
+          account_id: state.accountId,
+        });
         return sessionId;
       });
   }
@@ -545,6 +836,15 @@
     });
   }
 
+  function isHardcodedInboxGreeting(content) {
+    if (!inboxGreeting) return false;
+    var left = String(content || "")
+      .replace(/\s+/g, " ")
+      .trim();
+    var right = inboxGreeting.replace(/\s+/g, " ").trim();
+    return Boolean(left) && left === right;
+  }
+
   function normalizeMessage(raw) {
     if (!raw || typeof raw !== "object") return null;
     var id = raw.id;
@@ -554,6 +854,8 @@
     var messageType = Number(raw.message_type);
     // 0 = visitor/incoming, 1 = agent/outgoing, 2 = activity
     if (messageType === 2) return null;
+    // Bỏ greeting inbox gắn cứng — template persona đã chào + hỏi đầu
+    // if (messageType !== 0 && isHardcodedInboxGreeting(content)) return null;
 
     return {
       id: id,
@@ -569,6 +871,31 @@
     };
   }
 
+  /** Bật indicator "đang suy nghĩ" — tự tắt sau 60s nếu bot không trả lời. */
+  function startAwaitingReply() {
+    state.awaitingReply = true;
+    if (awaitingReplyTimer) window.clearTimeout(awaitingReplyTimer);
+    awaitingReplyTimer = window.setTimeout(function () {
+      awaitingReplyTimer = null;
+      if (state.awaitingReply) {
+        state.awaitingReply = false;
+        renderMessages();
+      }
+    }, 60000);
+    renderMessages();
+  }
+
+  function stopAwaitingReply() {
+    if (awaitingReplyTimer) {
+      window.clearTimeout(awaitingReplyTimer);
+      awaitingReplyTimer = null;
+    }
+    if (state.awaitingReply) {
+      state.awaitingReply = false;
+      renderMessages();
+    }
+  }
+
   function mergeMessages(list) {
     var map = {};
     state.messages.forEach(function (item) {
@@ -579,6 +906,29 @@
       if (!normalized) return;
       map[String(normalized.id)] = normalized;
     });
+
+    // Khi đã có tin visitor thật từ server → bỏ bản optimistic local trùng nội dung
+    var realVisitorContent = {};
+    Object.keys(map).forEach(function (key) {
+      var item = map[key];
+      if (item && item.fromVisitor && String(item.id).indexOf("local-") !== 0) {
+        realVisitorContent[String(item.content || "").trim()] = true;
+      }
+    });
+    Object.keys(map).forEach(function (key) {
+      var item = map[key];
+      if (
+        !item ||
+        !item.fromVisitor ||
+        String(item.id).indexOf("local-") !== 0
+      ) {
+        return;
+      }
+      if (realVisitorContent[String(item.content || "").trim()]) {
+        delete map[key];
+      }
+    });
+
     state.messages = Object.keys(map)
       .map(function (key) {
         return map[key];
@@ -586,6 +936,12 @@
       .sort(function (a, b) {
         return a.createdAt - b.createdAt;
       });
+
+    // Bot vừa trả lời (tin cuối là agent) → tắt "đang suy nghĩ"
+    var last = state.messages[state.messages.length - 1];
+    if (last && !last.fromVisitor) {
+      stopAwaitingReply();
+    }
   }
 
   function extractAuthToken(data) {
@@ -775,6 +1131,10 @@
       reconnectAttempt = 0;
       clearFallbackPolls();
       startPresence();
+      dlog("Cable: đã subscribe RoomChannel", {
+        pubsub_token: maskToken(state.pubsubToken),
+        account_id: state.accountId,
+      });
       // Sync lại sau khi cable sẵn sàng (bot reply có thể đã về trước đó)
       if (state.hasConversation) fetchMessages();
       return;
@@ -887,14 +1247,40 @@
   }
 
   function ensureSession() {
-    if (state.authToken) {
-      if (state.pubsubToken) connectCable();
+    // Ưu tiên token phiên SDK (sau setUser) — REST và SDK phải chung 1 contact
+    if (!state.authToken) {
+      var sdkToken = readSdkAuthToken();
+      if (sdkToken) {
+        writeStoredAuth(sdkToken);
+        dlog("ensureSession: adopt token từ cookie SDK", maskToken(sdkToken));
+      }
+    }
+
+    if (state.authToken && state.pubsubToken) {
+      connectCable();
       return Promise.resolve(state.authToken);
     }
 
+    var hadTokenBefore = Boolean(state.authToken);
+    if (!hadTokenBefore) {
+      console.warn(
+        "[fsel-techie] ensureSession: KHÔNG có token SDK — POST /widget/config sẽ mint contact ẨN DANH mới (nguy cơ tách contact!).",
+      );
+    }
+
+    // Có token: gọi config kèm X-Auth-Token để lấy pubsub/account (không mint contact mới).
+    // Chưa có token: config sẽ mint phiên mới (fallback).
     return request("POST", "/api/v1/widget/config", {}).then(function (data) {
-      var token = extractAuthToken(data);
+      var token = extractAuthToken(data) || state.authToken;
       if (!token) throw new Error("Không nhận được auth token từ Omni.");
+      dlog("ensureSession: POST /widget/config OK", {
+        goi_kem_x_auth_token: hadTokenBefore,
+        token_tra_ve: maskToken(extractAuthToken(data)),
+        token_dung_tiep: maskToken(token),
+        token_doi_khac_truoc: hadTokenBefore && token !== state.authToken,
+        contact_trong_response:
+          (data && data.contact) || (data && data.payload) || null,
+      });
       writeStoredAuth(token);
       applySessionMeta(data);
       connectCable();
@@ -924,6 +1310,11 @@
         if (error && error.status === 404) return;
         // Session hết hạn → tạo lại
         if (error && (error.status === 401 || error.status === 403)) {
+          console.warn(
+            "[fsel-techie] GET messages bị " +
+              error.status +
+              " — token REST không hợp lệ, bỏ token.",
+          );
           writeStoredAuth("");
           disconnectCable(true);
           state.pubsubToken = "";
@@ -932,6 +1323,10 @@
   }
 
   function createConversation(content) {
+    dlog("Tạo conversation (POST /widget/conversations)", {
+      x_auth_token: maskToken(state.authToken),
+      contact_identifier_gui_len: getClientSessionId(),
+    });
     return request("POST", "/api/v1/widget/conversations", {
       contact: {
         name: "Khách truy cập",
@@ -943,6 +1338,32 @@
         referer_url: window.location.href,
       },
     }).then(function (data) {
+      // ==== ĐIỂM VERIFY QUYẾT ĐỊNH: contact của conversation phải có identifier = oh_sess_… ====
+      var respContact =
+        (data && data.contact) ||
+        (data && data.meta && data.meta.sender) ||
+        null;
+      var respIdentifier = respContact ? respContact.identifier : undefined;
+      dlog("Conversation đã tạo — VERIFY contact", {
+        conversation_id: data && (data.id || data.display_id),
+        contact_id: respContact && respContact.id,
+        contact_name: respContact && respContact.name,
+        contact_identifier: respIdentifier,
+        response_keys: data ? Object.keys(data) : null,
+      });
+      if (respContact && !respIdentifier) {
+        console.warn(
+          "[fsel-techie] ⚠️ Conversation nằm trên contact identifier=null (ẨN DANH) — setUser chưa gắn vào phiên này. Đây chính là bug BE báo.",
+        );
+      } else if (respIdentifier && respIdentifier !== getClientSessionId()) {
+        console.warn(
+          "[fsel-techie] ⚠️ identifier của contact (" +
+            respIdentifier +
+            ") KHÁC client_session_id (" +
+            getClientSessionId() +
+            ").",
+        );
+      }
       state.hasConversation = true;
       applySessionMeta(data);
       var messages = (data && data.messages) || [];
@@ -999,20 +1420,38 @@
     state.showQuickReplies = false;
     state.showGreeting = false;
     state.error = "";
+
+    // Hiện ngay tin visitor (vd: "Tôi là học viên") — template bot sẽ nối sau
+    mergeMessages([
+      {
+        id: "local-out-" + Date.now(),
+        content: text,
+        message_type: 0,
+        created_at: Math.floor(Date.now() / 1000),
+      },
+    ]);
+    startAwaitingReply();
     render();
 
     return ensureSession()
       .then(function () {
+        dlog("Gửi tin nhắn", {
+          da_co_conversation: state.hasConversation,
+          x_auth_token: maskToken(state.authToken),
+        });
         if (state.hasConversation) return sendFollowUp(text);
         return createConversation(text);
       })
       .then(function () {
+        // Đã gửi xong — chờ template / reply bot
+        startAwaitingReply();
         renderMessages();
         connectCable();
         scheduleFallbackMessagePolls();
         return fetchMessages();
       })
       .catch(function (error) {
+        stopAwaitingReply();
         state.error =
           (error && error.message) ||
           "Không gửi được tin nhắn. Kiểm tra allowed_domains / CORS.";
@@ -1056,7 +1495,7 @@
       THEME.border +
       ";box-shadow:0 2px 8px rgba(110,133,250,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}" +
       ".omni-fsel-logo{width:32px;height:32px;object-fit:cover;display:block}" +
-      ".omni-fsel-title{font-size:14px;font-weight:700;color:" +
+      ".omni-fsel-title{font-size:14px; padding-right: 10px;font-weight:700;color:" +
       THEME.ink +
       ";letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
       ".omni-fsel-close{border:0;background:transparent;color:" +
@@ -1068,7 +1507,7 @@
       ".omni-fsel-body{flex:1;display:flex;flex-direction:column;background:#F7F8FA;padding:16px;min-height:0;overflow:hidden}" +
       ".omni-fsel-message-block{max-width:88%;width:fit-content;flex-shrink:0;margin-bottom:4px}" +
       ".omni-fsel-message-block.is-hidden{display:none}" +
-      ".omni-fsel-meta{display:flex;justify-content:flex-start;align-items:baseline;gap:10px;font-size:11px;line-height:1.2;padding:0 4px;margin-bottom:6px;width:fit-content;max-width:100%}" +
+      ".omni-fsel-meta{display:flex;justify-content:flex-start;align-items:baseline;gap:10px;font-size:12px;line-height:1.2;padding:0 4px;margin-bottom:6px;width:fit-content;max-width:100%}" +
       ".omni-fsel-meta strong{color:" +
       THEME.muted +
       ";font-weight:500}" +
@@ -1094,7 +1533,7 @@
       ".omni-fsel-msg-row{display:flex;flex-direction:column;gap:6px;max-width:88%;width:fit-content}" +
       ".omni-fsel-msg-row.is-agent{align-self:flex-start;align-items:flex-start}" +
       ".omni-fsel-msg-row.is-user{align-self:flex-end;align-items:flex-end}" +
-      ".omni-fsel-msg-meta{display:flex;align-items:baseline;gap:10px;font-size:11px;line-height:1.2;padding:0 4px;color:" +
+      ".omni-fsel-msg-meta{display:flex;align-items:baseline;gap:10px;font-size:12px;line-height:1.2;padding:0 4px;color:" +
       THEME.muted +
       ";font-weight:500;max-width:100%;width:fit-content}" +
       ".omni-fsel-msg-row.is-agent .omni-fsel-msg-meta{justify-content:flex-start}" +
@@ -1108,7 +1547,16 @@
       ".omni-fsel-msg{border-radius:12px;padding:12px 14px;font-size:14px;font-weight:400;line-height:1.5;word-break:break-word;width:fit-content;max-width:100%;box-sizing:border-box}" +
       ".omni-fsel-msg.is-agent{border:1px solid #E5E7EB;background:#fff;color:#111827;box-shadow:none}" +
       ".omni-fsel-msg.is-user{border:0;background:#EEF2F7;color:#111827;box-shadow:none}" +
-      ".omni-fsel-error{margin-top:8px;font-size:11px;font-weight:500;color:#c2410c;flex-shrink:0}" +
+      ".omni-fsel-msg strong,.omni-fsel-bubble strong{font-weight:700}" +
+      ".omni-fsel-msg em,.omni-fsel-bubble em{font-style:italic}" +
+      ".omni-fsel-typing{display:flex;align-items:center;gap:5px;min-height:20px}" +
+      ".omni-fsel-typing-dot{width:7px;height:7px;border-radius:999px;background:" +
+      THEME.muted +
+      ";animation:omniFselTyping 1.2s ease-in-out infinite}" +
+      ".omni-fsel-typing-dot:nth-child(2){animation-delay:.2s}" +
+      ".omni-fsel-typing-dot:nth-child(3){animation-delay:.4s}" +
+      "@keyframes omniFselTyping{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}" +
+      ".omni-fsel-error{margin-top:8px;font-size:12px;font-weight:500;color:#c2410c;flex-shrink:0}" +
       ".omni-fsel-footer{flex-shrink:0;border-top:1px solid " +
       THEME.border +
       ";background:#fff;padding:12px 16px;position:relative}" +
@@ -1118,23 +1566,23 @@
       "}" +
       ".omni-fsel-quota.is-placeholder{visibility:hidden}" +
       ".omni-fsel-composer{position:relative}" +
-      ".omni-fsel-input-row{display:flex;gap:8px;align-items:center;margin:0}" +
-      ".omni-fsel-input-wrap{flex:1;min-width:0;position:relative;display:flex;align-items:center}" +
-      ".omni-fsel-input{flex:1;min-width:0;width:100%;min-height:36px;height:36px;border:1px solid " +
+      ".omni-fsel-input-row{display:flex;gap:8px;align-items:flex-end;margin:0}" +
+      ".omni-fsel-input-wrap{flex:1;min-width:0;position:relative;display:flex;align-items:flex-end}" +
+      ".omni-fsel-input{flex:1;min-width:0;width:100%;min-height:42px;height:42px;max-height:132px;border:1px solid " +
       THEME.borderStrong +
-      ";border-radius:12px;padding:8px 40px 8px 12px;font-size:12px;font-weight:500;color:" +
+      ";border-radius:12px;padding:10px 40px 10px 12px;font-size:15px;font-weight:500;line-height:1.45;font-family:inherit;color:" +
       THEME.inkBody +
       ";background:#fff;box-shadow:inset 0 1px 2px rgba(110,133,250,.07);outline:none;pointer-events:auto;caret-color:" +
       THEME.ink +
-      "}" +
+      ";resize:none;overflow-y:hidden;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;display:block}" +
       ".omni-fsel-input::placeholder{color:" +
       THEME.muted +
-      "}" +
+      ";font-size:15px}" +
       ".omni-fsel-input:focus{border-color:" +
       THEME.primary +
       ";box-shadow:0 0 0 3px rgba(110,133,250,.16)}" +
       ".omni-fsel-input:disabled{opacity:.7;cursor:not-allowed}" +
-      ".omni-fsel-emoji-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:" +
+      ".omni-fsel-emoji-btn{position:absolute;right:6px;bottom:7px;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:" +
       THEME.muted +
       ";cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}" +
       ".omni-fsel-emoji-btn:hover{background:" +
@@ -1157,7 +1605,7 @@
       ".omni-fsel-emoji-item:hover{background:" +
       THEME.primarySoft +
       "}" +
-      ".omni-fsel-send{width:36px;height:36px;border:0;border-radius:12px;background:" +
+      ".omni-fsel-send{width:42px;height:42px;border:0;border-radius:12px;background:" +
       THEME.primary +
       ";color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(110,133,250,.32);transition:filter .2s,transform .2s;flex-shrink:0}" +
       ".omni-fsel-send:hover{filter:brightness(.95)}" +
@@ -1241,7 +1689,7 @@
   }
 
   function insertEmoji(emoji) {
-    var input = document.querySelector("#" + ROOT_ID + " .omni-fsel-input");
+    var input = getComposer();
     if (!input || input.disabled) return;
     var start =
       typeof input.selectionStart === "number"
@@ -1260,6 +1708,7 @@
       /* ignore */
     }
     input.focus();
+    resizeComposer(input);
   }
 
   function renderEmojiPanel(container) {
@@ -1328,6 +1777,10 @@
   function selectPersonaAndContinue(persona) {
     if (!persona || state.selectingPersona || state.sending) return;
 
+    dlog("=== BẮT ĐẦU CHỌN PERSONA ===", {
+      persona_id: persona.id,
+      label: persona.label,
+    });
     state.selectingPersona = true;
     state.error = "";
     render();
@@ -1338,13 +1791,11 @@
         return activateChatAfterPersona(persona, selectPayload);
       })
       .then(function () {
+        // Session REST đã được đồng bộ với token SDK trong activateChatAfterPersona
         state.selectingPersona = false;
-        render();
-        focusInput();
-        // Chuẩn bị REST session (auth) sau setUser — chưa gửi tin tự động
-        return ensureSession().catch(function (error) {
-          console.warn("[fsel-techie] ensureSession after setUser:", error);
-        });
+        // Luồng thread: tin persona ("Tôi là học viên") → bot trả template
+        // (không chèn lời chào inbox gắn cứng)
+        return sendText(personaIntroMessage(persona));
       })
       .catch(function (error) {
         state.selectingPersona = false;
@@ -1363,7 +1814,10 @@
     var list = root.querySelector(".omni-fsel-messages");
     if (!list) return;
 
-    var shouldShowThread = !state.showQuickReplies || state.messages.length > 0;
+    var shouldShowThread =
+      !state.showQuickReplies ||
+      state.messages.length > 0 ||
+      state.awaitingReply;
     list.style.display = shouldShowThread ? "flex" : "none";
 
     if (!shouldShowThread) {
@@ -1393,17 +1847,32 @@
           '<div class="omni-fsel-msg ' +
           side +
           '">' +
-          escapeHtml(message.content) +
+          formatMessageHtml(message.content) +
           "</div>" +
           "</div>"
         );
       })
       .join("");
 
+    // Indicator "đang suy nghĩ" — bubble agent với 3 chấm nhấp nháy
+    if (state.awaitingReply) {
+      html +=
+        '<div class="omni-fsel-msg-row is-agent omni-fsel-typing-row">' +
+        '<div class="omni-fsel-msg-meta"><span class="omni-fsel-msg-name">' +
+        escapeHtml(assistantName) +
+        "</span></div>" +
+        '<div class="omni-fsel-msg is-agent omni-fsel-typing" aria-label="Đang soạn trả lời">' +
+        '<span class="omni-fsel-typing-dot"></span>' +
+        '<span class="omni-fsel-typing-dot"></span>' +
+        '<span class="omni-fsel-typing-dot"></span>' +
+        "</div>" +
+        "</div>";
+    }
+
     var nearBottom =
       list.scrollHeight - list.scrollTop - list.clientHeight < 48;
     list.innerHTML = html;
-    if (nearBottom || state.sending) {
+    if (nearBottom || state.sending || state.awaitingReply) {
       list.scrollTop = list.scrollHeight;
     }
   }
@@ -1432,10 +1901,11 @@
   }
 
   function focusInput() {
-    var input = document.querySelector("#" + ROOT_ID + " .omni-fsel-input");
+    var input = getComposer();
     if (input && state.open && !state.sending) {
       window.setTimeout(function () {
         input.focus();
+        resizeComposer(input);
       }, 0);
     }
   }
@@ -1471,10 +1941,11 @@
     if (greetingBlock) {
       var canShowGreeting =
         state.showGreeting &&
-        Boolean(initialGreeting) &&
+        Boolean(prePersonaIntro) &&
         state.showQuickReplies;
       greetingBlock.classList.toggle("is-hidden", !canShowGreeting);
-      if (greetingBubble) greetingBubble.textContent = initialGreeting;
+      if (greetingBubble)
+        greetingBubble.innerHTML = formatMessageHtml(prePersonaIntro);
       if (greetingTime) greetingTime.textContent = formatTimestamp(new Date());
       if (greetingName) {
         greetingName.textContent = config.assistantName || "Trợ lý";
@@ -1516,6 +1987,7 @@
           "Nhập tin nhắn...";
       input.disabled =
         !state.chatReady || state.sending || state.selectingPersona;
+      resizeComposer(input);
     }
 
     if (send)
@@ -1553,10 +2025,11 @@
   function submitComposer(event) {
     if (event) event.preventDefault();
     setEmojiPanelOpen(false);
-    var input = document.querySelector("#" + ROOT_ID + " .omni-fsel-input");
+    var input = getComposer();
     if (!input) return;
     var value = input.value;
     input.value = "";
+    resizeComposer(input);
     sendText(value);
   }
 
@@ -1604,7 +2077,7 @@
       '<div class="omni-fsel-emoji-panel" role="listbox" aria-label="Biểu cảm"></div>' +
       '<form class="omni-fsel-input-row">' +
       '<div class="omni-fsel-input-wrap">' +
-      '<input class="omni-fsel-input" type="text" autocomplete="off" enterkeyhint="send" />' +
+      '<textarea class="omni-fsel-input" rows="1" wrap="soft" autocomplete="off" enterkeyhint="send" aria-label="Soạn tin nhắn"></textarea>' +
       '<button type="button" class="omni-fsel-emoji-btn" aria-label="Thêm biểu cảm">' +
       ICONS.emoji +
       "</button>" +
@@ -1649,6 +2122,19 @@
       .querySelector(".omni-fsel-input-row")
       .addEventListener("submit", submitComposer);
 
+    var composer = root.querySelector(".omni-fsel-input");
+    if (composer) {
+      composer.addEventListener("input", function () {
+        resizeComposer(composer);
+      });
+      composer.addEventListener("keydown", function (event) {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          submitComposer(event);
+        }
+      });
+    }
+
     root
       .querySelector(".omni-fsel-emoji-btn")
       .addEventListener("click", function (event) {
@@ -1667,9 +2153,15 @@
     render();
 
     // Preload Omni SDK (ẩn) để sẵn sàng khi chọn persona
+    dlog("B0. Preload SDK…");
     ensureChatwootSdk()
       .then(function () {
         return waitForChatwootReady(30000);
+      })
+      .then(function () {
+        dlog("B0. SDK preload xong, đã ready", {
+          cookie_cw_conversation: maskToken(readSdkAuthToken()),
+        });
       })
       .catch(function (error) {
         console.warn("[fsel-techie] Omni SDK preload:", error);

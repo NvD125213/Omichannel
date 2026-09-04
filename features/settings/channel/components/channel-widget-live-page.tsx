@@ -20,10 +20,11 @@ export function ChannelWidgetLivePage({ inboxId }: ChannelWidgetLivePageProps) {
   const { data: currentUser } = useMe();
   const tenantId = currentUser?.tenant_id ?? "";
 
-  const { data: inboxResponse, isLoading, isError } = useGetTenantInbox(
-    tenantId,
-    inboxId,
-  );
+  const {
+    data: inboxResponse,
+    isLoading,
+    isError,
+  } = useGetTenantInbox(tenantId, inboxId);
 
   const inboxRecord = useMemo(
     () => unwrapInboxRecord(inboxResponse),
@@ -57,7 +58,7 @@ export function ChannelWidgetLivePage({ inboxId }: ChannelWidgetLivePageProps) {
           Quay lại quản lý kênh
         </Link>
 
-        <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#d4dcfa] bg-white/90 px-3 py-1.5 text-xs font-semibold text-[#6e85fa] shadow-[0_8px_22px_rgba(110,133,250,0.12)]">
+        <div className="mt-8 ml-2 inline-flex items-center gap-2 rounded-full border border-[#d4dcfa] bg-white/90 px-3 py-1.5 text-xs font-semibold text-[#6e85fa] shadow-[0_8px_22px_rgba(110,133,250,0.12)]">
           <MessageCircle className="size-3.5" />
           Trang demo widget
         </div>

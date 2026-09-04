@@ -110,8 +110,11 @@ const isDeletedMessage = (message: ChatMessage) => {
 
 const PENDING_CONFIRM_WINDOW_MS = 90_000;
 
+/** message_type: 0 = incoming, 1 = outgoing, 2 = activity, 3 = template (bot/hệ thống gửi đi). */
 const isOutgoingChatMessage = (message: ChatMessage) =>
-  message.sender?.type === "user" || message.message_type === 1;
+  message.sender?.type === "user" ||
+  message.message_type === 1 ||
+  message.message_type === 3;
 
 /** Ẩn optimistic khi tin thật đã vào list (HTTP cache / socket) — tránh duplicate. */
 const hasMatchingConfirmedMessage = (
@@ -514,7 +517,10 @@ export function MessageList({
   const getMessageSenderName = (message: ChatMessage): string => {
     const sender = message.sender;
     const name = sender?.available_name?.trim() || sender?.name?.trim() || "";
-    return name || "Không rõ";
+    if (name) return name;
+    // Template (type 3) không có sender — là tin bot/hệ thống tự gửi
+    if (message.message_type === 3) return "Bot";
+    return "Không rõ";
   };
 
   const getMessageTimestamp = (message: ChatMessage): string =>
@@ -823,9 +829,10 @@ export function MessageList({
             }
 
             const senderId = getMessageSenderId(message);
-            const isCustomerMessage = message.sender?.type !== "user";
+            // Template (type 3) là tin bot/hệ thống gửi ĐI → hiển thị cùng bên với agent
             const isOwnMessage =
-              message.sender?.type === "user" || senderId === currentUserId;
+              isOutgoingChatMessage(message) || senderId === currentUserId;
+            const isCustomerMessage = !isOwnMessage;
             const avatarName = getMessageSenderName(message);
             const avatarSrc =
               message.sender?.avatar_url ?? message.sender?.thumbnail;

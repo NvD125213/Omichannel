@@ -63,7 +63,6 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
     inputPlaceholder: "Vui lòng chọn tài liệu để bắt đầu...",
     inputPlaceholderWithActions: "Soạn tin nhắn...",
     showUsageQuota: true,
-    usageQuotaLabel: "Lượt hỏi hôm nay: 10/10",
     showLauncherBubble: true,
     launcherPromptLabel: "Bạn có cần hỗ trợ gì không?",
     widgetScriptPath: "/inbox-widgets/fsel-techie.js",
@@ -479,6 +478,11 @@ export function buildChatEmbedScript(
       typeof options.data.greetingMessage === "string"
         ? options.data.greetingMessage
         : options.template.greetingMessage,
+    /** Hiện phía trên nút chọn persona (thay greeting_message) */
+    welcomeTagline:
+      typeof options.data.welcomeTagline === "string"
+        ? options.data.welcomeTagline
+        : "",
     logoUrl,
     /** Fallback khi API personas lỗi / trống */
     quickReplies: options.template.quickReplies ?? [],
@@ -504,7 +508,7 @@ export function buildChatEmbedScript(
     `  window.__OMNICHANNEL_CHAT_WIDGET__ = ${configJson};`,
     "",
     `  var src = ${widgetUrlJson};`,
-    '  if (document.querySelector(\'script[data-omni-fsel-widget="1"]\')) return;',
+    "  if (document.querySelector('script[data-omni-fsel-widget=\"1\"]')) return;",
     '  var s = document.createElement("script");',
     "  s.src = src;",
     "  s.async = true;",
@@ -601,7 +605,9 @@ function FselTechieChatPreview({
 }) {
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const assistantName = data.assistantName || template.assistantName;
-  const greeting = data.greetingMessage?.trim() || template.greetingMessage;
+  const prePersonaIntro =
+    data.welcomeTagline?.trim() ||
+    "Chúng tôi sẵn sàng hỗ trợ bạn.";
   const logoSrc = data.avatarUrl || template.logoPath;
   const timestamp = useMemo(() => formatPreviewTimestamp(), []);
   const quickReplyCount = template.quickReplies?.length ?? 0;
@@ -652,9 +658,9 @@ function FselTechieChatPreview({
             </span>
           </div>
 
-          {greeting ? (
+          {prePersonaIntro ? (
             <div className="rounded-xl border border-[#D4DCFA] bg-white px-3 py-2.5 text-sm font-medium leading-5 text-[#2B3674] shadow-[0_2px_10px_rgba(110,133,250,0.12)]">
-              {greeting}
+              {prePersonaIntro}
             </div>
           ) : null}
         </div>
