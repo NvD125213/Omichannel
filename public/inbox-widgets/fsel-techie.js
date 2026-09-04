@@ -32,6 +32,9 @@
     sending: false,
     selectingPersona: false,
     loadingPersonas: false,
+    /** Đã POST select + setUser xong — mới cho nhắn tin */
+    chatReady: false,
+    chatwootReady: false,
     authToken: "",
     pubsubToken: "",
     accountId: null,
@@ -66,6 +69,8 @@
   var reconnectAttempt = 0;
   var fallbackPollTimers = [];
   var intentionalCableClose = false;
+  var chatwootSdkPromise = null;
+  var chatwootReadyPromise = null;
 
   function pad(value) {
     return String(value).padStart(2, "0");
@@ -97,6 +102,7 @@
     state.hasConversation = false;
     state.messages = [];
     state.cableConnected = false;
+    state.chatReady = false;
     try {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem(SESSION_KEY);
@@ -318,6 +324,178 @@
     });
   }
 
+  function extractClientSessionId(payload) {
+    if (!payload || typeof payload !== "object") return getClientSessionId();
+    var nested =
+      payload.data && typeof payload.data === "object" ? payload.data : null;
+    var raw =
+      payload.client_session_id ||
+      payload.clientSessionId ||
+      (nested && (nested.client_session_id || nested.clientSessionId)) ||
+      "";
+    if (raw && String(raw).trim()) {
+      state._clientSessionId = String(raw).trim();
+      return state._clientSessionId;
+    }
+    return getClientSessionId();
+  }
+
+  function hideChatwootDefaultUi() {
+    if (document.getElementById("omni-fsel-hide-cw-style")) return;
+    var style = document.createElement("style");
+    style.id = "omni-fsel-hide-cw-style";
+    style.textContent =
+      ".woot-widget-bubble,.woot-widget-holder,.woot--bubble-holder," +
+      "#cw-widget-holder,#woot-widget-holder{display:none!important;visibility:hidden!important;pointer-events:none!important}";
+    document.head.appendChild(style);
+  }
+
+  /** Load Omni SDK (ẩn bubble) — phục vụ ready + setUser. */
+  function ensureChatwootSdk() {
+    if (chatwootSdkPromise) return chatwootSdkPromise;
+
+    hideChatwootDefaultUi();
+
+    chatwootSdkPromise = new Promise(function (resolve, reject) {
+      var base = String(config.baseUrl || "").replace(/\/$/, "");
+      if (!base || !config.websiteToken) {
+        reject(new Error("Thiếu baseUrl/websiteToken để load Omni SDK."));
+        return;
+      }
+
+      window.chatwootSettings = Object.assign(
+        {},
+        window.chatwootSettings || {},
+        {
+          hideMessageBubble: true,
+          showUnreadMessagesDialog: false,
+          position: "right",
+        },
+      );
+
+      function runSdk() {
+        try {
+          if (
+            window.chatwootSDK &&
+            typeof window.chatwootSDK.run === "function"
+          ) {
+            window.chatwootSDK.run({
+              websiteToken: config.websiteToken,
+              baseUrl: base,
+            });
+          }
+          resolve(window.$chatwoot || window.chatwootSDK);
+        } catch (error) {
+          reject(error);
+        }
+      }
+
+      if (window.$chatwoot || (window.chatwootSDK && window.chatwootSDK.run)) {
+        runSdk();
+        return;
+      }
+
+      var existing = document.querySelector(
+        'script[data-omni-fsel-chatwoot-sdk="1"]',
+      );
+      if (existing) {
+        existing.addEventListener("load", runSdk);
+        existing.addEventListener("error", function () {
+          reject(new Error("Không tải được Omni SDK."));
+        });
+        return;
+      }
+
+      var script = document.createElement("script");
+      script.src = base + "/packs/js/sdk.js";
+      script.async = true;
+      script.defer = true;
+      script.dataset.omniFselChatwootSdk = "1";
+      script.id = "omni-fsel-chatwoot-sdk";
+      script.onload = runSdk;
+      script.onerror = function () {
+        reject(new Error("Không tải được Omni SDK."));
+      };
+      (document.head || document.body).appendChild(script);
+    });
+
+    return chatwootSdkPromise;
+  }
+
+  function waitForChatwootReady(timeoutMs) {
+    if (state.chatwootReady && window.$chatwoot) {
+      return Promise.resolve(window.$chatwoot);
+    }
+    if (chatwootReadyPromise) return chatwootReadyPromise;
+
+    var timeout = typeof timeoutMs === "number" ? timeoutMs : 20000;
+
+    chatwootReadyPromise = new Promise(function (resolve, reject) {
+      if (state.chatwootReady && window.$chatwoot) {
+        resolve(window.$chatwoot);
+        return;
+      }
+
+      var settled = false;
+      var timer = window.setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        window.removeEventListener("chatwoot:ready", onReady);
+        reject(new Error("Hết thời gian chờ kết nối widget."));
+      }, timeout);
+
+      function onReady() {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timer);
+        state.chatwootReady = true;
+        resolve(window.$chatwoot);
+      }
+
+      window.addEventListener("chatwoot:ready", onReady, { once: true });
+
+      // SDK đã ready trước khi gắn listener
+      if (window.$chatwoot && window.$chatwoot.hasLoaded) {
+        onReady();
+      }
+    }).catch(function (error) {
+      chatwootReadyPromise = null;
+      throw error;
+    });
+
+    return chatwootReadyPromise;
+  }
+
+  /**
+   * POST select → widget ready → setUser(client_session_id)
+   * Xong mới mở chat (chatReady).
+   */
+  function activateChatAfterPersona(persona, selectPayload) {
+    var sessionId = extractClientSessionId(selectPayload);
+
+    return ensureChatwootSdk()
+      .then(function () {
+        return waitForChatwootReady();
+      })
+      .then(function () {
+        if (
+          !window.$chatwoot ||
+          typeof window.$chatwoot.setUser !== "function"
+        ) {
+          throw new Error("Omni SDK chưa sẵn sàng (thiếu setUser).");
+        }
+        window.$chatwoot.setUser(sessionId, {
+          name: (persona && persona.label) || "Khách truy cập",
+        });
+        state._clientSessionId = sessionId;
+        state.chatReady = true;
+        state.showQuickReplies = false;
+        state.showGreeting = false;
+        state.error = "";
+        return sessionId;
+      });
+  }
+
   function apiUrl(path) {
     var base = String(config.baseUrl || "").replace(/\/$/, "");
     var separator = path.indexOf("?") >= 0 ? "&" : "?";
@@ -340,7 +518,7 @@
     return fetch(apiUrl(path), {
       method: method,
       headers: headers,
-      // Không gửi cookie Chatwoot → mỗi lần load trang là contact/phiên mới
+      // Không gửi cookie phiên chat → mỗi lần load trang là contact/phiên mới
       credentials: "omit",
       body: body ? JSON.stringify(body) : undefined,
     }).then(function (response) {
@@ -649,7 +827,7 @@
     cableIdentifier = "";
   }
 
-  /** Realtime Chatwoot: wss://…/cable + RoomChannel (contact pubsub_token). */
+  /** Realtime widget: wss://…/cable + RoomChannel (contact pubsub_token). */
   function connectCable() {
     if (!state.pubsubToken) return;
     if (
@@ -670,7 +848,7 @@
     cableIdentifier = buildCableIdentifier();
 
     try {
-      // Protocol subprotocol giống @rails/actioncable — bắt buộc với nhiều bản Chatwoot
+      // Protocol subprotocol giống @rails/actioncable — bắt buộc với nhiều bản Omni
       cableSocket = new WebSocket(url, [
         "actioncable-v1-json",
         "actioncable-unsupported",
@@ -716,7 +894,7 @@
 
     return request("POST", "/api/v1/widget/config", {}).then(function (data) {
       var token = extractAuthToken(data);
-      if (!token) throw new Error("Không nhận được auth token từ Chatwoot.");
+      if (!token) throw new Error("Không nhận được auth token từ Omni.");
       writeStoredAuth(token);
       applySessionMeta(data);
       connectCable();
@@ -757,6 +935,7 @@
     return request("POST", "/api/v1/widget/conversations", {
       contact: {
         name: "Khách truy cập",
+        identifier: getClientSessionId(),
       },
       message: {
         content: content,
@@ -809,6 +988,12 @@
   function sendText(content) {
     var text = String(content || "").trim();
     if (!text || state.sending) return Promise.resolve();
+
+    if (!state.chatReady) {
+      state.error = "Vui lòng chọn đối tượng trước khi nhắn tin.";
+      render();
+      return Promise.resolve();
+    }
 
     state.sending = true;
     state.showQuickReplies = false;
@@ -1098,6 +1283,15 @@
 
   function renderQuickReplies(container) {
     container.innerHTML = "";
+    if (state.selectingPersona) {
+      container.style.display = "grid";
+      container.style.minHeight = "4rem";
+      container.innerHTML =
+        '<div style="grid-column:1/-1;text-align:center;font-size:12px;color:' +
+        THEME.muted +
+        ';padding:12px 0">Đang kết nối chat…</div>';
+      return;
+    }
     if (
       !state.showQuickReplies ||
       !state.quickReplies ||
@@ -1138,16 +1332,28 @@
     state.error = "";
     render();
 
+    // POST select → widget ready → setUser(client_session_id) → mở chat
     selectLiveChatPersona(persona)
-      .catch(function (error) {
-        console.warn("[fsel-techie] personas SELECT failed:", error);
+      .then(function (selectPayload) {
+        return activateChatAfterPersona(persona, selectPayload);
       })
       .then(function () {
         state.selectingPersona = false;
-        state.showQuickReplies = false;
-        state.showGreeting = false;
         render();
-        return sendText(persona.label);
+        focusInput();
+        // Chuẩn bị REST session (auth) sau setUser — chưa gửi tin tự động
+        return ensureSession().catch(function (error) {
+          console.warn("[fsel-techie] ensureSession after setUser:", error);
+        });
+      })
+      .catch(function (error) {
+        state.selectingPersona = false;
+        state.chatReady = false;
+        state.error =
+          (error && error.message) ||
+          "Không khởi tạo được phiên chat. Thử chọn lại đối tượng.";
+        console.warn("[fsel-techie] persona activate failed:", error);
+        render();
       });
   }
 
@@ -1303,16 +1509,21 @@
     }
 
     if (input) {
-      input.placeholder = state.showQuickReplies
-        ? config.inputPlaceholder || "Nhập tin nhắn..."
+      input.placeholder = !state.chatReady
+        ? config.inputPlaceholder || "Vui lòng chọn đối tượng để bắt đầu..."
         : config.inputPlaceholderWithActions ||
           config.inputPlaceholder ||
           "Nhập tin nhắn...";
-      input.disabled = state.sending || state.selectingPersona;
+      input.disabled =
+        !state.chatReady || state.sending || state.selectingPersona;
     }
 
-    if (send) send.disabled = state.sending || state.selectingPersona;
-    if (emojiBtn) emojiBtn.disabled = state.sending || state.selectingPersona;
+    if (send)
+      send.disabled =
+        !state.chatReady || state.sending || state.selectingPersona;
+    if (emojiBtn)
+      emojiBtn.disabled =
+        !state.chatReady || state.sending || state.selectingPersona;
   }
 
   function setOpen(next) {
@@ -1454,6 +1665,15 @@
     });
 
     render();
+
+    // Preload Omni SDK (ẩn) để sẵn sàng khi chọn persona
+    ensureChatwootSdk()
+      .then(function () {
+        return waitForChatwootReady(30000);
+      })
+      .catch(function (error) {
+        console.warn("[fsel-techie] Omni SDK preload:", error);
+      });
 
     fetchLiveChatPersonas().then(function () {
       render();
