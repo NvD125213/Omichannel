@@ -106,6 +106,9 @@ export function injectEmbedScript(embedScript: string) {
     document.getElementById("omni-fsel-techie-style")?.remove();
     document.getElementById("omni-fsel-chatwoot-sdk")?.remove();
     document
+      .querySelectorAll('script[data-omni-fsel-widget="1"]')
+      .forEach((node) => node.remove());
+    document
       .querySelectorAll(
         ".woot-widget-holder,.woot--bubble-holder,.woot-widget-bubble,#woot-widget-holder,#cw-widget-holder",
       )
@@ -113,6 +116,9 @@ export function injectEmbedScript(embedScript: string) {
 
     delete (window as Window & { __OMNICHANNEL_CHAT_WIDGET__?: unknown })
       .__OMNICHANNEL_CHAT_WIDGET__;
+    delete (
+      window as Window & { __OMNICHANNEL_CHAT_WIDGET_BOOTSTRAPPED__?: boolean }
+    ).__OMNICHANNEL_CHAT_WIDGET_BOOTSTRAPPED__;
 
     injectedScripts.forEach((script) => script.remove());
   };

@@ -60,12 +60,6 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
     client: "FSEL",
     assistantName: "Trợ lý Techie",
     greetingMessage: "👋 Chào bạn, mình là Techie - Trợ lý ảo của FSEL.",
-    quickReplies: [
-      { id: "student", label: "Tôi là học viên" },
-      { id: "teacher", label: "Tôi là Giáo viên" },
-      { id: "parent", label: "Tôi là phụ huynh" },
-      { id: "learn-fsel", label: "Tôi cần tìm hiểu về FSEL" },
-    ],
     inputPlaceholder: "Vui lòng chọn tài liệu để bắt đầu...",
     inputPlaceholderWithActions: "Soạn tin nhắn...",
     showUsageQuota: true,
@@ -438,7 +432,7 @@ export function getEmbedScriptFileName(
   return "chatwoot-embed.html";
 }
 
-/** Sinh script nhúng theo variant — FSEL dùng loader riêng, vẫn kết nối Chatwoot backend. */
+/** Sinh script nhúng theo variant — FSEL gộp config + loader thành 1 thẻ <script>. */
 export function buildChatEmbedScript(
   variantId: ChatPreviewVariantId,
   options: {
@@ -457,15 +451,15 @@ export function buildChatEmbedScript(
   const credentials = parseChatwootEmbedScript(trimmedBase);
   if (!credentials) {
     return [
-      "// Không đọc được websiteToken/baseUrl từ script Chatwoot gốc.",
-      "// Hãy tải lại inbox hoặc dùng khung Chatwoot mặc định.",
-      "",
+      "<!-- Không đọc được websiteToken/baseUrl từ script Chatwoot gốc. -->",
+      "<!-- Hãy tải lại inbox hoặc dùng khung Chatwoot mặc định. -->",
       trimmedBase,
     ].join("\n");
   }
 
   const widgetScriptPath =
     options.template.widgetScriptPath || "/inbox-widgets/fsel-techie.js";
+  const widgetScriptUrl = `${options.widgetAssetsOrigin.replace(/\/$/, "")}${widgetScriptPath}`;
   const logoUrl =
     resolveAssetUrl(options.widgetAssetsOrigin, options.data.avatarUrl) ??
     resolveAssetUrl(options.widgetAssetsOrigin, options.template.logoPath);
@@ -475,9 +469,10 @@ export function buildChatEmbedScript(
     baseUrl: credentials.baseUrl,
     websiteToken: credentials.websiteToken,
     /** Base OmniHub API (`NEXT_PUBLIC_API_BASE_URL`) — GET/POST live-chat personas */
-    omniApiBaseUrl: (
-      process.env.NEXT_PUBLIC_API_BASE_URL || ""
-    ).replace(/\/$/, ""),
+    omniApiBaseUrl: (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(
+      /\/$/,
+      "",
+    ),
     assistantName: options.data.assistantName || options.template.assistantName,
     // Không fallback template khi greeting tắt / rỗng ("" là hợp lệ)
     greetingMessage:
@@ -498,13 +493,25 @@ export function buildChatEmbedScript(
   };
 
   const configJson = JSON.stringify(config, null, 2);
+  const widgetUrlJson = JSON.stringify(widgetScriptUrl);
 
   return [
-    `<!-- ${options.template.label} · script tuỳ chỉnh -->`,
+    `<!-- ${options.template.label} · 1 script nhúng (config + loader) -->`,
     "<script>",
+    "(function () {",
+    "  if (window.__OMNICHANNEL_CHAT_WIDGET_BOOTSTRAPPED__) return;",
+    "  window.__OMNICHANNEL_CHAT_WIDGET_BOOTSTRAPPED__ = true;",
     `  window.__OMNICHANNEL_CHAT_WIDGET__ = ${configJson};`,
+    "",
+    `  var src = ${widgetUrlJson};`,
+    '  if (document.querySelector(\'script[data-omni-fsel-widget="1"]\')) return;',
+    '  var s = document.createElement("script");',
+    "  s.src = src;",
+    "  s.async = true;",
+    '  s.dataset.omniFselWidget = "1";',
+    "  (document.head || document.body).appendChild(s);",
+    "})();",
     "</script>",
-    `<script src="${options.widgetAssetsOrigin}${widgetScriptPath}" async></script>`,
   ].join("\n");
 }
 

@@ -414,7 +414,8 @@ export function WebsiteChatPreview({
             <div className="mb-3 space-y-0.5">
               <h3 className="text-sm font-medium">Widget & nhúng</h3>
               <p className="text-xs text-muted-foreground">
-                Xem trước UI và script nhúng theo khung đã chọn.
+                Một đoạn script duy nhất — copy dán vào website là đủ (không tách
+                config / loader).
               </p>
             </div>
             <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b-0 bg-transparent p-0">
@@ -495,7 +496,7 @@ export function WebsiteChatPreview({
               </div>
 
               <div className="flex shrink-0 items-center justify-between border-t border-[#007acc] bg-[#007acc] px-3 py-1 text-[10px] text-white">
-                <span>HTML</span>
+                <span>1 script nhúng</span>
                 <span>{scriptLines.length} dòng · UTF-8</span>
               </div>
             </div>

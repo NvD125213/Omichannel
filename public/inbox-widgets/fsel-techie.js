@@ -33,9 +33,13 @@
     selectingPersona: false,
     loadingPersonas: false,
     authToken: "",
+    pubsubToken: "",
+    accountId: null,
     hasConversation: false,
     messages: [],
     error: "",
+    cableConnected: false,
+    showEmojiPanel: false,
     /** [{ id, label }] — ưu tiên từ GET personas */
     quickReplies: Array.isArray(config.quickReplies)
       ? config.quickReplies
@@ -54,6 +58,14 @@
           })
       : [],
   };
+
+  var cableSocket = null;
+  var cableIdentifier = "";
+  var presenceTimer = null;
+  var reconnectTimer = null;
+  var reconnectAttempt = 0;
+  var fallbackPollTimers = [];
+  var intentionalCableClose = false;
 
   function pad(value) {
     return String(value).padStart(2, "0");
@@ -77,9 +89,14 @@
 
   /** Reload = phiên mới: xóa token/session cũ, không khôi phục lịch sử. */
   function resetSessionForNewVisit() {
+    disconnectCable(true);
+    clearFallbackPolls();
     state.authToken = "";
+    state.pubsubToken = "";
+    state.accountId = null;
     state.hasConversation = false;
     state.messages = [];
+    state.cableConnected = false;
     try {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem(SESSION_KEY);
@@ -406,13 +423,303 @@
     );
   }
 
+  function extractPubsubToken(data) {
+    if (!data || typeof data !== "object") return "";
+    return (
+      data.pubsub_token ||
+      data.pubsubToken ||
+      (data.contact &&
+        (data.contact.pubsub_token || data.contact.pubsubToken)) ||
+      (data.contact_inbox &&
+        (data.contact_inbox.pubsub_token || data.contact_inbox.pubsubToken)) ||
+      (data.meta &&
+        data.meta.contact &&
+        (data.meta.contact.pubsub_token || data.meta.contact.pubsubToken)) ||
+      ""
+    );
+  }
+
+  function extractAccountId(data) {
+    if (!data || typeof data !== "object") return null;
+    var raw =
+      data.account_id ||
+      data.accountId ||
+      (data.website_channel_config &&
+        (data.website_channel_config.account_id ||
+          data.website_channel_config.accountId)) ||
+      (data.contact && (data.contact.account_id || data.contact.accountId)) ||
+      (data.inbox && (data.inbox.account_id || data.inbox.accountId)) ||
+      null;
+    if (raw == null || raw === "") return null;
+    var num = Number(raw);
+    return isNaN(num) ? raw : num;
+  }
+
+  function applySessionMeta(data) {
+    if (!data || typeof data !== "object") return;
+    var pubsub = extractPubsubToken(data);
+    if (pubsub) state.pubsubToken = String(pubsub);
+    var accountId = extractAccountId(data);
+    if (accountId != null) state.accountId = accountId;
+    if (Array.isArray(data.messages) && data.messages.length) {
+      var fromMsg = extractAccountId(data.messages[0]);
+      if (fromMsg != null) state.accountId = fromMsg;
+    }
+  }
+
+  function cableUrl() {
+    var base = String(config.baseUrl || "").replace(/\/$/, "");
+    if (!base) return "";
+    var hostPath = "";
+    if (base.indexOf("https://") === 0) {
+      hostPath = "wss://" + base.slice("https://".length);
+    } else if (base.indexOf("http://") === 0) {
+      hostPath = "ws://" + base.slice("http://".length);
+    } else if (base.indexOf("wss://") === 0 || base.indexOf("ws://") === 0) {
+      hostPath = base;
+    } else {
+      hostPath = "wss://" + base.replace(/^\/\//, "");
+    }
+    return hostPath.replace(/\/$/, "") + "/cable";
+  }
+
+  function buildCableIdentifier() {
+    var payload = {
+      channel: "RoomChannel",
+      pubsub_token: state.pubsubToken,
+    };
+    if (state.accountId != null) payload.account_id = state.accountId;
+    return JSON.stringify(payload);
+  }
+
+  function stopPresence() {
+    if (presenceTimer) {
+      window.clearInterval(presenceTimer);
+      presenceTimer = null;
+    }
+  }
+
+  function startPresence() {
+    stopPresence();
+    if (!cableSocket || cableSocket.readyState !== WebSocket.OPEN) return;
+    presenceTimer = window.setInterval(function () {
+      if (!cableSocket || cableSocket.readyState !== WebSocket.OPEN) return;
+      try {
+        cableSocket.send(
+          JSON.stringify({
+            command: "message",
+            identifier: cableIdentifier,
+            data: JSON.stringify({ action: "update_presence" }),
+          }),
+        );
+      } catch (error) {
+        /* ignore */
+      }
+    }, 30000);
+  }
+
+  function clearFallbackPolls() {
+    fallbackPollTimers.forEach(function (id) {
+      window.clearTimeout(id);
+    });
+    fallbackPollTimers = [];
+  }
+
+  /** Khi WS chưa sống: poll GET messages vài lần sau khi gửi để bắt reply bot. */
+  function scheduleFallbackMessagePolls() {
+    clearFallbackPolls();
+    if (state.cableConnected) return;
+    [1500, 3500, 7000].forEach(function (delay) {
+      fallbackPollTimers.push(
+        window.setTimeout(function () {
+          if (!state.authToken || !state.hasConversation) return;
+          if (state.cableConnected) return;
+          fetchMessages();
+        }, delay),
+      );
+    });
+  }
+
+  function handleCableEvent(eventName, data) {
+    if (!eventName) return;
+
+    if (eventName === "message.created" || eventName === "message.updated") {
+      if (data) {
+        mergeMessages([data]);
+        state.hasConversation = true;
+        renderMessages();
+      } else {
+        fetchMessages();
+      }
+      return;
+    }
+
+    if (
+      eventName === "conversation.created" ||
+      eventName === "conversation.status_changed"
+    ) {
+      state.hasConversation = true;
+      applySessionMeta(data);
+      if (data && Array.isArray(data.messages) && data.messages.length) {
+        mergeMessages(data.messages);
+        renderMessages();
+      } else {
+        fetchMessages();
+      }
+    }
+  }
+
+  function onCableMessage(raw) {
+    var payload = null;
+    try {
+      payload = JSON.parse(raw);
+    } catch (error) {
+      return;
+    }
+    if (!payload || typeof payload !== "object") return;
+
+    if (payload.type === "welcome") {
+      try {
+        cableSocket.send(
+          JSON.stringify({
+            command: "subscribe",
+            identifier: cableIdentifier,
+          }),
+        );
+      } catch (error) {
+        console.warn("[fsel-techie] cable subscribe failed:", error);
+      }
+      return;
+    }
+
+    if (payload.type === "confirm_subscription") {
+      state.cableConnected = true;
+      reconnectAttempt = 0;
+      clearFallbackPolls();
+      startPresence();
+      // Sync lại sau khi cable sẵn sàng (bot reply có thể đã về trước đó)
+      if (state.hasConversation) fetchMessages();
+      return;
+    }
+
+    if (payload.type === "ping" || payload.type === "disconnect") return;
+
+    if (payload.type === "reject_subscription") {
+      state.cableConnected = false;
+      console.warn("[fsel-techie] cable subscription rejected");
+      return;
+    }
+
+    var message = payload.message;
+    if (!message || typeof message !== "object") return;
+    handleCableEvent(message.event, message.data);
+  }
+
+  function scheduleCableReconnect() {
+    if (intentionalCableClose || !state.pubsubToken) return;
+    if (reconnectTimer) return;
+    var delay = Math.min(1000 * Math.pow(2, reconnectAttempt), 15000);
+    reconnectAttempt += 1;
+    reconnectTimer = window.setTimeout(function () {
+      reconnectTimer = null;
+      connectCable();
+    }, delay);
+  }
+
+  function disconnectCable(intentional) {
+    intentionalCableClose = !!intentional;
+    stopPresence();
+    if (reconnectTimer) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    state.cableConnected = false;
+    if (cableSocket) {
+      try {
+        cableSocket.onopen = null;
+        cableSocket.onmessage = null;
+        cableSocket.onerror = null;
+        cableSocket.onclose = null;
+        cableSocket.close();
+      } catch (error) {
+        /* ignore */
+      }
+      cableSocket = null;
+    }
+    cableIdentifier = "";
+  }
+
+  /** Realtime Chatwoot: wss://…/cable + RoomChannel (contact pubsub_token). */
+  function connectCable() {
+    if (!state.pubsubToken) return;
+    if (
+      cableSocket &&
+      (cableSocket.readyState === WebSocket.OPEN ||
+        cableSocket.readyState === WebSocket.CONNECTING)
+    ) {
+      return;
+    }
+
+    var url = cableUrl();
+    if (!url || typeof WebSocket === "undefined") {
+      scheduleFallbackMessagePolls();
+      return;
+    }
+
+    intentionalCableClose = false;
+    cableIdentifier = buildCableIdentifier();
+
+    try {
+      // Protocol subprotocol giống @rails/actioncable — bắt buộc với nhiều bản Chatwoot
+      cableSocket = new WebSocket(url, [
+        "actioncable-v1-json",
+        "actioncable-unsupported",
+      ]);
+    } catch (error) {
+      try {
+        cableSocket = new WebSocket(url);
+      } catch (fallbackError) {
+        console.warn("[fsel-techie] cable connect failed:", fallbackError);
+        scheduleCableReconnect();
+        return;
+      }
+    }
+
+    cableSocket.onopen = function () {
+      // ActionCable gửi welcome trước; subscribe trong onmessage
+    };
+
+    cableSocket.onmessage = function (event) {
+      onCableMessage(event.data);
+    };
+
+    cableSocket.onerror = function () {
+      state.cableConnected = false;
+    };
+
+    cableSocket.onclose = function () {
+      state.cableConnected = false;
+      stopPresence();
+      cableSocket = null;
+      if (!intentionalCableClose) {
+        scheduleFallbackMessagePolls();
+        scheduleCableReconnect();
+      }
+    };
+  }
+
   function ensureSession() {
-    if (state.authToken) return Promise.resolve(state.authToken);
+    if (state.authToken) {
+      if (state.pubsubToken) connectCable();
+      return Promise.resolve(state.authToken);
+    }
 
     return request("POST", "/api/v1/widget/config", {}).then(function (data) {
       var token = extractAuthToken(data);
       if (!token) throw new Error("Không nhận được auth token từ Chatwoot.");
       writeStoredAuth(token);
+      applySessionMeta(data);
+      connectCable();
       return token;
     });
   }
@@ -420,22 +727,28 @@
   function fetchMessages() {
     return request("GET", "/api/v1/widget/messages", null)
       .then(function (data) {
+        applySessionMeta(data);
         var payload =
           (data && data.payload) ||
           (data && data.messages) ||
           (Array.isArray(data) ? data : []);
         if (payload && payload.length) {
           state.hasConversation = true;
+          var first = payload[0];
+          if (first) applySessionMeta(first);
         }
         mergeMessages(payload);
         state.error = "";
         renderMessages();
+        if (state.pubsubToken) connectCable();
       })
       .catch(function (error) {
         if (error && error.status === 404) return;
         // Session hết hạn → tạo lại
         if (error && (error.status === 401 || error.status === 403)) {
           writeStoredAuth("");
+          disconnectCable(true);
+          state.pubsubToken = "";
         }
       });
   }
@@ -452,6 +765,7 @@
       },
     }).then(function (data) {
       state.hasConversation = true;
+      applySessionMeta(data);
       var messages = (data && data.messages) || [];
       mergeMessages(messages);
       if (!messages.length) {
@@ -464,6 +778,7 @@
           },
         ]);
       }
+      connectCable();
     });
   }
 
@@ -475,6 +790,7 @@
         referer_url: window.location.href,
       },
     }).then(function (data) {
+      applySessionMeta(data);
       if (data) mergeMessages([data]);
       else {
         mergeMessages([
@@ -486,6 +802,7 @@
           },
         ]);
       }
+      connectCable();
     });
   }
 
@@ -506,6 +823,8 @@
       })
       .then(function () {
         renderMessages();
+        connectCable();
+        scheduleFallbackMessagePolls();
         return fetchMessages();
       })
       .catch(function (error) {
@@ -562,16 +881,16 @@
       THEME.primarySoft +
       "}" +
       ".omni-fsel-body{flex:1;display:flex;flex-direction:column;background:#F7F8FA;padding:16px;min-height:0;overflow:hidden}" +
-      ".omni-fsel-message-block{max-width:88%;flex-shrink:0;margin-bottom:4px}" +
+      ".omni-fsel-message-block{max-width:88%;width:fit-content;flex-shrink:0;margin-bottom:4px}" +
       ".omni-fsel-message-block.is-hidden{display:none}" +
-      ".omni-fsel-meta{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:11px;line-height:1.2;padding:0 4px;margin-bottom:6px;width:100%}" +
+      ".omni-fsel-meta{display:flex;justify-content:flex-start;align-items:baseline;gap:10px;font-size:11px;line-height:1.2;padding:0 4px;margin-bottom:6px;width:fit-content;max-width:100%}" +
       ".omni-fsel-meta strong{color:" +
       THEME.muted +
       ";font-weight:500}" +
       ".omni-fsel-meta span{color:" +
       THEME.muted +
       ";font-weight:500;white-space:nowrap}" +
-      ".omni-fsel-bubble{border:1px solid #E5E7EB;background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:400;line-height:1.5;color:#111827;box-shadow:none}" +
+      ".omni-fsel-bubble{border:1px solid #E5E7EB;background:#fff;border-radius:12px;padding:12px 14px;font-size:14px;font-weight:400;line-height:1.5;color:#111827;box-shadow:none;width:fit-content;max-width:100%;box-sizing:border-box}" +
       ".omni-fsel-message-area{flex:1;min-height:0;margin-top:8px;display:flex;flex-direction:column;overflow:hidden}" +
       ".omni-fsel-actions{display:grid;gap:8px;flex-shrink:0}" +
       ".omni-fsel-action{border:1px solid " +
@@ -585,14 +904,15 @@
       THEME.primarySoft +
       ";box-shadow:0 4px 14px rgba(110,133,250,.18)}" +
       ".omni-fsel-action:disabled{opacity:.6;cursor:not-allowed}" +
-      ".omni-fsel-messages{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding-right:2px}" +
-      ".omni-fsel-msg-row{display:flex;flex-direction:column;gap:6px;max-width:88%}" +
-      ".omni-fsel-msg-row.is-agent{align-self:flex-start;align-items:stretch;width:88%}" +
-      ".omni-fsel-msg-row.is-user{align-self:flex-end;align-items:stretch;width:fit-content}" +
+      ".omni-fsel-messages{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding-right:2px;-ms-overflow-style:none;scrollbar-width:none}" +
+      ".omni-fsel-messages::-webkit-scrollbar{width:0;height:0;display:none}" +
+      ".omni-fsel-msg-row{display:flex;flex-direction:column;gap:6px;max-width:88%;width:fit-content}" +
+      ".omni-fsel-msg-row.is-agent{align-self:flex-start;align-items:flex-start}" +
+      ".omni-fsel-msg-row.is-user{align-self:flex-end;align-items:flex-end}" +
       ".omni-fsel-msg-meta{display:flex;align-items:baseline;gap:10px;font-size:11px;line-height:1.2;padding:0 4px;color:" +
       THEME.muted +
-      ";font-weight:500}" +
-      ".omni-fsel-msg-row.is-agent .omni-fsel-msg-meta{justify-content:space-between}" +
+      ";font-weight:500;max-width:100%;width:fit-content}" +
+      ".omni-fsel-msg-row.is-agent .omni-fsel-msg-meta{justify-content:flex-start}" +
       ".omni-fsel-msg-row.is-user .omni-fsel-msg-meta{justify-content:flex-end}" +
       ".omni-fsel-msg-name{color:" +
       THEME.muted +
@@ -600,22 +920,24 @@
       ".omni-fsel-msg-time{color:" +
       THEME.muted +
       ";font-weight:500;white-space:nowrap}" +
-      ".omni-fsel-msg{border-radius:12px;padding:12px 14px;font-size:14px;font-weight:400;line-height:1.5;word-break:break-word}" +
+      ".omni-fsel-msg{border-radius:12px;padding:12px 14px;font-size:14px;font-weight:400;line-height:1.5;word-break:break-word;width:fit-content;max-width:100%;box-sizing:border-box}" +
       ".omni-fsel-msg.is-agent{border:1px solid #E5E7EB;background:#fff;color:#111827;box-shadow:none}" +
       ".omni-fsel-msg.is-user{border:0;background:#EEF2F7;color:#111827;box-shadow:none}" +
       ".omni-fsel-error{margin-top:8px;font-size:11px;font-weight:500;color:#c2410c;flex-shrink:0}" +
       ".omni-fsel-footer{flex-shrink:0;border-top:1px solid " +
       THEME.border +
-      ";background:#fff;padding:12px 16px}" +
+      ";background:#fff;padding:12px 16px;position:relative}" +
       ".omni-fsel-quota-wrap{min-height:16px;margin-bottom:8px}" +
       ".omni-fsel-quota{margin:0;text-align:left;font-size:12px;font-weight:500;color:" +
       THEME.muted +
       "}" +
       ".omni-fsel-quota.is-placeholder{visibility:hidden}" +
+      ".omni-fsel-composer{position:relative}" +
       ".omni-fsel-input-row{display:flex;gap:8px;align-items:center;margin:0}" +
-      ".omni-fsel-input{flex:1;min-width:0;min-height:36px;height:36px;border:1px solid " +
+      ".omni-fsel-input-wrap{flex:1;min-width:0;position:relative;display:flex;align-items:center}" +
+      ".omni-fsel-input{flex:1;min-width:0;width:100%;min-height:36px;height:36px;border:1px solid " +
       THEME.borderStrong +
-      ";border-radius:12px;padding:8px 12px;font-size:12px;font-weight:500;color:" +
+      ";border-radius:12px;padding:8px 40px 8px 12px;font-size:12px;font-weight:500;color:" +
       THEME.inkBody +
       ";background:#fff;box-shadow:inset 0 1px 2px rgba(110,133,250,.07);outline:none;pointer-events:auto;caret-color:" +
       THEME.ink +
@@ -627,6 +949,29 @@
       THEME.primary +
       ";box-shadow:0 0 0 3px rgba(110,133,250,.16)}" +
       ".omni-fsel-input:disabled{opacity:.7;cursor:not-allowed}" +
+      ".omni-fsel-emoji-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:" +
+      THEME.muted +
+      ";cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}" +
+      ".omni-fsel-emoji-btn:hover{background:" +
+      THEME.primarySoft +
+      ";color:" +
+      THEME.ink +
+      "}" +
+      ".omni-fsel-emoji-btn.is-active{background:" +
+      THEME.primarySoft +
+      ";color:" +
+      THEME.primary +
+      "}" +
+      ".omni-fsel-emoji-btn:disabled{opacity:.5;cursor:not-allowed}" +
+      ".omni-fsel-emoji-panel{display:none;position:absolute;right:0;bottom:calc(100% + 8px);width:min(280px,calc(100vw - 64px));max-height:180px;overflow-y:auto;padding:8px;border:1px solid " +
+      THEME.border +
+      ";border-radius:12px;background:#fff;box-shadow:0 12px 28px rgba(26,36,86,.14);z-index:5;-ms-overflow-style:none;scrollbar-width:none}" +
+      ".omni-fsel-emoji-panel::-webkit-scrollbar{width:0;height:0;display:none}" +
+      ".omni-fsel-emoji-panel.is-open{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}" +
+      ".omni-fsel-emoji-item{border:0;background:transparent;border-radius:8px;width:100%;aspect-ratio:1;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}" +
+      ".omni-fsel-emoji-item:hover{background:" +
+      THEME.primarySoft +
+      "}" +
       ".omni-fsel-send{width:36px;height:36px;border:0;border-radius:12px;background:" +
       THEME.primary +
       ";color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(110,133,250,.32);transition:filter .2s,transform .2s;flex-shrink:0}" +
@@ -661,7 +1006,95 @@
       '<svg class="omni-fsel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
     send: '<svg class="omni-fsel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
     chat: '<svg class="omni-fsel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    emoji:
+      '<svg class="omni-fsel-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
   };
+
+  var EMOJI_LIST = [
+    "😀",
+    "😁",
+    "😂",
+    "🤣",
+    "😊",
+    "😍",
+    "😘",
+    "😜",
+    "🤗",
+    "🤔",
+    "😎",
+    "😢",
+    "😭",
+    "😡",
+    "👍",
+    "👎",
+    "👏",
+    "🙏",
+    "🎉",
+    "🔥",
+    "❤️",
+    "💯",
+    "✨",
+    "⭐",
+    "✅",
+    "❌",
+    "📌",
+    "💡",
+    "👋",
+    "🤝",
+    "💪",
+    "☕",
+  ];
+
+  function setEmojiPanelOpen(open) {
+    state.showEmojiPanel = !!open;
+    var root = document.getElementById(ROOT_ID);
+    if (!root) return;
+    var panel = root.querySelector(".omni-fsel-emoji-panel");
+    var btn = root.querySelector(".omni-fsel-emoji-btn");
+    if (panel) panel.classList.toggle("is-open", state.showEmojiPanel);
+    if (btn) btn.classList.toggle("is-active", state.showEmojiPanel);
+  }
+
+  function insertEmoji(emoji) {
+    var input = document.querySelector("#" + ROOT_ID + " .omni-fsel-input");
+    if (!input || input.disabled) return;
+    var start =
+      typeof input.selectionStart === "number"
+        ? input.selectionStart
+        : input.value.length;
+    var end =
+      typeof input.selectionEnd === "number"
+        ? input.selectionEnd
+        : input.value.length;
+    var value = String(input.value || "");
+    input.value = value.slice(0, start) + emoji + value.slice(end);
+    var caret = start + emoji.length;
+    try {
+      input.setSelectionRange(caret, caret);
+    } catch (error) {
+      /* ignore */
+    }
+    input.focus();
+  }
+
+  function renderEmojiPanel(container) {
+    if (!container || container.getAttribute("data-ready") === "1") return;
+    container.innerHTML = "";
+    EMOJI_LIST.forEach(function (emoji) {
+      var button = document.createElement("button");
+      button.type = "button";
+      button.className = "omni-fsel-emoji-item";
+      button.textContent = emoji;
+      button.setAttribute("aria-label", "Chèn " + emoji);
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        insertEmoji(emoji);
+      });
+      container.appendChild(button);
+    });
+    container.setAttribute("data-ready", "1");
+  }
 
   function renderQuickReplies(container) {
     container.innerHTML = "";
@@ -817,6 +1250,8 @@
     var quotaWrap = root.querySelector(".omni-fsel-quota-wrap");
     var input = root.querySelector(".omni-fsel-input");
     var send = root.querySelector(".omni-fsel-send");
+    var emojiBtn = root.querySelector(".omni-fsel-emoji-btn");
+    var emojiPanel = root.querySelector(".omni-fsel-emoji-panel");
     var error = root.querySelector(".omni-fsel-error");
 
     if (panel) panel.classList.toggle("is-open", state.open);
@@ -843,6 +1278,10 @@
     renderLauncherContent(launcher);
     if (actions) renderQuickReplies(actions);
     renderMessages();
+    if (emojiPanel) renderEmojiPanel(emojiPanel);
+    if (emojiPanel)
+      emojiPanel.classList.toggle("is-open", state.showEmojiPanel);
+    if (emojiBtn) emojiBtn.classList.toggle("is-active", state.showEmojiPanel);
 
     if (error) {
       error.textContent = state.error || "";
@@ -873,21 +1312,27 @@
     }
 
     if (send) send.disabled = state.sending || state.selectingPersona;
+    if (emojiBtn) emojiBtn.disabled = state.sending || state.selectingPersona;
   }
 
   function setOpen(next) {
     state.open = !!next;
+    if (!state.open) state.showEmojiPanel = false;
     render();
     if (state.open) {
-      // Chỉ fetch 1 lần khi mở lại phiên hiện tại — không poll liên tục
       if (state.hasConversation && state.authToken) {
         fetchMessages()
           .then(function () {
+            connectCable();
             focusInput();
           })
           .catch(function () {
+            connectCable();
             focusInput();
           });
+      } else if (state.authToken && state.pubsubToken) {
+        connectCable();
+        focusInput();
       } else {
         focusInput();
       }
@@ -896,6 +1341,7 @@
 
   function submitComposer(event) {
     if (event) event.preventDefault();
+    setEmojiPanelOpen(false);
     var input = document.querySelector("#" + ROOT_ID + " .omni-fsel-input");
     if (!input) return;
     var value = input.value;
@@ -943,12 +1389,20 @@
       "</div>" +
       '<div class="omni-fsel-footer">' +
       '<div class="omni-fsel-quota-wrap"><p class="omni-fsel-quota"></p></div>' +
+      '<div class="omni-fsel-composer">' +
+      '<div class="omni-fsel-emoji-panel" role="listbox" aria-label="Biểu cảm"></div>' +
       '<form class="omni-fsel-input-row">' +
+      '<div class="omni-fsel-input-wrap">' +
       '<input class="omni-fsel-input" type="text" autocomplete="off" enterkeyhint="send" />' +
+      '<button type="button" class="omni-fsel-emoji-btn" aria-label="Thêm biểu cảm">' +
+      ICONS.emoji +
+      "</button>" +
+      "</div>" +
       '<button type="submit" class="omni-fsel-send" aria-label="Gửi">' +
       ICONS.send +
       "</button>" +
       "</form>" +
+      "</div>" +
       "</div>" +
       "</div>" +
       '<div class="omni-fsel-dock">' +
@@ -983,6 +1437,21 @@
     root
       .querySelector(".omni-fsel-input-row")
       .addEventListener("submit", submitComposer);
+
+    root
+      .querySelector(".omni-fsel-emoji-btn")
+      .addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        setEmojiPanelOpen(!state.showEmojiPanel);
+      });
+
+    document.addEventListener("click", function (event) {
+      if (!state.showEmojiPanel) return;
+      var composer = root.querySelector(".omni-fsel-composer");
+      if (composer && composer.contains(event.target)) return;
+      setEmojiPanelOpen(false);
+    });
 
     render();
 
