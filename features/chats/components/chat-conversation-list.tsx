@@ -211,8 +211,8 @@ function extractAgentRecords(
   const data = root.data as Record<string, unknown> | undefined;
 
   return (
-    coerceObjectArray(data?.payload) ??
     coerceObjectArray(data?.agents) ??
+    coerceObjectArray(data?.payload) ??
     coerceObjectArray(
       (data?.messaging as Record<string, unknown> | undefined)?.payload,
     ) ??
@@ -295,13 +295,7 @@ function normalizeAgentOption(
   if (!uuid && !id) return null;
 
   const email = String(raw.email ?? "").trim();
-  const name = String(
-    raw.available_name ??
-      raw.availableName ??
-      raw.name ??
-      email ??
-      `Nhân viên ${index + 1}`,
-  ).trim();
+  const name = String(raw.name ?? email ?? `Nhân viên ${index + 1}`).trim();
 
   const thumbnail = String(
     raw.thumbnail ?? raw.avatar_url ?? raw.avatarUrl ?? "",
@@ -1134,10 +1128,19 @@ export function ChatConversationList({
               const currentAssigneeId = String(
                 conversation.meta?.assignee?.id ?? "",
               ).trim();
+              const currentAssigneeEmail = String(
+                conversation.meta?.assignee?.email ?? "",
+              )
+                .trim()
+                .toLowerCase();
+              const agentEmail = agent.email?.trim().toLowerCase() ?? "";
               const isCurrent =
-                currentAssigneeId.length > 0 &&
-                (currentAssigneeId === agent.id ||
-                  currentAssigneeId === agent.uuid);
+                (currentAssigneeId.length > 0 &&
+                  (currentAssigneeId === agent.id ||
+                    currentAssigneeId === agent.uuid)) ||
+                (currentAssigneeEmail.length > 0 &&
+                  agentEmail.length > 0 &&
+                  currentAssigneeEmail === agentEmail);
 
               return (
                 <ContextMenuItem

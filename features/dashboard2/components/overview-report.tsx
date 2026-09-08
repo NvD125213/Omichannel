@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +16,13 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
@@ -31,20 +39,24 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAuth } from "@/contexts/auth-context";
+import { useListTenantInboxes } from "@/hooks/chatwoot/use-chatwoot";
+import { useGetReportsOverview } from "@/hooks/reports/use-reports";
 import {
-  useGetCsatResponses,
-  useGetReportsOverview,
-} from "@/hooks/reports/use-reports";
+  useGetTenantRatingsMetrics,
+  useListTenantRatings,
+} from "@/hooks/ratings/use-conversation-rating";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CircleHelp,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  ExternalLink,
   Frown,
   Laugh,
   Meh,
@@ -57,10 +69,24 @@ import {
   TrendingDown,
   TrendingUp,
   Users,
+  Zap,
+  Globe,
+  Mail,
+  Phone,
+  Send,
+  Code2,
+  Camera,
+  MessageCircle,
   type LucideIcon,
+  Combine,
+  SmilePlusIcon,
 } from "lucide-react";
 import { Cell, Pie, PieChart } from "recharts";
-import type { ReportsOverviewCsat } from "@/services/reports/service";
+import type {
+  TenantRatingItem,
+  TenantRatingsMetricsData,
+} from "@/services/ratings/conversation-rating";
+import { EmptyData } from "@/components/empty-data";
 
 export type OverviewReportProps = {
   since: number;
@@ -109,48 +135,56 @@ const CSAT_LEVELS: {
     label: "Xuất sắc",
     icon: Laugh,
     iconClass: "text-emerald-600 dark:text-emerald-400",
-    barClass: "bg-emerald-600/80",
-    trackClass: "bg-emerald-600/15",
+    barClass:
+      "bg-linear-to-r from-emerald-500 to-emerald-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] dark:from-emerald-500 dark:to-emerald-400",
+    trackClass: "bg-emerald-500/12 ring-1 ring-inset ring-emerald-500/10",
   },
   {
     rating: 4,
     label: "Tốt",
     icon: Smile,
     iconClass: "text-teal-600 dark:text-teal-400",
-    barClass: "bg-teal-600/75",
-    trackClass: "bg-teal-600/15",
+    barClass:
+      "bg-linear-to-r from-teal-500 to-teal-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] dark:from-teal-500 dark:to-teal-400",
+    trackClass: "bg-teal-500/12 ring-1 ring-inset ring-teal-500/10",
   },
   {
     rating: 3,
     label: "Trung bình",
     icon: Meh,
     iconClass: "text-stone-500 dark:text-stone-400",
-    barClass: "bg-stone-500/70",
-    trackClass: "bg-stone-500/15",
+    barClass:
+      "bg-linear-to-r from-stone-400 to-stone-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] dark:from-stone-400 dark:to-stone-300",
+    trackClass: "bg-stone-500/12 ring-1 ring-inset ring-stone-500/10",
   },
   {
     rating: 2,
     label: "Kém",
     icon: Frown,
     iconClass: "text-orange-600 dark:text-orange-400",
-    barClass: "bg-orange-600/70",
-    trackClass: "bg-orange-600/15",
+    barClass:
+      "bg-linear-to-r from-orange-500 to-orange-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.24)] dark:from-orange-500 dark:to-orange-400",
+    trackClass: "bg-orange-500/12 ring-1 ring-inset ring-orange-500/10",
   },
   {
     rating: 1,
     label: "Rất kém",
     icon: Angry,
     iconClass: "text-rose-700 dark:text-rose-400",
-    barClass: "bg-rose-700/75",
-    trackClass: "bg-rose-700/15",
+    barClass:
+      "bg-linear-to-r from-rose-500 to-rose-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] dark:from-rose-500 dark:to-rose-400",
+    trackClass: "bg-rose-500/12 ring-1 ring-inset ring-rose-500/10",
   },
 ];
 
-const formatPercent = (value: number) =>
-  `${new Intl.NumberFormat("vi-VN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value)}%`;
+const formatPercentCompact = (value: number) => {
+  const rounded = Math.round(value * 10) / 10;
+  const isWhole = Math.abs(rounded - Math.round(rounded)) < 0.05;
+  return `${new Intl.NumberFormat("vi-VN", {
+    minimumFractionDigits: isWhole ? 0 : 1,
+    maximumFractionDigits: isWhole ? 0 : 1,
+  }).format(rounded)}%`;
+};
 
 type MetricItem = {
   label: string;
@@ -189,7 +223,7 @@ function GrowthBadge({
     <Badge
       variant="outline"
       className={cn(
-        "h-auto shrink-0 px-1.5 py-0.5 text-[11px] leading-none @min-[13rem]/metric:px-2 @min-[13rem]/metric:py-0.5 @min-[13rem]/metric:text-xs",
+        "h-auto shrink-0 px-1.5 py-0.5 text-sm leading-none @min-[13rem]/metric:px-2 @min-[13rem]/metric:py-0.5 @min-[13rem]/metric:text-xs",
         isPositive
           ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/20 dark:text-green-400"
           : "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/20 dark:text-red-400",
@@ -282,7 +316,7 @@ function MetricBody({ metric }: { metric: MetricItem }) {
       </div>
 
       <div className="flex items-center justify-end">
-        <span className="inline-flex max-w-full flex-wrap items-center justify-end gap-1 rounded-md bg-muted/80 px-1.5 py-0.5 text-[11px] leading-snug @min-[13rem]/metric:gap-1.5 @min-[13rem]/metric:px-2.5 @min-[13rem]/metric:py-1 @min-[13rem]/metric:text-xs dark:bg-muted/40">
+        <span className="inline-flex max-w-full flex-wrap items-center justify-end gap-1 rounded-md bg-muted/80 px-1.5 py-0.5 text-sm leading-snug @min-[13rem]/metric:gap-1.5 @min-[13rem]/metric:px-2.5 @min-[13rem]/metric:py-1 @min-[13rem]/metric:text-xs dark:bg-muted/40">
           <span className="text-muted-foreground">Kỳ trước</span>
           <span className="font-semibold tabular-nums" translate="no">
             {metric.previousLabel}
@@ -414,313 +448,449 @@ function MetricsGrid({ items }: { items: MetricsGridItem[] }) {
   );
 }
 
-function CsatOverview({
-  csat,
-  onShowDetail,
-}: {
-  csat: ReportsOverviewCsat;
-  onShowDetail: () => void;
-}) {
-  const distribution = CSAT_LEVELS.map((level) => {
-    const count = csat.ratings_count[String(level.rating)] ?? 0;
-    const percentage =
-      csat.total_count > 0 ? (count / csat.total_count) * 100 : 0;
+function toRatingsDateParam(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toISOString();
+}
 
+type CsatChannelCardTheme = {
+  bgClass: string;
+  iconClass: string;
+  icon: LucideIcon;
+};
+
+function getCsatChannelCardTheme(
+  channelKind: string,
+  channelType: string,
+  label: string,
+  index: number,
+): CsatChannelCardTheme {
+  const haystack = `${channelKind} ${channelType} ${label}`.toLowerCase();
+
+  if (haystack.includes("whatsapp")) {
     return {
-      ...level,
-      count,
-      percentage,
+      bgClass: "bg-[#25D366]",
+      iconClass: "text-[#128C7E]",
+      icon: MessageCircle,
     };
+  }
+  if (haystack.includes("telegram")) {
+    return {
+      bgClass: "bg-[#2AABEE]",
+      iconClass: "text-[#229ED9]",
+      icon: Send,
+    };
+  }
+  if (haystack.includes("facebook") || haystack.includes("fb")) {
+    return {
+      bgClass: "bg-[#1877F2]",
+      iconClass: "text-[#1877F2]",
+      icon: Users,
+    };
+  }
+  if (haystack.includes("instagram") || haystack.includes("ig")) {
+    return {
+      bgClass: "bg-[#E4405F]",
+      iconClass: "text-[#C13584]",
+      icon: Camera,
+    };
+  }
+  if (haystack.includes("line") && !haystack.includes("online")) {
+    return {
+      bgClass: "bg-[#06C755]",
+      iconClass: "text-[#06C755]",
+      icon: MessageSquare,
+    };
+  }
+  if (haystack.includes("zalo")) {
+    return {
+      bgClass: "bg-[#0068FF]",
+      iconClass: "text-[#0068FF]",
+      icon: MessageCircle,
+    };
+  }
+  if (
+    haystack.includes("email") ||
+    haystack.includes("mail") ||
+    haystack.includes("channel::email")
+  ) {
+    return {
+      bgClass: "bg-[#E11D48]",
+      iconClass: "text-[#BE123C]",
+      icon: Mail,
+    };
+  }
+  if (
+    haystack.includes("sms") ||
+    haystack.includes("twilio") ||
+    haystack.includes("phone")
+  ) {
+    return {
+      bgClass: "bg-[#F59E0B]",
+      iconClass: "text-[#D97706]",
+      icon: Phone,
+    };
+  }
+  if (
+    haystack.includes("web_widget") ||
+    haystack.includes("webwidget") ||
+    haystack.includes("website") ||
+    haystack.includes("widget")
+  ) {
+    return {
+      bgClass: "bg-[#7C3AED]",
+      iconClass: "text-[#6D28D9]",
+      icon: Globe,
+    };
+  }
+  if (haystack.includes("api")) {
+    return {
+      bgClass: "bg-[#2563EB]",
+      iconClass: "text-[#1D4ED8]",
+      icon: Code2,
+    };
+  }
+
+  const fallbacks: CsatChannelCardTheme[] = [
+    { bgClass: "bg-[#4F46E5]", iconClass: "text-[#4338CA]", icon: Zap },
+    {
+      bgClass: "bg-[#0D9488]",
+      iconClass: "text-[#0F766E]",
+      icon: MessageSquare,
+    },
+    { bgClass: "bg-[#EA580C]", iconClass: "text-[#C2410C]", icon: Phone },
+  ];
+  return fallbacks[index % fallbacks.length]!;
+}
+
+const CSAT_INBOX_ALL = "all";
+
+type CsatInboxOption = {
+  value: string;
+  label: string;
+};
+
+function extractInboxSelectOptions(payload: unknown): CsatInboxOption[] {
+  const root = asRecord(payload);
+  const messaging = asRecord(root?.messaging);
+  const list = Array.isArray(messaging?.payload)
+    ? messaging.payload
+    : Array.isArray(root?.payload)
+      ? root.payload
+      : Array.isArray(root?.data)
+        ? root.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+  const options: CsatInboxOption[] = [];
+  const seen = new Set<string>();
+
+  for (const item of list) {
+    const row = asRecord(item);
+    if (!row) continue;
+    const idRaw = row.id ?? row.inbox_id;
+    const id =
+      typeof idRaw === "number"
+        ? idRaw
+        : typeof idRaw === "string"
+          ? Number(idRaw)
+          : Number.NaN;
+    if (!Number.isFinite(id)) continue;
+    const value = String(id);
+    if (seen.has(value)) continue;
+    seen.add(value);
+    const name = String(row.name ?? row.inbox_name ?? "").trim();
+    options.push({
+      value,
+      label: name || `Inbox #${id}`,
+    });
+  }
+
+  return options.sort((a, b) => a.label.localeCompare(b.label, "vi"));
+}
+
+function CsatOverview({
+  metrics,
+  showByInbox,
+}: {
+  metrics: TenantRatingsMetricsData;
+  showByInbox: boolean;
+}) {
+  const ratingsCount = metrics.ratings_count ?? {};
+  const totalCount = metrics.total_count ?? 0;
+  const sentCount = metrics.total_sent_messages_count ?? 0;
+  const pendingCount = metrics.pending_count ?? 0;
+  const expiredCount = metrics.expired_count ?? 0;
+  const byInbox = Array.isArray(metrics.by_inbox) ? metrics.by_inbox : [];
+
+  const distribution = CSAT_LEVELS.map((level) => {
+    const count = ratingsCount[String(level.rating)] ?? 0;
+    const percentage = totalCount > 0 ? (count / totalCount) * 100 : 0;
+    return { ...level, count, percentage };
   });
 
-  const positiveCount =
-    (csat.ratings_count["4"] ?? 0) + (csat.ratings_count["5"] ?? 0);
+  const positiveCount = (ratingsCount["4"] ?? 0) + (ratingsCount["5"] ?? 0);
   const satisfactionScore =
-    csat.total_count > 0 ? (positiveCount / csat.total_count) * 100 : 0;
-  const responseRate =
-    csat.total_sent_messages_count > 0
-      ? (csat.total_count / csat.total_sent_messages_count) * 100
-      : 0;
+    totalCount > 0 ? (positiveCount / totalCount) * 100 : 0;
+  const responseRate = sentCount > 0 ? (totalCount / sentCount) * 100 : 0;
   const averageScore =
-    csat.total_count > 0
-      ? Object.entries(csat.ratings_count).reduce(
-          (sum, [rating, count]) => sum + Number(rating) * count,
-          0,
-        ) / csat.total_count
-      : null;
+    metrics.average_score != null && Number.isFinite(metrics.average_score)
+      ? metrics.average_score
+      : totalCount > 0
+        ? Object.entries(ratingsCount).reduce(
+            (sum, [rating, count]) => sum + Number(rating) * count,
+            0,
+          ) / totalCount
+        : null;
+
+  const stats = [
+    {
+      label: "Phản hồi",
+      value: formatNumber(totalCount),
+      title: "Số lượt khách đã đánh giá",
+    },
+    {
+      label: "Hài lòng",
+      value: formatPercentCompact(satisfactionScore),
+      title: "Tỷ lệ đánh giá 4–5 sao",
+    },
+    {
+      label: "Tỷ lệ PH",
+      value: formatPercentCompact(responseRate),
+      title: "Phản hồi / khảo sát đã gửi",
+    },
+    {
+      label: "Đang chờ",
+      value: formatNumber(pendingCount),
+      title: "Khảo sát đã gửi nhưng chưa có phản hồi",
+    },
+    {
+      label: "Hết hạn",
+      value: formatNumber(expiredCount),
+      title: "Khảo sát hết hạn chưa phản hồi",
+    },
+  ] as const;
+
+  const showInboxColumn = showByInbox && byInbox.length > 0;
 
   return (
     <section
-      className="grid w-full gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)] lg:gap-10"
+      className={cn(
+        "grid w-full items-start gap-5",
+        showInboxColumn && "lg:grid-cols-[minmax(0,6fr)_minmax(0,4fr)]",
+      )}
       aria-label="Tổng quan CSAT"
     >
-      {/* Cột trái — điểm lớn + meta */}
-      <div className="flex min-w-0 flex-col justify-between gap-6">
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
-              Điểm CSAT
+      <div className="min-w-0 space-y-4">
+        <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+          <div className="min-w-0 shrink-0">
+            <div className="flex items-end gap-1.5">
+              <p
+                className="text-4xl font-bold leading-none tracking-tighter tabular-nums"
+                translate="no"
+              >
+                {averageScore != null ? averageScore.toFixed(1) : "—"}
+              </p>
+              <span className="text-muted-foreground mb-0.5 text-sm font-medium tabular-nums">
+                / 5
+              </span>
+            </div>
+            <p className="text-muted-foreground mt-1.5 text-xs">
+              {formatNumber(totalCount)} phản hồi · {formatNumber(sentCount)} đã
+              gửi
             </p>
-            <button
-              type="button"
-              onClick={onShowDetail}
-              className="text-primary inline-flex items-center gap-0.5 text-[11px] font-medium tracking-[0.14em] uppercase hover:underline"
-            >
-              Chi tiết
-              <ChevronRight className="size-3.5" aria-hidden="true" />
-            </button>
           </div>
-          <div className="mt-3 flex items-end gap-2">
-            <p
-              className="text-6xl font-bold leading-none tracking-tighter tabular-nums sm:text-7xl"
-              translate="no"
-            >
-              {averageScore != null ? averageScore.toFixed(1) : "—"}
-            </p>
-            <span className="text-muted-foreground mb-1.5 text-lg font-medium tabular-nums">
-              / 5
-            </span>
-          </div>
-          <p className="text-muted-foreground mt-3 max-w-[18rem] text-sm text-pretty">
-            Trung bình từ {formatNumber(csat.total_count)} phản hồi khách hàng
-            trong kỳ.
-          </p>
+
+          <dl className="flex min-w-0 flex-1 flex-wrap items-stretch gap-y-2">
+            {stats.map((item, index) => (
+              <div
+                key={item.label}
+                className={cn(
+                  "min-w-16 px-2.5 py-0.5 sm:min-w-0 sm:flex-1 sm:px-3",
+                  index > 0 && "border-l border-border/60",
+                )}
+                title={item.title}
+              >
+                <dt className="text-muted-foreground text-xs font-medium">
+                  {item.label}
+                </dt>
+                <dd
+                  className="mt-0.5 text-base font-semibold tracking-tight tabular-nums"
+                  translate="no"
+                >
+                  {item.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
-        <dl className="grid grid-cols-3 gap-3 border-t border-border/60 pt-4">
-          <div className="min-w-0">
-            <dt
-              className="text-muted-foreground truncate text-[11px] font-medium tracking-wide"
-              title="Số lượt khách hàng đã đánh giá"
-            >
-              Phản hồi
-            </dt>
-            <dd
-              className="mt-1 text-xl font-semibold tabular-nums tracking-tight"
-              translate="no"
-            >
-              {formatNumber(csat.total_count)}
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt
-              className="text-muted-foreground truncate text-[11px] font-medium tracking-wide"
-              title="Tỷ lệ đánh giá 4–5 sao"
-            >
-              Hài lòng
-            </dt>
-            <dd
-              className="mt-1 text-xl font-semibold tabular-nums tracking-tight"
-              translate="no"
-            >
-              {formatPercent(satisfactionScore)}
-            </dd>
-          </div>
-          <div className="min-w-0">
-            <dt
-              className="text-muted-foreground truncate text-[11px] font-medium tracking-wide"
-              title="Phản hồi / khảo sát đã gửi"
-            >
-              Tỷ lệ PH
-            </dt>
-            <dd
-              className="mt-1 text-xl font-semibold tabular-nums tracking-tight"
-              translate="no"
-            >
-              {formatPercent(responseRate)}
-            </dd>
-          </div>
-        </dl>
-      </div>
-
-      {/* Cột phải — phân bố dạng hàng */}
-      <div className="min-w-0">
-        <div className="mb-4 flex items-baseline justify-between gap-3">
-          <p className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
+        <div className="min-w-0">
+          <p className="text-muted-foreground mb-3 text-xs font-medium">
             Phân bố
           </p>
-          <p className="text-muted-foreground text-xs tabular-nums">
-            Gửi {formatNumber(csat.total_sent_messages_count)} khảo sát
-          </p>
-        </div>
-
-        <ul className="space-y-3.5" aria-label="Phân bố điểm đánh giá">
-          {distribution.map((item) => {
-            const LevelIcon = item.icon;
-
-            return (
-              <li key={item.rating} className="min-w-0 space-y-1.5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <LevelIcon
-                      className={cn("size-4 shrink-0", item.iconClass)}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className="text-muted-foreground w-4 shrink-0 text-sm font-semibold tabular-nums"
-                      translate="no"
-                    >
-                      {item.rating}
-                    </span>
-                    <span className="truncate text-sm font-medium">
-                      {item.label}
-                    </span>
+          <ul className="space-y-3" aria-label="Phân bố điểm đánh giá">
+            {distribution.map((item) => {
+              const LevelIcon = item.icon;
+              const barWidth = Math.max(item.percentage, 0);
+              return (
+                <li key={item.rating} className="min-w-0 space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={cn(
+                          "flex size-6 shrink-0 items-center justify-center rounded-md bg-black/3 dark:bg-white/6",
+                        )}
+                      >
+                        <LevelIcon
+                          className={cn("size-3.5", item.iconClass)}
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <span
+                        className="w-3 shrink-0 text-xs font-semibold tabular-nums"
+                        translate="no"
+                      >
+                        {item.rating}
+                      </span>
+                      <span className="truncate text-xs font-medium">
+                        {item.label}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-baseline gap-1.5 text-xs tabular-nums">
+                      <span className="font-semibold" translate="no">
+                        {formatPercentCompact(item.percentage)}
+                      </span>
+                      <span
+                        className="text-muted-foreground w-4 text-right"
+                        translate="no"
+                      >
+                        {formatNumber(item.count)}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-baseline gap-2 tabular-nums">
-                    <span className="text-sm font-semibold" translate="no">
-                      {formatPercent(item.percentage)}
-                    </span>
-                    <span
-                      className="text-muted-foreground w-6 text-right text-xs"
-                      translate="no"
-                    >
-                      {formatNumber(item.count)}
-                    </span>
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    "h-1.5 overflow-hidden rounded-full",
-                    item.trackClass,
-                  )}
-                  role="img"
-                  aria-label={`${item.label}: ${formatPercent(item.percentage)}`}
-                >
                   <div
-                    className={cn("h-full rounded-full", item.barClass)}
-                    style={{ width: `${Math.max(item.percentage, 0)}%` }}
-                  />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                    className={cn(
+                      "relative h-2.5 overflow-hidden rounded-full",
+                      item.trackClass,
+                    )}
+                    role="img"
+                    aria-label={`${item.label}: ${formatPercentCompact(item.percentage)}`}
+                  >
+                    <div
+                      className={cn(
+                        "relative h-full rounded-full transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                        item.barClass,
+                      )}
+                      style={{ width: `${barWidth}%` }}
+                    >
+                      {barWidth > 0 ? (
+                        <span
+                          className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-full bg-linear-to-l from-white/25 to-transparent"
+                          aria-hidden
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
+
+      {showInboxColumn ? (
+        <div className="min-w-0">
+          <div className="mb-2.5 flex items-baseline justify-between gap-2">
+            <p className="text-muted-foreground text-xs font-medium">
+              Theo từng kênh
+            </p>
+            <p className="text-muted-foreground text-xs tabular-nums">
+              {formatNumber(byInbox.length)}
+            </p>
+          </div>
+          <ul className="max-h-72 space-y-2.5 overflow-y-auto pr-0.5">
+            {byInbox.map((inbox, index) => {
+              const label =
+                String(inbox.source_label || inbox.inbox_name || "").trim() ||
+                `Inbox #${inbox.inbox_id}`;
+              const inboxAvg =
+                inbox.average_score != null &&
+                Number.isFinite(inbox.average_score)
+                  ? inbox.average_score.toFixed(1)
+                  : "—";
+              const channel = String(inbox.channel_kind || "")
+                .trim()
+                .toLowerCase();
+              const channelType = String(inbox.channel_type || "").trim();
+              const inboxResponses = inbox.total_count ?? 0;
+              const inboxSent = inbox.total_sent_messages_count ?? 0;
+              const theme = getCsatChannelCardTheme(
+                channel,
+                channelType,
+                label,
+                index,
+              );
+              const ChannelIcon = theme.icon;
+
+              return (
+                <li key={`${inbox.inbox_id}-${label}`}>
+                  <div
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl px-3 py-3 text-white shadow-sm",
+                      theme.bgClass,
+                    )}
+                  >
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                      <ChannelIcon
+                        className={cn("size-5", theme.iconClass)}
+                        aria-hidden="true"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold tracking-tight">
+                        {label}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs font-medium text-white/80">
+                        Điểm{" "}
+                        <span className="tabular-nums" translate="no">
+                          {inboxAvg}
+                        </span>
+                        /5 · {formatNumber(inboxResponses)}/
+                        {formatNumber(inboxSent)} PH
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
     </section>
   );
 }
-
-type CsatResponseRow = {
-  id: string;
-  rating: number | null;
-  feedback: string;
-  conversationId: string;
-  createdAt: number | null;
-  contactName: string;
-  contactEmail: string;
-  agentName: string;
-  agentEmail: string;
-};
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
 }
 
-function extractCsatResponseList(payload: unknown): unknown[] {
-  if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== "object") return [];
+const CSAT_STATUS_ALL = "all";
+const CSAT_PAGE_SIZE_DEFAULT = "20";
 
-  const record = payload as Record<string, unknown>;
-  for (const key of ["messaging", "payload", "data", "responses", "csat"]) {
-    const value = record[key];
-    if (Array.isArray(value)) return value;
-    const nested = asRecord(value);
-    if (nested && Array.isArray(nested.payload)) return nested.payload;
-    if (nested && Array.isArray(nested.data)) return nested.data;
-  }
+const CSAT_STATUS_OPTIONS = [
+  { value: CSAT_STATUS_ALL, label: "Tất cả trạng thái" },
+  { value: "pending", label: "Chờ đánh giá" },
+  { value: "submitted", label: "Đã gửi" },
+  { value: "expired", label: "Hết hạn" },
+] as const;
 
-  return [];
-}
+const CSAT_PAGE_SIZE_OPTIONS = ["10", "20", "50"] as const;
 
-function toPositiveInt(value: unknown): number | null {
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return Math.floor(n);
-}
-
-function parseCsatPagination(
-  payload: unknown,
-  requestedPage: number,
-  rowCount: number,
-) {
-  const root = asRecord(payload);
-  const messaging = asRecord(root?.messaging);
-  const meta =
-    asRecord(root?.meta) ??
-    asRecord(root?.pagination) ??
-    asRecord(messaging?.meta) ??
-    asRecord(messaging?.pagination);
-
-  const page =
-    toPositiveInt(meta?.current_page) ??
-    toPositiveInt(meta?.page) ??
-    requestedPage;
-  const total =
-    toPositiveInt(meta?.count) ??
-    toPositiveInt(meta?.total) ??
-    toPositiveInt(meta?.total_count);
-  const pageSize =
-    toPositiveInt(meta?.per_page) ??
-    toPositiveInt(meta?.page_size) ??
-    toPositiveInt(meta?.limit);
-  const totalPages =
-    toPositiveInt(meta?.total_pages) ??
-    (total != null
-      ? Math.max(1, Math.ceil(total / (pageSize || rowCount || 25)))
-      : null);
-  const inferredSize = pageSize ?? 25;
-
-  return {
-    page,
-    total,
-    totalPages,
-    canPrev: page > 1,
-    canNext: totalPages != null ? page < totalPages : rowCount >= inferredSize,
-  };
-}
-
-function parseCsatResponses(payload: unknown): CsatResponseRow[] {
-  return extractCsatResponseList(payload).flatMap((item) => {
-    const row = asRecord(item);
-    if (!row || row.id == null || row.id === "") return [];
-
-    const contact = asRecord(row.contact);
-    const agent = asRecord(row.assigned_agent);
-    const ratingRaw =
-      typeof row.rating === "number" ? row.rating : Number(row.rating);
-    const createdRaw =
-      typeof row.created_at === "number"
-        ? row.created_at
-        : Number(row.created_at);
-
-    const contactName = String(contact?.name ?? "").trim();
-    const contactEmail = String(contact?.email ?? "").trim();
-    const agentName = String(agent?.available_name ?? agent?.name ?? "").trim();
-    const agentEmail = String(agent?.email ?? "").trim();
-    const feedback = String(row.feedback_message ?? "").trim();
-
-    return [
-      {
-        id: String(row.id),
-        rating: Number.isFinite(ratingRaw) ? ratingRaw : null,
-        feedback,
-        conversationId:
-          row.conversation_id == null ? "" : String(row.conversation_id),
-        createdAt: Number.isFinite(createdRaw) ? createdRaw : null,
-        contactName,
-        contactEmail,
-        agentName,
-        agentEmail,
-      },
-    ];
-  });
-}
-
-function formatCsatTimestamp(value: number | null): string {
-  if (value == null || !Number.isFinite(value)) return "—";
-  const ms = value < 1e12 ? value * 1000 : value;
-  const date = new Date(ms);
+function formatCsatIsoTimestamp(value: string | null | undefined): string {
+  if (!value) return "—";
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return format(date, "dd/MM/yyyy HH:mm", { locale: vi });
 }
@@ -741,158 +911,450 @@ function CsatRatingCell({ rating }: { rating: number | null }) {
   );
 }
 
+function CsatStatusBadge({ status }: { status: string }) {
+  const normalized = status.trim().toLowerCase();
+  if (normalized === "submitted") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+      >
+        Đã gửi
+      </Badge>
+    );
+  }
+  if (normalized === "pending") {
+    return (
+      <Badge
+        variant="outline"
+        className="border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+      >
+        Chờ đánh giá
+      </Badge>
+    );
+  }
+  if (normalized === "expired") {
+    return (
+      <Badge variant="secondary" className="text-muted-foreground">
+        Hết hạn
+      </Badge>
+    );
+  }
+  return (
+    <Badge variant="outline" className="capitalize">
+      {status || "—"}
+    </Badge>
+  );
+}
+
+function contactInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return `${parts[0]![0] ?? ""}${parts[parts.length - 1]![0] ?? ""}`.toUpperCase();
+}
+
+type CsatPageItem = number | "ellipsis";
+
+function buildCsatPageItems(
+  currentPage: number,
+  totalPages: number,
+  siblingCount = 1,
+): CsatPageItem[] {
+  if (totalPages <= 1) return totalPages === 1 ? [1] : [];
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = new Set<number>([1, totalPages]);
+  for (
+    let page = currentPage - siblingCount;
+    page <= currentPage + siblingCount;
+    page += 1
+  ) {
+    if (page >= 1 && page <= totalPages) pages.add(page);
+  }
+
+  const sorted = [...pages].sort((a, b) => a - b);
+  const items: CsatPageItem[] = [];
+  for (let index = 0; index < sorted.length; index += 1) {
+    const page = sorted[index]!;
+    const prev = sorted[index - 1];
+    if (prev != null && page - prev > 1) items.push("ellipsis");
+    items.push(page);
+  }
+  return items;
+}
+
+const CSAT_VIEW_TRANSITION = {
+  duration: 0.28,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
+
 function CsatResponsesDetail({
   tenantId,
   since,
   until,
+  initialInboxId,
+  inboxOptions,
   onBack,
 }: {
   tenantId: string;
   since: number;
   until: number;
+  initialInboxId: string;
+  inboxOptions: CsatInboxOption[];
   onBack: () => void;
 }) {
   const [page, setPage] = useState(1);
-  const { data, isLoading, isFetching, isError } = useGetCsatResponses(
-    tenantId,
-    { since, until, page },
-    !!tenantId && Number.isFinite(since) && Number.isFinite(until),
-  );
-  const rows = parseCsatResponses(data?.data);
-  const pagination = parseCsatPagination(data?.data, page, rows.length);
+  const [pageSize, setPageSize] = useState(CSAT_PAGE_SIZE_DEFAULT);
+  const [status, setStatus] = useState(CSAT_STATUS_ALL);
+  const [inboxId, setInboxId] = useState(initialInboxId);
+
+  useEffect(() => {
+    setInboxId(initialInboxId);
+  }, [initialInboxId]);
+
+  useEffect(() => {
+    if (inboxId === CSAT_INBOX_ALL) return;
+    const exists = inboxOptions.some((item) => item.value === inboxId);
+    if (!exists) setInboxId(CSAT_INBOX_ALL);
+  }, [inboxId, inboxOptions]);
 
   useEffect(() => {
     setPage(1);
-  }, [since, until]);
+  }, [since, until, status, inboxId, pageSize]);
 
-  const showPager =
-    pagination.canPrev || pagination.canNext || pagination.totalPages != null;
+  const listParams = useMemo(() => {
+    const params: {
+      since: string;
+      until: string;
+      page: number;
+      page_size: number;
+      status?: string;
+      inbox_id?: number;
+    } = {
+      since: toRatingsDateParam(since),
+      until: toRatingsDateParam(until),
+      page,
+      page_size: Number(pageSize) || 20,
+    };
+    if (status !== CSAT_STATUS_ALL) params.status = status;
+    if (inboxId !== CSAT_INBOX_ALL) {
+      const numericId = Number(inboxId);
+      if (Number.isFinite(numericId)) params.inbox_id = numericId;
+    }
+    return params;
+  }, [since, until, page, pageSize, status, inboxId]);
+
+  const { data, isLoading, isFetching, isError } = useListTenantRatings(
+    tenantId,
+    listParams,
+    !!tenantId && Number.isFinite(since) && Number.isFinite(until),
+  );
+
+  const listData = data?.data ?? null;
+  const rows: TenantRatingItem[] = Array.isArray(listData?.items)
+    ? listData.items
+    : [];
+  const total = listData?.total ?? 0;
+  const currentPage = listData?.page ?? page;
+  const parsedPageSize = Number(pageSize);
+  const fallbackPageSize =
+    Number.isFinite(parsedPageSize) && parsedPageSize > 0 ? parsedPageSize : 20;
+  const currentPageSize = listData?.page_size ?? fallbackPageSize;
+  const totalPages = Math.max(1, Math.ceil(total / currentPageSize) || 1);
+  const canPrev = currentPage > 1;
+  const canNext = currentPage < totalPages;
+  const showPager = total > 0;
+  const pageItems = useMemo(
+    () => buildCsatPageItems(currentPage, totalPages),
+    [currentPage, totalPages],
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-muted-foreground text-[11px] font-medium tracking-[0.18em] uppercase">
-          Phản hồi CSAT
-        </p>
-        <button
-          type="button"
-          onClick={onBack}
-          className="text-primary text-[11px] font-medium tracking-[0.14em] uppercase hover:underline"
-        >
-          Tổng quan
-        </button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 cursor-pointer gap-1 px-2"
+            onClick={onBack}
+          >
+            <ChevronLeft className="size-3.5" aria-hidden />
+            Tổng quan
+          </Button>
+          <span className="bg-border hidden h-4 w-px sm:block" aria-hidden />
+          <p className="text-sm font-bold">Chi tiết đánh giá</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger
+              size="sm"
+              className="h-8 w-full min-w-[10rem] cursor-pointer sm:w-[11rem]"
+              aria-label="Lọc theo trạng thái"
+            >
+              <SelectValue placeholder="Trạng thái" />
+            </SelectTrigger>
+
+            <SelectContent>
+              {CSAT_STATUS_OPTIONS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={inboxId} onValueChange={setInboxId}>
+            <SelectTrigger
+              size="sm"
+              className="h-8 w-full min-w-40 cursor-pointer sm:w-52"
+              aria-label="Lọc theo inbox"
+            >
+              <SelectValue placeholder="Tất cả inbox" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value={CSAT_INBOX_ALL}>Tất cả inbox</SelectItem>
+
+              {inboxOptions.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={pageSize} onValueChange={setPageSize}>
+            <SelectTrigger
+              size="sm"
+              className="h-8 w-28 cursor-pointer"
+              aria-label="Số dòng mỗi trang"
+            >
+              <SelectValue />
+            </SelectTrigger>
+
+            <SelectContent>
+              {CSAT_PAGE_SIZE_OPTIONS.map((size) => (
+                <SelectItem key={size} value={size}>
+                  {size}/trang
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {isLoading && rows.length === 0 ? (
         <div className="space-y-2">
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
-          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
         </div>
       ) : isError ? (
         <p className="text-destructive text-sm">
-          Không thể tải danh sách phản hồi CSAT.
+          Không thể tải danh sách đánh giá.
         </p>
       ) : rows.length === 0 ? (
-        <p className="text-muted-foreground text-sm">
-          Chưa có phản hồi trong khoảng đã chọn.
-        </p>
+        <EmptyData
+          icon={Smile}
+          title="Không có đánh giá"
+          description="Thay đổi lọc để tìm kiếm đánh giá."
+        />
       ) : (
         <Table
           containerClassName={cn(
-            "max-h-72 overflow-auto rounded-md border border-border/60",
+            "max-h-[28rem] overflow-auto rounded-md border border-border/60",
             isFetching && "opacity-70",
           )}
         >
           <TableHeader>
             <TableRow>
               <TableHead>Khách hàng</TableHead>
+              <TableHead>Kênh</TableHead>
               <TableHead>Điểm</TableHead>
               <TableHead>Phản hồi</TableHead>
+              <TableHead>Trạng thái</TableHead>
               <TableHead>Agent</TableHead>
               <TableHead className="text-right">Thời gian</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>
-                  <div className="min-w-36">
-                    <p className="font-medium">{row.contactName || "—"}</p>
-                    {row.contactEmail ? (
-                      <p className="text-muted-foreground text-xs">
-                        {row.contactEmail}
+            {rows.map((row) => {
+              const contact = row.meta_data?.contact;
+              const contactName = String(contact?.name ?? "").trim();
+              const contactEmail = String(contact?.email ?? "").trim();
+              const contactPhone = String(contact?.phone_number ?? "").trim();
+              const contactSub = contactEmail || contactPhone;
+              const thumbnail = String(contact?.thumbnail ?? "").trim();
+              const channelLabel =
+                String(
+                  row.source_label ??
+                    row.inbox_name ??
+                    row.meta_data?.source_label ??
+                    row.meta_data?.inbox_name ??
+                    "",
+                ).trim() || "—";
+              const displayTime =
+                row.submitted_at || row.sent_at || row.created_at;
+              const agentId = row.agent_chatwoot_id;
+
+              return (
+                <TableRow key={row.id}>
+                  <TableCell>
+                    <div className="flex min-w-44 items-center gap-2.5">
+                      <Avatar className="size-8">
+                        {thumbnail ? (
+                          <AvatarImage src={thumbnail} alt={contactName} />
+                        ) : null}
+                        <AvatarFallback className="text-[10px] font-medium">
+                          {contactInitials(contactName || "KH")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {contactName || "—"}
+                        </p>
+                        {contactSub ? (
+                          <p className="text-muted-foreground truncate text-xs">
+                            {contactSub}
+                          </p>
+                        ) : row.conversation_id != null ? (
+                          <p className="text-muted-foreground text-xs tabular-nums">
+                            Conv #{row.conversation_id}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="min-w-32">
+                      <p className="truncate text-sm font-medium">
+                        {channelLabel}
                       </p>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <CsatRatingCell rating={row.rating} />
-                </TableCell>
-                <TableCell className="max-w-56 whitespace-normal">
-                  {row.feedback || (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="min-w-32">
-                    <p className="font-medium">{row.agentName || "—"}</p>
-                    {row.agentEmail ? (
-                      <p className="text-muted-foreground text-xs">
-                        {row.agentEmail}
-                      </p>
-                    ) : null}
-                  </div>
-                </TableCell>
-                <TableCell
-                  className="text-right tabular-nums whitespace-nowrap"
-                  translate="no"
-                >
-                  {formatCsatTimestamp(row.createdAt)}
-                </TableCell>
-              </TableRow>
-            ))}
+                      {row.channel_kind ? (
+                        <p className="text-muted-foreground truncate text-xs capitalize">
+                          {row.channel_kind}
+                        </p>
+                      ) : null}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <CsatRatingCell
+                      rating={
+                        row.score != null && Number.isFinite(row.score)
+                          ? row.score
+                          : null
+                      }
+                    />
+                  </TableCell>
+                  <TableCell className="max-w-52 whitespace-normal">
+                    {row.comment?.trim() ? (
+                      row.comment
+                    ) : row.status === "pending" && row.rating_url ? (
+                      <a
+                        href={row.rating_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary inline-flex items-center gap-1 text-xs font-medium hover:underline"
+                      >
+                        Link đánh giá
+                        <ExternalLink className="size-3" aria-hidden />
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <CsatStatusBadge status={row.status} />
+                  </TableCell>
+                  <TableCell>
+                    {agentId != null ? (
+                      <span className="tabular-nums">#{agentId}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell
+                    className="text-right tabular-nums whitespace-nowrap"
+                    translate="no"
+                  >
+                    {formatCsatIsoTimestamp(displayTime)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
 
       {showPager ? (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-muted-foreground text-xs tabular-nums">
-            {pagination.total != null
-              ? `${formatNumber(pagination.total)} phản hồi`
-              : `Trang ${pagination.page}`}
+            {formatNumber(total)} đánh giá
+            {total > 0
+              ? ` · ${(currentPage - 1) * currentPageSize + 1}–${Math.min(currentPage * currentPageSize, total)}`
+              : ""}
           </p>
-          <div className="flex items-center gap-1.5">
+          <nav
+            className="flex flex-wrap items-center gap-1"
+            aria-label="Phân trang đánh giá"
+          >
             <Button
               type="button"
               variant="outline"
               size="icon-sm"
               className="cursor-pointer"
-              disabled={!pagination.canPrev || isFetching}
+              disabled={!canPrev || isFetching}
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               aria-label="Trang trước"
             >
               <ChevronLeft />
             </Button>
-            <span className="min-w-14 text-center text-xs font-medium tabular-nums">
-              {pagination.page}
-              {pagination.totalPages != null
-                ? ` / ${pagination.totalPages}`
-                : ""}
-            </span>
+            {pageItems.map((item, index) =>
+              item === "ellipsis" ? (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="text-muted-foreground px-1.5 text-xs tabular-nums"
+                  aria-hidden
+                >
+                  …
+                </span>
+              ) : (
+                <Button
+                  key={item}
+                  type="button"
+                  variant={item === currentPage ? "default" : "outline"}
+                  size="icon-sm"
+                  className="cursor-pointer tabular-nums"
+                  disabled={isFetching}
+                  aria-label={`Trang ${item}`}
+                  aria-current={item === currentPage ? "page" : undefined}
+                  onClick={() => setPage(item)}
+                >
+                  {item}
+                </Button>
+              ),
+            )}
             <Button
               type="button"
               variant="outline"
               size="icon-sm"
               className="cursor-pointer"
-              disabled={!pagination.canNext || isFetching}
-              onClick={() => setPage((current) => current + 1)}
+              disabled={!canNext || isFetching}
+              onClick={() =>
+                setPage((current) => Math.min(totalPages, current + 1))
+              }
               aria-label="Trang sau"
             >
               <ChevronRight />
             </Button>
-          </div>
+          </nav>
         </div>
       ) : null}
     </div>
@@ -900,62 +1362,207 @@ function CsatResponsesDetail({
 }
 
 function CsatPanel({
-  csat,
   tenantId,
   since,
   until,
 }: {
-  csat: ReportsOverviewCsat | null;
   tenantId: string;
   since: number;
   until: number;
 }) {
   const [showDetail, setShowDetail] = useState(false);
+  const [inboxId, setInboxId] = useState(CSAT_INBOX_ALL);
 
-  if (showDetail) {
-    return (
-      <CsatResponsesDetail
-        tenantId={tenantId}
-        since={since}
-        until={until}
-        onBack={() => setShowDetail(false)}
-      />
-    );
-  }
+  const { data: inboxesResponse } = useListTenantInboxes(tenantId);
+  const inboxOptions = useMemo(
+    () => extractInboxSelectOptions(inboxesResponse?.data),
+    [inboxesResponse],
+  );
 
-  if (!csat || csat.total_count === 0) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground text-center text-sm">
-          Chưa có phản hồi CSAT.
-        </p>
+  useEffect(() => {
+    if (inboxId === CSAT_INBOX_ALL) return;
+    const exists = inboxOptions.some((item) => item.value === inboxId);
+    if (!exists) setInboxId(CSAT_INBOX_ALL);
+  }, [inboxId, inboxOptions]);
+
+  const metricsParams = useMemo(() => {
+    const params: {
+      since: string;
+      until: string;
+      inbox_id?: number;
+    } = {
+      since: toRatingsDateParam(since),
+      until: toRatingsDateParam(until),
+    };
+    if (inboxId !== CSAT_INBOX_ALL) {
+      const numericId = Number(inboxId);
+      if (Number.isFinite(numericId)) params.inbox_id = numericId;
+    }
+    return params;
+  }, [since, until, inboxId]);
+
+  const {
+    data: metricsResponse,
+    isLoading,
+    isError,
+    error,
+    isFetching,
+  } = useGetTenantRatingsMetrics(
+    tenantId,
+    metricsParams,
+    !!tenantId && Number.isFinite(since) && Number.isFinite(until),
+  );
+
+  const metrics = metricsResponse?.data ?? null;
+  const hasActivity =
+    !!metrics &&
+    ((metrics.total_count ?? 0) > 0 ||
+      (metrics.total_sent_messages_count ?? 0) > 0 ||
+      (metrics.pending_count ?? 0) > 0);
+
+  const toolbar = (
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <p className="text-xl font-bold">Điểm đánh giá</p>
+      <div className="flex min-w-0 flex-nowrap items-center justify-end gap-2">
+        <Select value={inboxId} onValueChange={setInboxId}>
+          <SelectTrigger
+            size="sm"
+            className="h-8 w-[min(100%,13rem)] cursor-pointer"
+            aria-label="Lọc theo inbox"
+          >
+            <SelectValue placeholder="Tất cả inbox" />
+          </SelectTrigger>
+          <SelectContent align="end">
+            <SelectItem value={CSAT_INBOX_ALL}>Tất cả inbox</SelectItem>
+            {inboxOptions.map((item) => (
+              <SelectItem key={item.value} value={item.value}>
+                {item.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Button
           type="button"
-          variant="link"
+          variant="outline"
           size="sm"
-          className="h-auto px-0"
+          className="h-8 shrink-0 cursor-pointer gap-1"
           onClick={() => setShowDetail(true)}
         >
           Chi tiết
+          <ChevronRight className="size-3.5" aria-hidden="true" />
         </Button>
       </div>
-    );
-  }
+    </div>
+  );
 
-  return <CsatOverview csat={csat} onShowDetail={() => setShowDetail(true)} />;
+  const overviewBody = (() => {
+    if (isLoading && !metrics) {
+      return (
+        <div className="flex flex-1 flex-col" aria-busy="true">
+          {toolbar}
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-12 w-28" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-28 w-full" />
+          </div>
+        </div>
+      );
+    }
+
+    if (isError && !metrics) {
+      return (
+        <div className="flex flex-1 flex-col">
+          {toolbar}
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 py-6">
+            <p className="text-destructive text-center text-sm">
+              {error instanceof Error
+                ? error.message
+                : "Không tải được metrics CSAT."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    if (!metrics || !hasActivity) {
+      return (
+        <div className="flex flex-1 flex-col">
+          {toolbar}
+          <div className="flex flex-1 flex-col items-center justify-center py-6">
+            <p className="text-muted-foreground text-center text-sm">
+              Chưa có dữ liệu CSAT trong khoảng đã chọn
+              {inboxId !== CSAT_INBOX_ALL ? " cho inbox này" : ""}.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={cn(
+          "flex flex-1 flex-col",
+          isFetching && "opacity-90 transition-opacity",
+        )}
+      >
+        {toolbar}
+        <CsatOverview
+          metrics={metrics}
+          showByInbox={inboxId === CSAT_INBOX_ALL}
+        />
+      </div>
+    );
+  })();
+
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      <AnimatePresence mode="wait" initial={false}>
+        {showDetail ? (
+          <motion.div
+            key="csat-detail"
+            className="flex min-h-0 flex-1 flex-col"
+            initial={{ opacity: 0, x: 28 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -18 }}
+            transition={CSAT_VIEW_TRANSITION}
+          >
+            <CsatResponsesDetail
+              tenantId={tenantId}
+              since={since}
+              until={until}
+              initialInboxId={inboxId}
+              inboxOptions={inboxOptions}
+              onBack={() => setShowDetail(false)}
+            />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="csat-overview"
+            className="flex min-h-0 flex-1 flex-col"
+            initial={{ opacity: 0, x: -28 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 18 }}
+            transition={CSAT_VIEW_TRANSITION}
+          >
+            {overviewBody}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 function OverviewSkeleton() {
   return (
     <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-12">
+        <Skeleton className="h-64 rounded-xl lg:col-span-4" />
+        <Skeleton className="h-64 rounded-xl lg:col-span-8" />
+      </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-6">
         <Skeleton className="h-40 rounded-xl xl:col-span-1" />
         <Skeleton className="h-40 rounded-xl xl:col-span-3" />
         <Skeleton className="h-40 rounded-xl xl:col-span-2" />
-      </div>
-      <div className="grid gap-5 lg:grid-cols-12">
-        <Skeleton className="h-64 rounded-xl lg:col-span-4" />
-        <Skeleton className="h-64 rounded-xl lg:col-span-8" />
       </div>
     </div>
   );
@@ -981,7 +1588,6 @@ export function OverviewReport({ since, until }: OverviewReportProps) {
   const live = overview?.live_conversations?.ok
     ? overview.live_conversations.data
     : null;
-  const csat = overview?.csat?.ok ? overview.csat.data : null;
 
   const liveChartData = live
     ? [
@@ -1152,14 +1758,10 @@ export function OverviewReport({ since, until }: OverviewReportProps) {
 
   return (
     <div className="space-y-5">
-      <MetricsGrid items={overviewItems} />
-
       <div className="grid gap-5 lg:grid-cols-12 lg:items-stretch">
         <Card className="flex flex-col border-border/50 bg-card py-0 shadow-sm lg:col-span-4">
           <CardHeader className="px-5 pt-5 pb-0">
-            <CardTitle className="text-base font-bold">
-              Hội thoại realtime
-            </CardTitle>
+            <CardTitle className="text-xl font-bold">Hội thoại</CardTitle>
             <CardDescription>
               Tổng {formatNumber(liveTotal)} hội thoại đang hoạt động
             </CardDescription>
@@ -1255,16 +1857,13 @@ export function OverviewReport({ since, until }: OverviewReportProps) {
         </Card>
 
         <Card className="flex flex-col border-border/50 bg-card py-0 shadow-sm lg:col-span-8">
-          <CardContent className="flex flex-1 flex-col px-5 py-6 sm:px-6 sm:py-7">
-            <CsatPanel
-              csat={csat}
-              tenantId={tenantId}
-              since={since}
-              until={until}
-            />
+          <CardContent className="flex flex-1 flex-col px-5 py-5 sm:px-6">
+            <CsatPanel tenantId={tenantId} since={since} until={until} />
           </CardContent>
         </Card>
       </div>
+
+      <MetricsGrid items={overviewItems} />
     </div>
   );
 }

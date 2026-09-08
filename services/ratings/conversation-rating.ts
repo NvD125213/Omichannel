@@ -42,12 +42,83 @@ export type TenantRatingsMetricsParams = Omit<
   "status" | "page" | "page_size"
 >;
 
-export type ListTenantRatingsParams = Pick<
-  TenantRatingsFilterParams,
-  "page" | "page_size" | "status" | "channel" | "inbox_id"
->;
+export type ListTenantRatingsParams = TenantRatingsFilterParams;
 
 export type ListTenantRatingResponsesParams = TenantRatingsFilterParams;
+
+/** Metrics CSAT theo inbox (OmniHub). */
+export interface TenantRatingsInboxMetrics {
+  inbox_id: number;
+  inbox_name: string;
+  source_label?: string | null;
+  channel_kind?: string | null;
+  channel_type?: string | null;
+  ratings_count: Record<string, number>;
+  total_count: number;
+  total_sent_messages_count: number;
+  average_score: number | null;
+}
+
+/** GET /conversation-ratings/tenants/:tenant_id/metrics */
+export interface TenantRatingsMetricsData {
+  tenant_id: string;
+  total_count: number;
+  ratings_count: Record<string, number>;
+  total_sent_messages_count: number;
+  average_score: number | null;
+  pending_count: number;
+  expired_count: number;
+  by_inbox: TenantRatingsInboxMetrics[];
+}
+
+export interface TenantRatingContactMeta {
+  id?: number;
+  name?: string | null;
+  email?: string | null;
+  thumbnail?: string | null;
+  phone_number?: string | null;
+  identifier?: string | null;
+  [key: string]: unknown;
+}
+
+/** Item trong GET /conversation-ratings/tenants/:tenant_id */
+export interface TenantRatingItem {
+  id: string;
+  tenant_id?: string;
+  messaging_account_id?: number;
+  conversation_id: number;
+  channel?: string | null;
+  channel_type?: string | null;
+  channel_kind?: string | null;
+  source_label?: string | null;
+  inbox_id?: number | null;
+  inbox_name?: string | null;
+  agent_chatwoot_id?: number | null;
+  score?: number | null;
+  comment?: string | null;
+  status: string;
+  rating_url?: string | null;
+  sent_at?: string | null;
+  submitted_at?: string | null;
+  expires_at?: string | null;
+  created_at?: string | null;
+  meta_data?: {
+    contact?: TenantRatingContactMeta | null;
+    inbox_id?: number | null;
+    inbox_name?: string | null;
+    channel_kind?: string | null;
+    channel_type?: string | null;
+    source_label?: string | null;
+    [key: string]: unknown;
+  } | null;
+}
+
+export interface TenantRatingsListData {
+  items: TenantRatingItem[];
+  page: number;
+  page_size: number;
+  total: number;
+}
 
 function buildQuery(
   params?: Record<string, string | number | undefined | null>,
@@ -85,7 +156,7 @@ export async function getTenantRatingsMetricsApi(
   params?: TenantRatingsMetricsParams,
 ) {
   const response = await apiClient.get<
-    ConversationRatingApiResponse<JsonRecord | null>
+    ConversationRatingApiResponse<TenantRatingsMetricsData | null>
   >(`/conversation-ratings/tenants/${encodeURIComponent(tenantId)}/metrics`, {
     params: buildQuery(params),
   });
@@ -113,9 +184,11 @@ export async function listTenantRatingsApi(
   params?: ListTenantRatingsParams,
 ) {
   const response = await apiClient.get<
-    ConversationRatingApiResponse<JsonRecord | null>
+    ConversationRatingApiResponse<TenantRatingsListData | null>
   >(`/conversation-ratings/tenants/${encodeURIComponent(tenantId)}`, {
-    params: buildQuery(params),
+    params: buildQuery(
+      params as Record<string, string | number | null | undefined>,
+    ),
   });
   return response.data;
 }
