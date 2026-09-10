@@ -776,3 +776,21 @@ export type UpdateAccountCustomFilterResponse = ApiResponse<
 >;
 
 export type DeleteAccountCustomFilterResponse = ApiResponse<void>;
+
+// —— Messaging search (UI tabs) ——
+/** Query chung cho GET .../search/contacts|conversations|messages|articles */
+export interface MessagingSearchParams {
+  /** Từ khóa tìm kiếm */
+  q: string;
+  page?: number;
+}
+
+/** Query cho GET .../search (tổng hợp) */
+export type MessagingSearchAllParams = Pick<MessagingSearchParams, "q">;
+
+export type MessagingSearchResponse = ApiResponse<ChatwootJsonPayload>;
+export type MessagingSearchContactsResponse = MessagingSearchResponse;
+export type MessagingSearchConversationsResponse = MessagingSearchResponse;
+export type MessagingSearchMessagesResponse = MessagingSearchResponse;
+export type MessagingSearchArticlesResponse = MessagingSearchResponse;
+export type MessagingSearchAllResponse = MessagingSearchResponse;

@@ -38,6 +38,8 @@ import type {
   CreateAccountCustomFilterRequest,
   UpdateAccountCustomFilterRequest,
   AccountInboxMembersRequest,
+  MessagingSearchParams,
+  MessagingSearchAllParams,
 } from "@/services/chatwoot/interface";
 import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 import {
@@ -146,6 +148,37 @@ export const chatwootOmniKeys = {
     [
       ...chatwootOmniKeys.tenantConversation(tenantId, conversationId),
       "labels",
+    ] as const,
+  tenantSearch: (tenantId: string) =>
+    [...chatwootOmniKeys.tenant(tenantId), "search"] as const,
+  tenantSearchAll: (tenantId: string, params?: MessagingSearchAllParams) =>
+    [...chatwootOmniKeys.tenantSearch(tenantId), "all", params ?? {}] as const,
+  tenantSearchContacts: (tenantId: string, params?: MessagingSearchParams) =>
+    [
+      ...chatwootOmniKeys.tenantSearch(tenantId),
+      "contacts",
+      params ?? {},
+    ] as const,
+  tenantSearchConversations: (
+    tenantId: string,
+    params?: MessagingSearchParams,
+  ) =>
+    [
+      ...chatwootOmniKeys.tenantSearch(tenantId),
+      "conversations",
+      params ?? {},
+    ] as const,
+  tenantSearchMessages: (tenantId: string, params?: MessagingSearchParams) =>
+    [
+      ...chatwootOmniKeys.tenantSearch(tenantId),
+      "messages",
+      params ?? {},
+    ] as const,
+  tenantSearchArticles: (tenantId: string, params?: MessagingSearchParams) =>
+    [
+      ...chatwootOmniKeys.tenantSearch(tenantId),
+      "articles",
+      params ?? {},
     ] as const,
   user: (userId: string) => [...chatwootOmniKeys.all, "user", userId] as const,
   userSsoLink: (userId: string) =>
@@ -2049,5 +2082,89 @@ export const useDeleteAccountCustomFilter = () => {
           ?.data?.message || "Có lỗi khi xóa bộ lọc";
       toast.error(msg);
     },
+  });
+};
+
+function hasMessagingSearchQuery(params?: { q?: string }) {
+  return typeof params?.q === "string" && params.q.trim().length > 0;
+}
+
+/** GET /messaging/tenants/:tenant_id/search/contacts */
+export const useSearchTenantContacts = (
+  tenantId: string,
+  params: MessagingSearchParams,
+  options?: { enabled?: boolean },
+) => {
+  const enabled =
+    !!tenantId && hasMessagingSearchQuery(params) && (options?.enabled ?? true);
+
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantSearchContacts(tenantId, params),
+    queryFn: () => chatwootService.searchTenantContacts(tenantId, params),
+    enabled,
+  });
+};
+
+/** GET /messaging/tenants/:tenant_id/search/conversations */
+export const useSearchTenantConversations = (
+  tenantId: string,
+  params: MessagingSearchParams,
+  options?: { enabled?: boolean },
+) => {
+  const enabled =
+    !!tenantId && hasMessagingSearchQuery(params) && (options?.enabled ?? true);
+
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantSearchConversations(tenantId, params),
+    queryFn: () => chatwootService.searchTenantConversations(tenantId, params),
+    enabled,
+  });
+};
+
+/** GET /messaging/tenants/:tenant_id/search/messages */
+export const useSearchTenantMessages = (
+  tenantId: string,
+  params: MessagingSearchParams,
+  options?: { enabled?: boolean },
+) => {
+  const enabled =
+    !!tenantId && hasMessagingSearchQuery(params) && (options?.enabled ?? true);
+
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantSearchMessages(tenantId, params),
+    queryFn: () => chatwootService.searchTenantMessages(tenantId, params),
+    enabled,
+  });
+};
+
+/** GET /messaging/tenants/:tenant_id/search/articles */
+export const useSearchTenantArticles = (
+  tenantId: string,
+  params: MessagingSearchParams,
+  options?: { enabled?: boolean },
+) => {
+  const enabled =
+    !!tenantId && hasMessagingSearchQuery(params) && (options?.enabled ?? true);
+
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantSearchArticles(tenantId, params),
+    queryFn: () => chatwootService.searchTenantArticles(tenantId, params),
+    enabled,
+  });
+};
+
+/** GET /messaging/tenants/:tenant_id/search — search tổng hợp */
+export const useSearchTenantAll = (
+  tenantId: string,
+  params: MessagingSearchAllParams,
+  options?: { enabled?: boolean },
+) => {
+  const enabled =
+    !!tenantId && hasMessagingSearchQuery(params) && (options?.enabled ?? true);
+
+  return useQuery({
+    queryKey: chatwootOmniKeys.tenantSearchAll(tenantId, params),
+    queryFn: () => chatwootService.searchTenantAll(tenantId, params),
+    enabled,
   });
 };

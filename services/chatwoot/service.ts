@@ -97,6 +97,13 @@ import type {
   UpdateAccountCustomFilterResponse,
   DeleteAccountCustomFilterResponse,
   ListAccountCustomFiltersResponse,
+  MessagingSearchParams,
+  MessagingSearchAllParams,
+  MessagingSearchContactsResponse,
+  MessagingSearchConversationsResponse,
+  MessagingSearchMessagesResponse,
+  MessagingSearchArticlesResponse,
+  MessagingSearchAllResponse,
 } from "./interface";
 
 /** Prefix khớp Postman collection "Đa kênh có chatwoot" */
@@ -911,13 +918,73 @@ export const chatwootService = {
     return response.data;
   },
 
-  /** POST /api/v1/chatwoot/tenants/{tenant_id}/conversations/{conversation_id}/update_last_seen */
+  /** POST /api/v1/messaging/tenants/{tenant_id}/conversations/{conversation_id}/update_last_seen */
   updateTenantConversationLastSeen: async (
     tenantId: string,
     conversationId: string,
   ): Promise<unknown> => {
     const response = await apiClient.post<unknown>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/conversations/${conversationId}/update_last_seen`,
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/messaging/tenants/:tenant_id/search/contacts?q=&page= */
+  searchTenantContacts: async (
+    tenantId: string,
+    params: MessagingSearchParams,
+  ): Promise<MessagingSearchContactsResponse> => {
+    const response = await apiClient.get<MessagingSearchContactsResponse>(
+      `${CHATWOOT_BASE}/tenants/${encodeURIComponent(tenantId)}/search/contacts`,
+      { params },
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/messaging/tenants/:tenant_id/search/conversations?q=&page= */
+  searchTenantConversations: async (
+    tenantId: string,
+    params: MessagingSearchParams,
+  ): Promise<MessagingSearchConversationsResponse> => {
+    const response = await apiClient.get<MessagingSearchConversationsResponse>(
+      `${CHATWOOT_BASE}/tenants/${encodeURIComponent(tenantId)}/search/conversations`,
+      { params },
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/messaging/tenants/:tenant_id/search/messages?q=&page= */
+  searchTenantMessages: async (
+    tenantId: string,
+    params: MessagingSearchParams,
+  ): Promise<MessagingSearchMessagesResponse> => {
+    const response = await apiClient.get<MessagingSearchMessagesResponse>(
+      `${CHATWOOT_BASE}/tenants/${encodeURIComponent(tenantId)}/search/messages`,
+      { params },
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/messaging/tenants/:tenant_id/search/articles?q=&page= */
+  searchTenantArticles: async (
+    tenantId: string,
+    params: MessagingSearchParams,
+  ): Promise<MessagingSearchArticlesResponse> => {
+    const response = await apiClient.get<MessagingSearchArticlesResponse>(
+      `${CHATWOOT_BASE}/tenants/${encodeURIComponent(tenantId)}/search/articles`,
+      { params },
+    );
+    return response.data;
+  },
+
+  /** GET /api/v1/messaging/tenants/:tenant_id/search?q= — search tổng hợp */
+  searchTenantAll: async (
+    tenantId: string,
+    params: MessagingSearchAllParams,
+  ): Promise<MessagingSearchAllResponse> => {
+    const response = await apiClient.get<MessagingSearchAllResponse>(
+      `${CHATWOOT_BASE}/tenants/${encodeURIComponent(tenantId)}/search`,
+      { params },
     );
     return response.data;
   },

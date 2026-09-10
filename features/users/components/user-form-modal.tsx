@@ -35,6 +35,7 @@ import { useForm, useWatch } from "react-hook-form";
 import {
   userDefaultValues,
   userFormSchema,
+  userPasswordSchema,
   type UserFormValues,
 } from "../utils/schema";
 import { useCreateUser, useUpdateUser } from "@/hooks/user/use-action-user";
@@ -89,7 +90,10 @@ export function UserFormDialog({
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
-    defaultValues: userDefaultValues,
+    defaultValues: {
+      ...userDefaultValues,
+      password: "",
+    },
   });
 
   const watchedTenantId = useWatch({
@@ -133,6 +137,7 @@ export function UserFormDialog({
 
     form.reset({
       ...userDefaultValues,
+      password: "",
       tenant_id: canGetTenants ? "" : currentUser?.tenant_id || "",
     });
   }, [user, open, form, currentUser, canGetTenants]);
@@ -160,6 +165,17 @@ export function UserFormDialog({
   }, [open, user, levelsData, form]);
 
   function onSubmit(data: UserFormValues) {
+    if (!isEditMode) {
+      const passwordResult = userPasswordSchema.safeParse(data.password ?? "");
+      if (!passwordResult.success) {
+        form.setError("password", {
+          message:
+            passwordResult.error.issues[0]?.message ?? "Mật khẩu không hợp lệ",
+        });
+        return;
+      }
+    }
+
     const payload = removeEmptyFields(data);
 
     if (isEditMode) {
@@ -265,6 +281,7 @@ export function UserFormDialog({
                         {...field}
                       />
                     </FormControl>
+
                     <FormMessage />
                   </FormItem>
                 )}
