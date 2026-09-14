@@ -42,6 +42,11 @@
     /** Đã POST select + setUser xong — mới cho nhắn tin */
     chatReady: false,
     chatwootReady: false,
+    /** Policy GET personas.contact_capture */
+    contactCapture: null,
+    contactSubmitted: false,
+    submittingContact: false,
+    submittedContact: { name: "", email: "", phone: "" },
     authToken: "",
     pubsubToken: "",
     accountId: null,
@@ -144,6 +149,9 @@
     state.messages = [];
     state.cableConnected = false;
     state.chatReady = false;
+    state.contactSubmitted = false;
+    state.submittingContact = false;
+    state.submittedContact = { name: "", email: "", phone: "" };
     try {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem(SESSION_KEY);
@@ -174,17 +182,69 @@
       .replace(/"/g, "&quot;");
   }
 
-  /** Markdown tối thiểu: **đậm**, *nghiêng*, xuống dòng. Escape HTML trước. */
-  function formatMessageHtml(value) {
-    var escaped = escapeHtml(value).replace(/\r\n/g, "\n");
-    escaped = escaped.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
-    escaped = escaped.replace(/__([^_]+?)__/g, "<strong>$1</strong>");
-    escaped = escaped.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
-    escaped = escaped.replace(
+  /** Bỏ dấu câu cuối URL (vd. "https://a.com.") để không dính vào href. */
+  function splitUrlTrailingPunct(url) {
+    var end = String(url || "").length;
+    while (end > 0) {
+      var ch = url.charAt(end - 1);
+      if (".,;:!?)]}'\"".indexOf(ch) === -1) break;
+      end -= 1;
+    }
+    return {
+      url: url.slice(0, end),
+      trailing: url.slice(end),
+    };
+  }
+
+  /** Markdown tối thiểu trên đoạn text đã escape (không chứa thẻ HTML). */
+  function formatMarkdownInline(escaped) {
+    var next = String(escaped || "");
+    next = next.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    next = next.replace(/__([^_]+?)__/g, "<strong>$1</strong>");
+    next = next.replace(/\*([^*\n]+)\*/g, "<em>$1</em>");
+    next = next.replace(
       /(^|[^A-Za-z0-9_])_([^_\n]+)_(?![A-Za-z0-9_])/g,
       "$1<em>$2</em>",
     );
-    return escaped.replace(/\n/g, "<br>");
+    return next;
+  }
+
+  /**
+   * Escape HTML + markdown tối thiểu + tự biến URL thành link bấm được.
+   * Hỗ trợ http(s):// và www.
+   */
+  function formatMessageHtml(value) {
+    var text = String(value || "").replace(/\r\n/g, "\n");
+    var urlRe = /(?:https?:\/\/|www\.)[^\s<]+/gi;
+    var html = "";
+    var lastIndex = 0;
+    var match;
+
+    while ((match = urlRe.exec(text)) !== null) {
+      html += formatMarkdownInline(
+        escapeHtml(text.slice(lastIndex, match.index)),
+      );
+
+      var parts = splitUrlTrailingPunct(match[0]);
+      if (!parts.url) {
+        html += formatMarkdownInline(escapeHtml(match[0]));
+      } else {
+        var href = parts.url;
+        if (/^www\./i.test(href)) href = "https://" + href;
+        html +=
+          '<a class="omni-fsel-msg-link" href="' +
+          escapeHtml(href) +
+          '" target="_blank" rel="noopener noreferrer">' +
+          escapeHtml(parts.url) +
+          "</a>" +
+          formatMarkdownInline(escapeHtml(parts.trailing));
+      }
+
+      lastIndex = match.index + match[0].length;
+    }
+
+    html += formatMarkdownInline(escapeHtml(text.slice(lastIndex)));
+    return html.replace(/\n/g, "<br>");
   }
 
   function getComposer() {
@@ -225,6 +285,130 @@
       "_" +
       Math.random().toString(36).slice(2, 10);
     return state._clientSessionId;
+  }
+
+  function asRecord(value) {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? value
+      : null;
+  }
+
+  function normalizeContactCapture(raw) {
+    var rec = asRecord(raw);
+    var fieldDefs = [
+      { key: "name", label: "Họ và tên", required: true },
+      { key: "phone", label: "Số điện thoại", required: true },
+      { key: "email", label: "Email", required: false },
+    ];
+    var byKey = {};
+    var list = rec && Array.isArray(rec.fields) ? rec.fields : [];
+    list.forEach(function (item) {
+      var row = asRecord(item);
+      if (!row) return;
+      var key = String(row.key || "").trim();
+      if (key) byKey[key] = row;
+    });
+    var mode = rec ? String(rec.mode || "").trim() : "";
+    if (
+      mode !== "off" &&
+      mode !== "pre_chat" &&
+      mode !== "bot" &&
+      mode !== "pre_chat_or_bot"
+    ) {
+      mode = "pre_chat_or_bot";
+    }
+    return {
+      enabled: rec && typeof rec.enabled === "boolean" ? rec.enabled : false,
+      mode: mode,
+      message:
+        rec && typeof rec.message === "string"
+          ? rec.message
+          : "Vui lòng để lại thông tin để chúng tôi hỗ trợ bạn tốt hơn.",
+      fields: fieldDefs.map(function (item) {
+        var row = byKey[item.key];
+        var enabled =
+          row && typeof row.enabled === "boolean" ? row.enabled : true;
+        var required =
+          row && typeof row.required === "boolean"
+            ? row.required
+            : item.required;
+        return {
+          key: item.key,
+          label:
+            row && typeof row.label === "string" && row.label.trim()
+              ? row.label.trim()
+              : item.label,
+          enabled: enabled,
+          required: enabled ? required : false,
+        };
+      }),
+    };
+  }
+
+  function findContactCaptureNode(value, depth) {
+    if (depth > 6) return null;
+    var rec = asRecord(value);
+    if (!rec) return null;
+    if (asRecord(rec.contact_capture)) return rec.contact_capture;
+    var options = asRecord(rec.pre_chat_form_options);
+    if (options && asRecord(options.omnihub_contact_capture)) {
+      return options.omnihub_contact_capture;
+    }
+    var keys = ["data", "messaging", "payload", "inbox", "channel"];
+    for (var i = 0; i < keys.length; i++) {
+      var found = findContactCaptureNode(rec[keys[i]], depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function enabledContactFields(policy) {
+    var fields = policy && Array.isArray(policy.fields) ? policy.fields : [];
+    return fields.filter(function (field) {
+      return field && field.enabled;
+    });
+  }
+
+  /** Overlay ẩn bubble native → form overlay khi policy bật (mọi mode trừ off). */
+  function overlayNeedsContactForm(policy) {
+    if (!policy || policy.enabled === false) return false;
+    if (String(policy.mode || "") === "off") return false;
+    return enabledContactFields(policy).length > 0;
+  }
+
+  function isContactFormStep() {
+    return (
+      overlayNeedsContactForm(state.contactCapture) &&
+      !state.contactSubmitted &&
+      !state.chatReady
+    );
+  }
+
+  function readContactFormValues() {
+    var root = document.getElementById(ROOT_ID);
+    var form = root && root.querySelector(".omni-fsel-contact-form");
+    var values = { name: "", email: "", phone: "" };
+    if (!form) return values;
+    ["name", "email", "phone"].forEach(function (key) {
+      var input = form.querySelector('[name="' + key + '"]');
+      values[key] = input ? String(input.value || "").trim() : "";
+    });
+    return values;
+  }
+
+  function validateContactForm(policy, values) {
+    var missing = enabledContactFields(policy).filter(function (field) {
+      return field.required && !String(values[field.key] || "").trim();
+    });
+    if (!missing.length) return "";
+    return (
+      "Vui lòng nhập " +
+      missing
+        .map(function (field) {
+          return field.label;
+        })
+        .join(", ")
+    );
   }
 
   function getCookieValue(name) {
@@ -407,6 +591,10 @@
         if (personas.length) {
           state.quickReplies = personas;
         }
+        var captureNode = findContactCaptureNode(body);
+        if (captureNode) {
+          state.contactCapture = normalizeContactCapture(captureNode);
+        }
         state.loadingPersonas = false;
         return state.quickReplies;
       })
@@ -415,6 +603,78 @@
         console.warn("[fsel-techie] personas GET failed:", error);
         return state.quickReplies;
       });
+  }
+
+  /** POST /public/live-chat/:token/contact — Redis pending trước setUser. */
+  function submitLiveChatContact(values) {
+    var base = omniApiBase();
+    if (!base || !config.websiteToken) {
+      return Promise.reject(
+        new Error("Thiếu cấu hình API để gửi thông tin liên hệ."),
+      );
+    }
+
+    var payload = {
+      client_session_id: getClientSessionId(),
+    };
+    if (values.name) payload.name = values.name;
+    if (values.email) payload.email = values.email;
+    if (values.phone) payload.phone = values.phone;
+
+    var url = personaApiUrl(
+      "/public/live-chat/" +
+        encodeURIComponent(config.websiteToken) +
+        "/contact",
+    );
+
+    dlog("B0b. POST /contact", {
+      url: url,
+      client_session_id_gui_len: payload.client_session_id,
+      has_name: Boolean(payload.name),
+      has_email: Boolean(payload.email),
+      has_phone: Boolean(payload.phone),
+    });
+
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    }).then(function (response) {
+      return response.text().then(function (text) {
+        var data = null;
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch (error) {
+            data = null;
+          }
+        }
+        if (!response.ok) {
+          dlog("B0b. POST /contact THẤT BẠI", {
+            status: response.status,
+            body: data,
+          });
+          throw new Error(
+            (data && data.message) ||
+              "Không gửi được thông tin liên hệ (" + response.status + ")",
+          );
+        }
+        extractClientSessionId(data);
+        state.submittedContact = {
+          name: values.name || "",
+          email: values.email || "",
+          phone: values.phone || "",
+        };
+        state.contactSubmitted = true;
+        dlog("B0b. POST /contact OK", {
+          client_session_id: getClientSessionId(),
+        });
+        return data;
+      });
+    });
   }
 
   /** Tương đương useSelectLiveChatPersona */
@@ -743,11 +1003,17 @@
             // 4) setUser với client_session_id từ response select
             dlog("B5. Gọi $chatwoot.setUser", {
               identifier: sessionId,
-              name: (persona && persona.label) || "Khách truy cập",
+              name: state.submittedContact.name || "(không gửi name)",
+              email: state.submittedContact.email || "(không gửi email)",
             });
-            window.$chatwoot.setUser(sessionId, {
-              name: (persona && persona.label) || "Khách truy cập",
-            });
+            var userAttrs = {};
+            if (state.submittedContact.name) {
+              userAttrs.name = state.submittedContact.name;
+            }
+            if (state.submittedContact.email) {
+              userAttrs.email = state.submittedContact.email;
+            }
+            window.$chatwoot.setUser(sessionId, userAttrs);
             state._clientSessionId = sessionId;
 
             // 5) Chờ token phiên SDK (token mới nếu đã reset)
@@ -1528,6 +1794,30 @@
       THEME.primarySoft +
       ";box-shadow:0 4px 14px rgba(110,133,250,.18)}" +
       ".omni-fsel-action:disabled{opacity:.6;cursor:not-allowed}" +
+      ".omni-fsel-contact{flex-shrink:0;margin-bottom:8px}" +
+      ".omni-fsel-contact-form{display:flex;flex-direction:column;gap:10px;border:1px solid " +
+      THEME.border +
+      ";background:#fff;border-radius:12px;padding:12px;box-shadow:0 2px 8px rgba(110,133,250,.08)}" +
+      ".omni-fsel-contact-message{font-size:13px;line-height:1.45;color:" +
+      THEME.inkBody +
+      "}" +
+      ".omni-fsel-contact-field{display:flex;flex-direction:column;gap:4px}" +
+      ".omni-fsel-contact-label{font-size:12px;font-weight:600;color:" +
+      THEME.ink +
+      "}" +
+      ".omni-fsel-contact-label em{font-style:normal;color:#c2410c;margin-left:2px}" +
+      ".omni-fsel-contact-input{border:1px solid " +
+      THEME.border +
+      ";border-radius:10px;padding:9px 11px;font-size:14px;color:" +
+      THEME.ink +
+      ";outline:none;background:#fff}" +
+      ".omni-fsel-contact-input:focus{border-color:" +
+      THEME.borderStrong +
+      ";box-shadow:0 0 0 3px rgba(110,133,250,.16)}" +
+      ".omni-fsel-contact-submit{border:0;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;color:#fff;background:" +
+      THEME.primary +
+      ";cursor:pointer}" +
+      ".omni-fsel-contact-submit:disabled{opacity:.6;cursor:not-allowed}" +
       ".omni-fsel-messages{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding-right:2px;-ms-overflow-style:none;scrollbar-width:none}" +
       ".omni-fsel-messages::-webkit-scrollbar{width:0;height:0;display:none}" +
       ".omni-fsel-msg-row{display:flex;flex-direction:column;gap:6px;max-width:88%;width:fit-content}" +
@@ -1549,6 +1839,10 @@
       ".omni-fsel-msg.is-user{border:0;background:#EEF2F7;color:#111827;box-shadow:none}" +
       ".omni-fsel-msg strong,.omni-fsel-bubble strong{font-weight:700}" +
       ".omni-fsel-msg em,.omni-fsel-bubble em{font-style:italic}" +
+      ".omni-fsel-msg-link{color:#2563eb;text-decoration:underline;underline-offset:2px;word-break:break-all;cursor:pointer}" +
+      ".omni-fsel-msg-link:hover{color:#1d4ed8}" +
+      ".omni-fsel-msg.is-user .omni-fsel-msg-link{color:#1d4ed8}" +
+      ".omni-fsel-msg.is-user .omni-fsel-msg-link:hover{color:#1e40af}" +
       ".omni-fsel-typing{display:flex;align-items:center;gap:5px;min-height:20px}" +
       ".omni-fsel-typing-dot{width:7px;height:7px;border-radius:999px;background:" +
       THEME.muted +
@@ -1730,8 +2024,161 @@
     container.setAttribute("data-ready", "1");
   }
 
+  function renderContactForm(container) {
+    if (!isContactFormStep() || !state.contactCapture) {
+      container.style.display = "none";
+      return;
+    }
+
+    container.style.display = "block";
+    var policy = state.contactCapture;
+    var policyKey = JSON.stringify({
+      message: policy.message,
+      fields: policy.fields,
+    });
+    if (container.getAttribute("data-policy") !== policyKey) {
+      var fieldsHtml = enabledContactFields(policy)
+        .map(function (field) {
+          var inputType =
+            field.key === "email"
+              ? "email"
+              : field.key === "phone"
+                ? "tel"
+                : "text";
+          var autocomplete =
+            field.key === "email"
+              ? "email"
+              : field.key === "phone"
+                ? "tel"
+                : "name";
+          return (
+            '<label class="omni-fsel-contact-field">' +
+            '<span class="omni-fsel-contact-label">' +
+            escapeHtml(field.label) +
+            (field.required ? "<em>*</em>" : "") +
+            "</span>" +
+            '<input class="omni-fsel-contact-input" name="' +
+            escapeHtml(field.key) +
+            '" type="' +
+            inputType +
+            '" autocomplete="' +
+            autocomplete +
+            '"' +
+            (field.required ? " required" : "") +
+            " />" +
+            "</label>"
+          );
+        })
+        .join("");
+      container.innerHTML =
+        '<form class="omni-fsel-contact-form">' +
+        (policy.message
+          ? '<p class="omni-fsel-contact-message">' +
+            escapeHtml(policy.message) +
+            "</p>"
+          : "") +
+        fieldsHtml +
+        '<button type="submit" class="omni-fsel-contact-submit">Tiếp tục</button>' +
+        "</form>";
+      container.setAttribute("data-policy", policyKey);
+      var form = container.querySelector(".omni-fsel-contact-form");
+      if (form) {
+        form.addEventListener("submit", handleContactFormSubmit);
+      }
+    }
+
+    var submit = container.querySelector(".omni-fsel-contact-submit");
+    var inputs = container.querySelectorAll(".omni-fsel-contact-input");
+    var busy = state.submittingContact || state.selectingPersona;
+    if (submit) {
+      submit.disabled = busy;
+      submit.textContent = state.submittingContact
+        ? "Đang lưu thông tin…"
+        : "Tiếp tục";
+    }
+    inputs.forEach(function (input) {
+      input.disabled = busy;
+    });
+  }
+
+  function handleContactFormSubmit(event) {
+    event.preventDefault();
+    if (state.submittingContact || state.selectingPersona || state.chatReady) {
+      return;
+    }
+    var values = readContactFormValues();
+    var invalid = validateContactForm(state.contactCapture, values);
+    if (invalid) {
+      state.error = invalid;
+      render();
+      return;
+    }
+
+    state.submittingContact = true;
+    state.error = "";
+    render();
+
+    submitLiveChatContact(values)
+      .then(function () {
+        state.submittingContact = false;
+        render();
+        if (!state.quickReplies.length) {
+          startChatAfterContact(null);
+        }
+      })
+      .catch(function (error) {
+        state.submittingContact = false;
+        state.contactSubmitted = false;
+        state.error =
+          (error && error.message) ||
+          "Không gửi được thông tin liên hệ. Vui lòng thử lại.";
+        console.warn("[fsel-techie] POST /contact failed:", error);
+        render();
+      });
+  }
+
+  function startChatAfterContact(persona) {
+    if (state.selectingPersona || state.sending) return;
+    if (persona) {
+      dlog("=== BẮT ĐẦU CHỌN PERSONA ===", {
+        persona_id: persona.id,
+        label: persona.label,
+      });
+    }
+    state.selectingPersona = true;
+    state.error = "";
+    render();
+
+    var selectPromise = persona
+      ? selectLiveChatPersona(persona)
+      : Promise.resolve(null);
+
+    selectPromise
+      .then(function (selectPayload) {
+        return activateChatAfterPersona(persona, selectPayload);
+      })
+      .then(function () {
+        state.selectingPersona = false;
+        if (persona) return sendText(personaIntroMessage(persona));
+        return undefined;
+      })
+      .catch(function (error) {
+        state.selectingPersona = false;
+        state.chatReady = false;
+        state.error =
+          (error && error.message) ||
+          "Không khởi tạo được phiên chat. Thử lại.";
+        console.warn("[fsel-techie] persona activate failed:", error);
+        render();
+      });
+  }
+
   function renderQuickReplies(container) {
     container.innerHTML = "";
+    if (isContactFormStep()) {
+      container.style.display = "none";
+      return;
+    }
     if (state.selectingPersona) {
       container.style.display = "grid";
       container.style.minHeight = "4rem";
@@ -1775,37 +2222,7 @@
   }
 
   function selectPersonaAndContinue(persona) {
-    if (!persona || state.selectingPersona || state.sending) return;
-
-    dlog("=== BẮT ĐẦU CHỌN PERSONA ===", {
-      persona_id: persona.id,
-      label: persona.label,
-    });
-    state.selectingPersona = true;
-    state.error = "";
-    render();
-
-    // POST select → widget ready → setUser(client_session_id) → mở chat
-    selectLiveChatPersona(persona)
-      .then(function (selectPayload) {
-        return activateChatAfterPersona(persona, selectPayload);
-      })
-      .then(function () {
-        // Session REST đã được đồng bộ với token SDK trong activateChatAfterPersona
-        state.selectingPersona = false;
-        // Luồng thread: tin persona ("Tôi là học viên") → bot trả template
-        // (không chèn lời chào inbox gắn cứng)
-        return sendText(personaIntroMessage(persona));
-      })
-      .catch(function (error) {
-        state.selectingPersona = false;
-        state.chatReady = false;
-        state.error =
-          (error && error.message) ||
-          "Không khởi tạo được phiên chat. Thử chọn lại đối tượng.";
-        console.warn("[fsel-techie] persona activate failed:", error);
-        render();
-      });
+    startChatAfterContact(persona);
   }
 
   function renderMessages() {
@@ -1922,6 +2339,7 @@
     var greetingTime = root.querySelector(".omni-fsel-meta-time");
     var greetingName = root.querySelector(".omni-fsel-meta-name");
     var actions = root.querySelector(".omni-fsel-actions");
+    var contact = root.querySelector(".omni-fsel-contact");
     var quota = root.querySelector(".omni-fsel-quota");
     var quotaWrap = root.querySelector(".omni-fsel-quota-wrap");
     var input = root.querySelector(".omni-fsel-input");
@@ -1953,6 +2371,7 @@
     }
 
     renderLauncherContent(launcher);
+    if (contact) renderContactForm(contact);
     if (actions) renderQuickReplies(actions);
     renderMessages();
     if (emojiPanel) renderEmojiPanel(emojiPanel);
@@ -2066,6 +2485,7 @@
       '<div class="omni-fsel-bubble"></div>' +
       "</div>" +
       '<div class="omni-fsel-message-area">' +
+      '<div class="omni-fsel-contact" style="display:none"></div>' +
       '<div class="omni-fsel-actions"></div>' +
       '<div class="omni-fsel-messages"></div>' +
       '<div class="omni-fsel-error" style="display:none"></div>' +

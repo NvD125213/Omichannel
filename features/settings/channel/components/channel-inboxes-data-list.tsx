@@ -566,14 +566,10 @@ export default function ChannelInboxesDataList() {
                                 onClick={() => handleTestWidget(inbox)}
                               >
                                 <Play className="size-3.5" />
-                                <span className="sr-only">
-                                  Sandbox kiểm thử widget
-                                </span>
+                                <span className="sr-only">Sandbox</span>
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>
-                              Sandbox kiểm thử widget
-                            </TooltipContent>
+                            <TooltipContent>Sandbox</TooltipContent>
                           </Tooltip>
                         ) : null}
                         <Tooltip>

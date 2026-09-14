@@ -158,7 +158,7 @@ function SortableStepItem({
           isDragging && "opacity-0",
         )}
       >
-        <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-indigo-600 shadow-sm">
+        <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-indigo-600 shadow-sm dark:bg-indigo-500">
           <span className="text-xs font-semibold text-white">
             {displayOrder}
           </span>
@@ -187,7 +187,7 @@ function SortableStepItem({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <div className="truncate font-medium text-sm text-gray-900">
+            <div className="truncate font-medium text-sm text-foreground">
               {step.step_name}
             </div>
 
@@ -217,7 +217,7 @@ function SortableStepItem({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => onEditStep(index)}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50"
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/50"
                   >
                     <Pencil className="h-3 w-3" />
                     Sửa
@@ -236,7 +236,7 @@ function SortableStepItem({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onRemoveStep(index)}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
+                className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50"
               >
                 <Trash2 className="h-3 w-3" />
                 Xóa
@@ -245,7 +245,7 @@ function SortableStepItem({
           </div>
 
           {step.id && step.created_at && (
-            <div className="my-[0.2rem] flex items-center gap-1 text-xs text-gray-500">
+            <div className="my-[0.2rem] flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>
                 {(() => {
@@ -264,7 +264,7 @@ function SortableStepItem({
                 {step.assignee_user_id && step.assignee_user ? (
                   <Badge
                     variant="secondary"
-                    className="my-1.5 inline-flex items-center gap-1.5 border border-blue-200 bg-blue-50 text-xs font-medium text-blue-700"
+                    className="my-1.5 inline-flex items-center gap-1.5 border border-blue-200 bg-blue-50 text-xs font-medium text-blue-700 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300"
                   >
                     <User className="h-3 w-3" />
                     {step.assignee_user.username || "Không xác định"}
@@ -272,7 +272,7 @@ function SortableStepItem({
                 ) : (
                   <Badge
                     variant="secondary"
-                    className="mt-1.5 inline-flex items-center gap-1.5 border border-purple-200 bg-purple-50 text-xs font-medium text-purple-700"
+                    className="mt-1.5 inline-flex items-center gap-1.5 border border-purple-200 bg-purple-50 text-xs font-medium text-purple-700 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
                   >
                     <Users className="h-3 w-3" />
                     {step.assignee_group?.name || "Không xác định"}
@@ -351,7 +351,7 @@ function StepperPreview({
       <div className="flex-1">
         <div className="space-y-6">
           <div className="flex items-center gap-4">
-            <h3 className="font-semibold text-sm text-gray-900">
+            <h3 className="font-semibold text-sm text-foreground">
               Xem trước danh sách các bước
             </h3>
             <Badge variant="outline">{steps.length} bước</Badge>
@@ -373,7 +373,7 @@ function StepperPreview({
                 {/* Đường nối cố định: từ tâm bước đầu → tâm chấm kết thúc */}
                 <div
                   aria-hidden
-                  className="pointer-events-none absolute left-3 top-0 bottom-0 z-0 w-0.5 -translate-x-1/2 bg-gray-200"
+                  className="pointer-events-none absolute left-3 top-0 bottom-0 z-0 w-0.5 -translate-x-1/2 bg-border"
                 />
                 {steps.map((step, index) => (
                   <SortableStepItem
@@ -387,7 +387,7 @@ function StepperPreview({
                 {/* Điểm kết thúc luồng — cùng hàng/cột với số bước */}
                 <div className="relative flex gap-3">
                   <div className="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center">
-                    <div className="h-2.5 w-2.5 rounded-full border-2 border-gray-300 bg-background" />
+                    <div className="h-2.5 w-2.5 rounded-full border-2 border-muted-foreground/40 bg-background" />
                   </div>
                   <div className="flex min-w-0 flex-1 items-center px-1">
                     <span className="text-xs text-muted-foreground">
@@ -884,7 +884,7 @@ export function TicketFlowStepFormSheet({
                     </span>
                     <Badge
                       variant="secondary"
-                      className="bg-purple-50 text-purple-700 border border-purple-200"
+                      className="bg-purple-50 text-purple-700 border border-purple-200 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300"
                     >
                       <Workflow />
                       {flowName}
@@ -1233,7 +1233,7 @@ export function TicketFlowStepFormSheet({
           </div>
 
           {/* Right - Preview */}
-          <div className="bg-gray-50/50 p-6 flex flex-col">
+          <div className="flex flex-col bg-muted/30 p-6">
             <StepperPreview
               steps={steps}
               onRemoveStep={handleRemoveStep}

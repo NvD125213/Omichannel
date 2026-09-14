@@ -26,6 +26,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { InboxContactCaptureSection } from "./inbox-contact-capture-section";
 import {
   CHANNEL_LABELS,
   FEATURE_FLAGS,
@@ -372,6 +373,8 @@ export function InboxSettingsTab({
                       />
                     ))}
                   </div>
+
+                  <InboxContactCaptureSection form={form} disabled={isBusy} />
 
                   <FormField
                     control={form.control}

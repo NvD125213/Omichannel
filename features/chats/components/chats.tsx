@@ -586,6 +586,11 @@ const normalizeConversation = (
             ? String(sender.id)
             : undefined,
         name: typeof sender.name === "string" ? sender.name : undefined,
+        email: typeof sender.email === "string" ? sender.email : undefined,
+        phoneNumber:
+          typeof sender.phone_number === "string"
+            ? sender.phone_number
+            : undefined,
         identifier:
           typeof sender.identifier === "string" ? sender.identifier : undefined,
         thumbnail:

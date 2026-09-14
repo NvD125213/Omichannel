@@ -40,6 +40,7 @@ import type {
   AccountInboxMembersRequest,
   MessagingSearchParams,
   MessagingSearchAllParams,
+  UpsertTenantContactRequest,
 } from "@/services/chatwoot/interface";
 import { useChatUnreadStore } from "@/features/chats/utils/chat-unread-store";
 import {
@@ -161,7 +162,7 @@ export const chatwootOmniKeys = {
     ] as const,
   tenantSearchConversations: (
     tenantId: string,
-    params?: MessagingSearchParams,
+    params?: Omit<MessagingSearchParams, "page">,
   ) =>
     [
       ...chatwootOmniKeys.tenantSearch(tenantId),
@@ -2085,8 +2086,104 @@ export const useDeleteAccountCustomFilter = () => {
   });
 };
 
+/** POST /messaging/tenants/:tenant_id/contacts/upsert */
+export const useUpsertTenantContact = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      tenantId,
+      data,
+    }: {
+      tenantId: string;
+      data: UpsertTenantContactRequest;
+    }) => chatwootService.upsertTenantContact(tenantId, data),
+    onSuccess: (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
+        toast.success(res.message || "Cập nhật thông tin liên hệ thành công");
+        const conversationId = variables.data.conversation_id;
+        if (conversationId != null) {
+          const name = variables.data.name?.trim();
+          const email = variables.data.email?.trim();
+          const phone = variables.data.phone?.trim();
+          updateConversationInListCache(
+            queryClient,
+            variables.tenantId,
+            String(conversationId),
+            (conversation) => {
+              const meta =
+                conversation.meta &&
+                typeof conversation.meta === "object" &&
+                !Array.isArray(conversation.meta)
+                  ? {
+                      ...(conversation.meta as Record<string, unknown>),
+                    }
+                  : {};
+              const sender =
+                meta.sender &&
+                typeof meta.sender === "object" &&
+                !Array.isArray(meta.sender)
+                  ? { ...(meta.sender as Record<string, unknown>) }
+                  : {};
+              if (name) sender.name = name;
+              if (email) sender.email = email;
+              if (phone) sender.phone_number = phone;
+              return {
+                ...conversation,
+                meta: { ...meta, sender },
+              };
+            },
+          );
+          queryClient.invalidateQueries({
+            queryKey: chatwootOmniKeys.tenantConversation(
+              variables.tenantId,
+              String(conversationId),
+            ),
+          });
+        }
+        queryClient.invalidateQueries({
+          queryKey: chatwootOmniKeys.tenantConversationsBase(
+            variables.tenantId,
+          ),
+        });
+      } else {
+        toast.error(res.message || "Cập nhật thông tin liên hệ thất bại");
+      }
+    },
+    onError: (error: unknown) => {
+      const msg =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Có lỗi khi cập nhật thông tin liên hệ";
+      toast.error(msg);
+    },
+  });
+};
+
 function hasMessagingSearchQuery(params?: { q?: string }) {
   return typeof params?.q === "string" && params.q.trim().length > 0;
+}
+
+function extractMessagingSearchConversationsCount(response: unknown): number {
+  if (!response || typeof response !== "object") return 0;
+  const root = response as Record<string, unknown>;
+  const data =
+    root.data && typeof root.data === "object" && !Array.isArray(root.data)
+      ? (root.data as Record<string, unknown>)
+      : null;
+  const messaging =
+    data?.messaging &&
+    typeof data.messaging === "object" &&
+    !Array.isArray(data.messaging)
+      ? (data.messaging as Record<string, unknown>)
+      : null;
+  const payload = messaging?.payload ?? data?.payload;
+  if (Array.isArray(payload)) return payload.length;
+  if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+    const conversations = (payload as Record<string, unknown>).conversations;
+    if (Array.isArray(conversations)) return conversations.length;
+  }
+  if (Array.isArray(data?.conversations)) return data.conversations.length;
+  return 0;
 }
 
 /** GET /messaging/tenants/:tenant_id/search/contacts */
@@ -2105,18 +2202,37 @@ export const useSearchTenantContacts = (
   });
 };
 
-/** GET /messaging/tenants/:tenant_id/search/conversations */
+/** GET /messaging/tenants/:tenant_id/search/conversations (infinite / page) */
 export const useSearchTenantConversations = (
   tenantId: string,
-  params: MessagingSearchParams,
+  params: Omit<MessagingSearchParams, "page"> & { q: string },
   options?: { enabled?: boolean },
 ) => {
   const enabled =
     !!tenantId && hasMessagingSearchQuery(params) && (options?.enabled ?? true);
 
-  return useQuery({
-    queryKey: chatwootOmniKeys.tenantSearchConversations(tenantId, params),
-    queryFn: () => chatwootService.searchTenantConversations(tenantId, params),
+  return useInfiniteQuery({
+    queryKey: chatwootOmniKeys.tenantSearchConversations(tenantId, {
+      q: params.q,
+    }),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      chatwootService.searchTenantConversations(tenantId, {
+        q: params.q,
+        page:
+          typeof pageParam === "number" && Number.isFinite(pageParam)
+            ? pageParam
+            : 1,
+      }),
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      const count = extractMessagingSearchConversationsCount(lastPage);
+      if (count === 0) return undefined;
+      const currentPage =
+        typeof lastPageParam === "number" && Number.isFinite(lastPageParam)
+          ? lastPageParam
+          : 1;
+      return currentPage + 1;
+    },
     enabled,
   });
 };

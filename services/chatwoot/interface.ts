@@ -238,6 +238,39 @@ export interface UpdateTenantConversationCustomAttributesRequest {
   custom_attributes: Record<string, unknown>;
 }
 
+/** Policy thu thập name/email/phone theo từng inbox Website. */
+export type ContactCaptureMode = "off" | "pre_chat" | "bot" | "pre_chat_or_bot";
+
+export type ContactCaptureFieldKey = "name" | "phone" | "email";
+
+export interface ContactCaptureField {
+  key: ContactCaptureFieldKey;
+  label: string;
+  enabled: boolean;
+  required: boolean;
+}
+
+export interface ContactCaptureConfig {
+  enabled: boolean;
+  mode: ContactCaptureMode;
+  message: string;
+  fields: ContactCaptureField[];
+}
+
+/** POST /messaging/tenants/:tenant_id/contacts/upsert */
+export type UpsertTenantContactSource = "bot" | "agent_manual";
+
+export interface UpsertTenantContactRequest {
+  conversation_id?: number | string;
+  contact_id?: number | string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  source?: UpsertTenantContactSource;
+}
+
+export type UpsertTenantContactResponse = ApiResponse<ChatwootJsonPayload>;
+
 export type CreateTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
 export type UpdateTenantConversationResponse = ApiResponse<ChatwootJsonPayload>;
 export type DeleteTenantConversationResponse = ApiResponse<void>;
@@ -357,6 +390,7 @@ export interface CreateTenantInboxRequest {
   sender_name_type?: "friendly" | "professional" | null;
   business_name?: string | null;
   channel: InboxCreateChannel;
+  contact_capture?: ContactCaptureConfig;
 }
 
 /** Channel payloads theo Chatwoot PATCH /accounts/:id/inboxes/:id — không có `type`. */
@@ -468,6 +502,7 @@ export interface UpdateTenantInboxRequest {
     widget_enabled_in_mobile_apps?: boolean;
     hmac_mandatory?: boolean;
   };
+  contact_capture?: ContactCaptureConfig;
 }
 
 export type UpdateTenantInboxRequestBody = UpdateTenantInboxRequest | FormData;

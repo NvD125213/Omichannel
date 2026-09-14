@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import type { ContactCaptureConfig } from "@/services/chatwoot/interface";
 import {
   buildChatEmbedScript,
   ChatPreviewFrame,
@@ -115,6 +116,7 @@ export type InboxEditFormValues = {
   bubble_type: "standard" | "expanded_bubble";
   launcher_title: string;
   selected_feature_flags: FeatureFlagKey[];
+  contact_capture: ContactCaptureConfig;
   phone_number: string;
   provider_api_key: string;
   provider_api_secret: string;

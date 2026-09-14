@@ -104,6 +104,8 @@ import type {
   MessagingSearchMessagesResponse,
   MessagingSearchArticlesResponse,
   MessagingSearchAllResponse,
+  UpsertTenantContactRequest,
+  UpsertTenantContactResponse,
 } from "./interface";
 
 /** Prefix khớp Postman collection "Đa kênh có chatwoot" */
@@ -937,6 +939,18 @@ export const chatwootService = {
     const response = await apiClient.get<MessagingSearchContactsResponse>(
       `${CHATWOOT_BASE}/tenants/${encodeURIComponent(tenantId)}/search/contacts`,
       { params },
+    );
+    return response.data;
+  },
+
+  /** POST /api/v1/messaging/tenants/:tenant_id/contacts/upsert */
+  upsertTenantContact: async (
+    tenantId: string,
+    data: UpsertTenantContactRequest,
+  ): Promise<UpsertTenantContactResponse> => {
+    const response = await apiClient.post<UpsertTenantContactResponse>(
+      `${CHATWOOT_BASE}/tenants/${encodeURIComponent(tenantId)}/contacts/upsert`,
+      data,
     );
     return response.data;
   },

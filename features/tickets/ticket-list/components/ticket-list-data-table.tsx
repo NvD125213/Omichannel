@@ -398,12 +398,13 @@ export function DataTable({
       },
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span
-            className="font-medium truncate max-w-[250px]"
+          <Link
+            href={`/tickets/${row.original.id || row.original.code}`}
+            className="font-medium truncate max-w-[250px] hover:text-primary transition-colors"
             title={row.original.title}
           >
             {row.original.title}
-          </span>
+          </Link>
           {row.original.description && (
             <span
               className="text-xs text-muted-foreground truncate max-w-[250px]"

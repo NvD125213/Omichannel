@@ -19,6 +19,11 @@ import {
 import { useAuth } from "@/contexts/auth-context";
 import type { UpdateTenantInboxRequest } from "@/services/chatwoot/interface";
 import {
+  createDefaultContactCapture,
+  pickContactCapture,
+  toContactCapturePayload,
+} from "@/services/chatwoot/contact-capture";
+import {
   InboxCollaboratorsTab,
   InboxConfigurationTab,
   InboxSettingsTab,
@@ -251,6 +256,7 @@ function mapInboxToEditValues(
     selected_feature_flags: normalizeFeatureFlags(
       channel.selected_feature_flags ?? record.selected_feature_flags,
     ),
+    contact_capture: pickContactCapture(record, channel),
     phone_number: pickString(sources, "phone_number"),
     provider_api_key: pickString(sources, "api_key", "provider_api_key"),
     provider_api_secret: pickString(
@@ -311,6 +317,7 @@ function buildUpdatePayload(
         allow_messages_after_resolved: values.allow_messages_after_resolved,
         sender_name_type: values.sender_name_type,
         business_name: values.business_name.trim() || null,
+        contact_capture: toContactCapturePayload(values.contact_capture),
         channel: {
           website_url: values.website_url.trim(),
           widget_color: values.widget_color || "#1f93ff",
@@ -458,9 +465,13 @@ function appendFormDataEntry(
   if (value === undefined || value === null) return;
 
   if (Array.isArray(value)) {
-    for (const item of value) {
+    value.forEach((item, index) => {
+      if (item && typeof item === "object") {
+        appendFormDataEntry(formData, `${key}[${index}]`, item);
+        return;
+      }
       formData.append(`${key}[]`, String(item));
-    }
+    });
     return;
   }
 
@@ -648,6 +659,7 @@ const defaultValues: InboxEditFormValues = {
   bubble_type: "expanded_bubble",
   launcher_title: "Chat với chúng tôi",
   selected_feature_flags: ["attachments", "emoji_picker", "end_conversation"],
+  contact_capture: createDefaultContactCapture(),
   phone_number: "",
   provider_api_key: "",
   provider_api_secret: "",
@@ -752,7 +764,13 @@ export function ChannelInboxesActionPatch({
       return;
     }
 
-    form.reset(mapInboxToEditValues(record));
+    const nextValues = mapInboxToEditValues(record);
+    nextValues.contact_capture = pickContactCapture(
+      record,
+      inboxResponse,
+      inboxesListResponse,
+    );
+    form.reset(nextValues);
     setChannelKey(resolveChannelKey(record));
     setInboxRecord(record);
     setAvatarDisplayUrl(

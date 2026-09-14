@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "Sandbox kiểm thử widget chat",
+  title: "Sandbox chat",
   description: "Trang demo chạy thử widget chat",
 };
 

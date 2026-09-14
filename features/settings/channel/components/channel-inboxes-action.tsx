@@ -59,6 +59,7 @@ import type {
   CreateTenantInboxRequest,
   UpdateTenantInboxRequest,
 } from "@/services/chatwoot/interface";
+import { createDefaultContactCapture } from "@/services/chatwoot/contact-capture";
 import channelFormSchema from "./channel-form.json";
 
 type ChannelKey =
@@ -513,6 +514,7 @@ function buildInboxPayload(
         name: str("website_name"),
         enable_email_collect: true,
         allow_messages_after_resolved: true,
+        contact_capture: createDefaultContactCapture(),
         channel: {
           type: "web_widget",
           website_url: str("website_domain"),

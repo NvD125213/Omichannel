@@ -307,16 +307,15 @@ export function TicketKanbanCard({
         </div>
 
         {/* Tiêu đề */}
-        <h4
-          className="text-sm font-semibold text-foreground line-clamp-2 leading-tight hover:text-primary transition-colors cursor-pointer"
+        <Link
+          href={`/tickets/${ticket.id || ticket.code}`}
+          className="text-sm font-semibold text-foreground line-clamp-2 leading-tight hover:text-primary transition-colors"
           title={ticket.title}
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditTicket?.(ticket);
-          }}
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
           {ticket.title}
-        </h4>
+        </Link>
 
         {ticket.description && (
           <p

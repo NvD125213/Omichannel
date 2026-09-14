@@ -9,6 +9,7 @@ import {
   Search,
   Star,
   Trash2,
+  UserRound,
   Users,
 } from "lucide-react";
 
@@ -41,6 +42,7 @@ import { useToggleTenantConversationStatus } from "@/hooks/chatwoot/use-chatwoot
 import { useSendConversationRating } from "@/hooks/ratings/use-conversation-rating";
 import { cn } from "@/lib/utils";
 import type { ChatConversation, ChatUser } from "../utils/types";
+import { ChatContactUpsertDialog } from "./chat-contact-upsert-dialog";
 import {
   CHAT_CONVERSATION_STATUS_OPTIONS,
   conversationStatusBadgeStyle,
@@ -84,6 +86,7 @@ export function ChatHeader({
   onToggleMute,
 }: ChatHeaderProps) {
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
   const { user } = useAuth();
   const tenantId = user?.tenant_id ?? "";
   const { mutate: toggleConversationStatus, isPending: isTogglingStatus } =
@@ -308,6 +311,14 @@ export function ChatHeader({
             </DropdownMenuItem> */}
             <DropdownMenuItem
               className="cursor-pointer"
+              disabled={!tenantId}
+              onClick={() => setIsContactOpen(true)}
+            >
+              <UserRound className="size-4" />
+              Cập nhật thông tin liên hệ
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer"
               disabled={!tenantId || isSendingRating}
               onClick={handleSendRating}
             >
@@ -332,6 +343,13 @@ export function ChatHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <ChatContactUpsertDialog
+        open={isContactOpen}
+        onOpenChange={setIsContactOpen}
+        tenantId={tenantId}
+        conversation={conversation}
+      />
     </div>
   );
 }

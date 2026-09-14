@@ -16,6 +16,14 @@ export interface SelectLiveChatPersonaRequest {
   meta?: Record<string, unknown>;
 }
 
+/** POST /public/live-chat/:website_token/contact */
+export interface SubmitLiveChatContactRequest {
+  client_session_id: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
 /** GET /api/v1/public/live-chat/:website_token/personas */
 export async function getLiveChatPersonasApi(websiteToken: string) {
   const response = await apiClient.get<LiveChatApiResponse>(
@@ -34,6 +42,21 @@ export async function selectLiveChatPersonaApi(
 ) {
   const response = await apiClient.post<LiveChatApiResponse>(
     `/public/live-chat/${encodeURIComponent(websiteToken)}/personas/select`,
+    data,
+  );
+  return response.data;
+}
+
+/**
+ * POST /api/v1/public/live-chat/:website_token/contact
+ * Lưu pending name/email/phone trước khi setUser + mở chat.
+ */
+export async function submitLiveChatContactApi(
+  websiteToken: string,
+  data: SubmitLiveChatContactRequest,
+) {
+  const response = await apiClient.post<LiveChatApiResponse>(
+    `/public/live-chat/${encodeURIComponent(websiteToken)}/contact`,
     data,
   );
   return response.data;

@@ -134,6 +134,8 @@ export interface LastMessage {
 export interface ChatConversationMetaSender {
   id?: string;
   name?: string;
+  email?: string;
+  phoneNumber?: string;
   identifier?: string;
   thumbnail?: string;
   availabilityStatus?: string;

@@ -4,7 +4,9 @@ import { toastApiMutation } from "@/lib/toast-api-mutation";
 import {
   getLiveChatPersonasApi,
   selectLiveChatPersonaApi,
+  submitLiveChatContactApi,
   type SelectLiveChatPersonaRequest,
+  type SubmitLiveChatContactRequest,
 } from "@/services/live-chat/public-personas";
 
 export const liveChatPersonaKeys = {
@@ -58,6 +60,33 @@ export function useSelectLiveChatPersona() {
             ? (error as { response: { data: { message: string } } }).response
                 .data.message
             : "Có lỗi xảy ra khi chọn persona";
+      toast.error(message);
+    },
+  });
+}
+
+/** POST /public/live-chat/:website_token/contact */
+export function useSubmitLiveChatContact() {
+  return useMutation({
+    mutationFn: ({
+      websiteToken,
+      data,
+    }: {
+      websiteToken: string;
+      data: SubmitLiveChatContactRequest;
+    }) => submitLiveChatContactApi(websiteToken, data),
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" &&
+              error !== null &&
+              "response" in error &&
+              typeof (error as { response?: { data?: { message?: string } } })
+                .response?.data?.message === "string"
+            ? (error as { response: { data: { message: string } } }).response
+                .data.message
+            : "Không gửi được thông tin liên hệ";
       toast.error(message);
     },
   });

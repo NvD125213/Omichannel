@@ -23,10 +23,13 @@ import {
   Dot,
   MessageSquareReply,
   AlarmClockOff,
+  Search,
+  X,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -38,6 +41,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { EmptyData } from "@/components/empty-data";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import {
@@ -50,6 +54,9 @@ import {
   useToggleTenantConversationStatus,
   useAssignTenantConversation,
   useListTenantTeams,
+  useSearchTenantConversations,
+  useSearchTenantMessages,
+  useSearchTenantAll,
 } from "@/hooks/chatwoot/use-chatwoot";
 import { useMe } from "@/hooks/user/use-me";
 
@@ -99,7 +106,7 @@ const getSnoozeUntilTomorrow = () => {
 const getSnoozeUntilNextWeek = () => {
   const nextWeek = new Date();
   const day = nextWeek.getDay();
-  const daysUntilMonday = ((8 - day) % 7) || 7;
+  const daysUntilMonday = (8 - day) % 7 || 7;
   nextWeek.setDate(nextWeek.getDate() + daysUntilMonday);
   return unixSecondsAtHour(nextWeek, 9);
 };
@@ -361,6 +368,10 @@ import {
   conversationStatusLabel,
 } from "../utils/conversation-filter";
 import type { ChatConversation, ChatUser } from "../utils/types";
+import {
+  extractMessagingSearchConversations,
+  normalizeSearchConversation,
+} from "../utils/normalize-search-conversation";
 import type { TenantConversationsListMeta } from "@/services/chatwoot/interface";
 import {
   applyConversationStatusToListCache,
@@ -423,6 +434,40 @@ export function ChatConversationList({
   const { data: currentUser } = useMe();
   const { searchQuery, setSearchQuery, markAsRead } = useChat();
   const clearUnread = useChatUnreadStore((state) => state.clearUnread);
+  const normalizedSearchQuery = searchQuery.trim();
+  const isSearchMode = normalizedSearchQuery.length > 0;
+
+  const {
+    data: searchPagesData,
+    isLoading: isSearchLoading,
+    isFetchingNextPage: isSearchFetchingNextPage,
+    hasNextPage: hasSearchNextPage,
+    fetchNextPage: fetchSearchNextPage,
+    isError: isSearchError,
+  } = useSearchTenantConversations(
+    tenantId,
+    { q: normalizedSearchQuery },
+    { enabled: isSearchMode && !!tenantId.trim() },
+  );
+
+  const searchConversations = useMemo(() => {
+    const pages = searchPagesData?.pages ?? [];
+    const seen = new Set<string>();
+    const list: ChatConversation[] = [];
+
+    for (const page of pages) {
+      const records = extractMessagingSearchConversations(page);
+      for (const record of records) {
+        const conversation = normalizeSearchConversation(record);
+        if (seen.has(conversation.id)) continue;
+        seen.add(conversation.id);
+        list.push(conversation);
+      }
+    }
+
+    return list;
+  }, [searchPagesData]);
+
   const { data: inboxData } = useListTenantInboxes(tenantId);
   const { data: labelData } = useListTenantLabels(tenantId);
   const { data: agentsData, isLoading: isLoadingAgents } =
@@ -524,16 +569,31 @@ export function ChatConversationList({
 
   const handleConversationScroll = useCallback(
     (event: React.UIEvent<HTMLDivElement>) => {
-      if (!onLoadMore || !hasMore || isLoadingMore) return;
       const target = event.currentTarget;
       const reachedBottom =
         target.scrollTop + target.clientHeight >=
         target.scrollHeight - SCROLL_BOTTOM_THRESHOLD;
-      if (reachedBottom) {
-        onLoadMore();
+      if (!reachedBottom) return;
+
+      if (isSearchMode) {
+        if (hasSearchNextPage && !isSearchFetchingNextPage) {
+          void fetchSearchNextPage();
+        }
+        return;
       }
+
+      if (!onLoadMore || !hasMore || isLoadingMore) return;
+      onLoadMore();
     },
-    [hasMore, isLoadingMore, onLoadMore],
+    [
+      fetchSearchNextPage,
+      hasMore,
+      hasSearchNextPage,
+      isLoadingMore,
+      isSearchFetchingNextPage,
+      isSearchMode,
+      onLoadMore,
+    ],
   );
 
   const availableAgents = useMemo(
@@ -659,6 +719,14 @@ export function ChatConversationList({
   const activeTabCount = tabCounts[effectiveTab];
 
   const sortedConversations = useMemo(() => {
+    if (isSearchMode) {
+      return [...searchConversations].sort((a, b) => {
+        return (
+          getTime(b.lastMessage.timestamp) - getTime(a.lastMessage.timestamp)
+        );
+      });
+    }
+
     const tabConversations =
       effectiveTab === "me"
         ? mineConversations
@@ -666,11 +734,7 @@ export function ChatConversationList({
           ? unassignedConversations
           : conversations;
 
-    const searchFilteredConversations = tabConversations.filter((conversation) =>
-      conversation.name.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
-
-    return [...searchFilteredConversations].sort((a, b) => {
+    return [...tabConversations].sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
 
@@ -681,10 +745,16 @@ export function ChatConversationList({
   }, [
     conversations,
     effectiveTab,
+    isSearchMode,
     mineConversations,
-    searchQuery,
+    searchConversations,
     unassignedConversations,
   ]);
+
+  const listIsLoadingMore = isSearchMode
+    ? isSearchFetchingNextPage
+    : Boolean(isLoadingMore);
+  const showTabs = !shouldHideTabs && !isSearchMode;
 
   const conversationItemRefs = useRef(new Map<string, HTMLElement>());
   const loadMoreForScrollRef = useRef<string | null>(null);
@@ -747,6 +817,7 @@ export function ChatConversationList({
     }
 
     if (
+      !isSearchMode &&
       hasMore &&
       onLoadMore &&
       !isLoadingMore &&
@@ -761,6 +832,7 @@ export function ChatConversationList({
     hasMore,
     isLoading,
     isLoadingMore,
+    isSearchMode,
     onLoadMore,
     scrollSelectedConversationIntoView,
     selectedConversation,
@@ -1317,6 +1389,37 @@ export function ChatConversationList({
     </TooltipProvider>
   );
 
+  const renderConversationSearch = () => (
+    <div className="shrink-0 border-b px-2 py-2.5 sm:px-3 sm:py-3">
+      <div className="relative min-w-0">
+        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
+        <Input
+          type="search"
+          placeholder="Tìm kiếm cuộc trò chuyện..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="min-w-0 cursor-text pr-9 pl-8 text-sm sm:pl-9"
+          aria-label="Tìm kiếm cuộc trò chuyện"
+        />
+        {searchInput.trim() ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="absolute top-1/2 right-1.5 size-7 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              setSearchInput("");
+              setSearchQuery("");
+            }}
+            aria-label="Xóa tìm kiếm"
+          >
+            <X className="size-3.5" />
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+
   const getOnlineStatus = (conversation: ChatConversation) => {
     if (
       conversation.type === "direct" &&
@@ -1346,7 +1449,7 @@ export function ChatConversationList({
     return (
       <div className="flex h-full flex-col overflow-hidden">
         {/* Compact tab slider for collapsed sidebar */}
-        {!shouldHideTabs && (
+        {showTabs && (
           <div className="flex items-center justify-between gap-0.5 border-b px-1 py-1.5">
             <button
               type="button"
@@ -1373,7 +1476,7 @@ export function ChatConversationList({
               >
                 <span
                   className={cn(
-                    "inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums text-white",
+                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold tabular-nums text-white",
                     TAB_COLORS[activeTab],
                   )}
                 >
@@ -1470,7 +1573,7 @@ export function ChatConversationList({
                   {renderConversationContextMenuContent(conversation)}
                 </ContextMenu>
               ))}
-              {isLoadingMore && (
+              {listIsLoadingMore && (
                 <div className="space-y-2 pt-1">
                   <Skeleton className="mx-auto size-11 rounded-xl" />
                   <Skeleton className="mx-auto size-11 rounded-xl" />
@@ -1513,24 +1616,12 @@ export function ChatConversationList({
     );
   }
 
-  if (isEmptyByMeta) {
+  if (isEmptyByMeta && !isSearchMode) {
     return (
       <div className="flex flex-col h-full min-h-0 overflow-hidden">
-        {/* <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
-          <div className="relative min-w-0">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
-            <Input
-              type="text"
-              placeholder="Tìm kiếm cuộc trò chuyện..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="min-w-0 pl-8 sm:pl-9 cursor-text text-sm"
-              aria-label="Search Conversations"
-            />
-          </div>
-        </div> */}
+        {renderConversationSearch()}
 
-        {!shouldHideTabs && renderConversationTabs()}
+        {showTabs && renderConversationTabs()}
         <div className="flex-1 p-3">
           <EmptyData
             icon={Inbox}
@@ -1546,28 +1637,53 @@ export function ChatConversationList({
 
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
-      {/* Search */}
-      {/* <div className="px-2 sm:px-4 py-2.5 sm:py-3 border-b shrink-0">
-        <div className="relative min-w-0">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground sm:left-3" />
-          <Input
-            type="text"
-            placeholder="Tìm kiếm cuộc trò chuyện..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="min-w-0 pl-8 sm:pl-9 cursor-text text-sm"
-            aria-label="Search Conversations"
-          />
-        </div>
-      </div> */}
+      {renderConversationSearch()}
 
-      {!shouldHideTabs && renderConversationTabs()}
+      {showTabs && renderConversationTabs()}
 
       {/* Conversations */}
       <AnimatePresence mode="wait" initial={false}>
-        {activeTabCount === 0 ? (
+        {isSearchMode && isSearchLoading && sortedConversations.length === 0 ? (
           <motion.div
-            key={`empty-${effectiveTab}`}
+            key={`search-loading-${normalizedSearchQuery}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex-1 min-h-0 space-y-2 overflow-hidden p-2"
+          >
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="flex min-w-0 items-center gap-2 rounded-xl border border-border/50 p-2 sm:gap-3 sm:p-3"
+              >
+                <Skeleton className="size-10 shrink-0 rounded-full sm:size-12" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-2/3 rounded" />
+                  <Skeleton className="h-3 w-5/6 rounded" />
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        ) : isSearchMode && isSearchError ? (
+          <motion.div
+            key={`search-error-${normalizedSearchQuery}`}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex-1 p-3"
+          >
+            <EmptyData
+              icon={Inbox}
+              title="Không thể tìm kiếm"
+              description="Đã xảy ra lỗi khi tìm kiếm hội thoại. Vui lòng thử lại."
+              showButton={false}
+              className="h-full"
+            />
+          </motion.div>
+        ) : (!isSearchMode && activeTabCount === 0) ||
+          sortedConversations.length === 0 ? (
+          <motion.div
+            key={`empty-${effectiveTab}-${searchQuery}`}
             initial={{ opacity: 0, scale: 0.96, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -16 }}
@@ -1579,8 +1695,16 @@ export function ChatConversationList({
           >
             <EmptyData
               icon={Inbox}
-              title="Không có cuộc trò chuyện"
-              description="Hiện tại chưa có dữ liệu hội thoại theo bộ lọc đang chọn."
+              title={
+                isSearchMode
+                  ? "Không tìm thấy cuộc trò chuyện"
+                  : "Không có cuộc trò chuyện"
+              }
+              description={
+                isSearchMode
+                  ? "Thử đổi từ khóa tìm kiếm hoặc xóa bộ lọc tìm kiếm."
+                  : "Hiện tại chưa có dữ liệu hội thoại theo bộ lọc đang chọn."
+              }
               showButton={false}
               className="h-full"
             />
@@ -1826,7 +1950,7 @@ export function ChatConversationList({
                     </ContextMenu>
                   );
                 })}
-                {isLoadingMore && (
+                {listIsLoadingMore && (
                   <div className="space-y-2 px-2 py-3">
                     <Skeleton className="h-16 w-full rounded-xl" />
                     <Skeleton className="h-16 w-full rounded-xl" />
