@@ -12,7 +12,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-export type ChatPreviewVariantId = "fsel-techie" | "chatwoot-default";
+export type ChatPreviewVariantId =
+  | "fsel-techie"
+  | "omni-default"
+  | "chatwoot-default";
 
 export type ChatPreviewQuickReply = {
   id: string;
@@ -67,6 +70,20 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
     launcherPromptLabel: "Bạn có cần hỗ trợ gì không?",
     widgetScriptPath: "/inbox-widgets/fsel-techie.js",
     logoPath: "/inbox-logo/fsel/logo-chatbot.svg",
+  },
+  "omni-default": {
+    id: "omni-default",
+    label: "Omni mặc định",
+    description:
+      "Widget overlay chung: persona auto-select, form contact_capture, giữ phiên khi reload.",
+    assistantName: "Hỗ trợ",
+    greetingMessage: "Xin chào! Chúng tôi có thể giúp gì cho bạn?",
+    inputPlaceholder: "Nhập tin nhắn...",
+    inputPlaceholderWithActions: "Nhập tin nhắn...",
+    showUsageQuota: false,
+    showLauncherBubble: true,
+    launcherPromptLabel: "Bạn có cần hỗ trợ gì không?",
+    widgetScriptPath: "/inbox-widgets/default.js",
   },
   "chatwoot-default": {
     id: "chatwoot-default",
@@ -216,7 +233,11 @@ function resolveVariantId(
 
   for (const candidate of candidates) {
     const value = String(candidate ?? "").trim();
-    if (value === "fsel-techie" || value === "chatwoot-default") {
+    if (
+      value === "fsel-techie" ||
+      value === "omni-default" ||
+      value === "chatwoot-default"
+    ) {
       return value;
     }
   }
@@ -428,6 +449,7 @@ export function getEmbedScriptFileName(
   variantId: ChatPreviewVariantId,
 ): string {
   if (variantId === "fsel-techie") return "fsel-techie-embed.html";
+  if (variantId === "omni-default") return "omni-default-embed.html";
   return "chatwoot-embed.html";
 }
 
@@ -493,7 +515,10 @@ export function buildChatEmbedScript(
     showUsageQuota: options.template.showUsageQuota ?? false,
     usageQuotaLabel: options.template.usageQuotaLabel ?? "",
     launcherPromptLabel: options.template.launcherPromptLabel ?? "",
-    primaryColor: FSEL_THEME.primary,
+    primaryColor:
+      variantId === "fsel-techie"
+        ? FSEL_THEME.primary
+        : options.data.widgetColor || "#1f93ff",
   };
 
   const configJson = JSON.stringify(config, null, 2);
@@ -545,7 +570,7 @@ function ChatPreviewLauncherBubble({
   onToggle: () => void;
   onOpen: () => void;
 }) {
-  const isFsel = variantId === "fsel-techie";
+  const isOverlay = variantId !== "chatwoot-default";
 
   return (
     <div className="flex items-end justify-end gap-2.5 pt-2">
@@ -555,7 +580,7 @@ function ChatPreviewLauncherBubble({
           onClick={onOpen}
           className={cn(
             "max-w-[calc(100%-3.5rem)] rounded-2xl border px-3.5 py-2.5 text-left text-xs leading-5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]",
-            isFsel
+            isOverlay
               ? "border-[#D4DCFA] bg-white font-medium text-[#1A2456] shadow-[0_8px_22px_rgba(110,133,250,0.14)] hover:border-[#B8C4F5] hover:shadow-[0_10px_28px_rgba(110,133,250,0.2)]"
               : "border-black/8 bg-white font-medium text-[#1f2937] shadow-[0_8px_20px_rgba(15,23,42,0.1)] hover:border-black/12",
           )}
@@ -569,7 +594,7 @@ function ChatPreviewLauncherBubble({
         className={cn(
           "inline-flex size-12 shrink-0 items-center justify-center rounded-full text-white transition-all duration-200 hover:scale-105 active:scale-95",
           isOpen && "ring-2 ring-white/90 ring-offset-2 ring-offset-[#F5F7FF]",
-          isFsel
+          isOverlay
             ? "shadow-[0_12px_28px_rgba(110,133,250,0.38)]"
             : "shadow-[0_10px_24px_rgba(15,23,42,0.18)]",
         )}
@@ -838,14 +863,14 @@ export function ChatPreviewFrame({
           )}
           aria-hidden={!isOpen}
         >
-          {variantId === "fsel-techie" ? (
+          {variantId === "chatwoot-default" ? (
+            <ChatwootDefaultChatPreview data={data} onClose={handleClose} />
+          ) : (
             <FselTechieChatPreview
               template={template}
               data={data}
               onClose={handleClose}
             />
-          ) : (
-            <ChatwootDefaultChatPreview data={data} onClose={handleClose} />
           )}
         </div>
       </div>

@@ -104,6 +104,10 @@ export function injectEmbedScript(embedScript: string) {
   return () => {
     document.getElementById("omni-fsel-techie-root")?.remove();
     document.getElementById("omni-fsel-techie-style")?.remove();
+    document.getElementById("omni-default-root")?.remove();
+    document.getElementById("omni-default-style")?.remove();
+    document.getElementById("omni-default-hide-cw-style")?.remove();
+    document.getElementById("omni-default-chatwoot-sdk")?.remove();
     document.getElementById("omni-fsel-chatwoot-sdk")?.remove();
     document
       .querySelectorAll('script[data-omni-fsel-widget="1"]')

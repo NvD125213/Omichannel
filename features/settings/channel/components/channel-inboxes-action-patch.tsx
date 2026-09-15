@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  chatwootOmniKeys,
   useGetTenantInbox,
   useListAccountInboxMembers,
   useListChatwootAgents,
@@ -201,6 +203,7 @@ function resolveChannelKey(record: Record<string, unknown>): ChannelKey {
 
 function mapInboxToEditValues(
   record: Record<string, unknown>,
+  envelope?: unknown,
 ): InboxEditFormValues {
   const channel = (record.channel as Record<string, unknown> | undefined) ?? {};
   const providerConfig =
@@ -256,7 +259,7 @@ function mapInboxToEditValues(
     selected_feature_flags: normalizeFeatureFlags(
       channel.selected_feature_flags ?? record.selected_feature_flags,
     ),
-    contact_capture: pickContactCapture(record, channel),
+    contact_capture: pickContactCapture(record, envelope, channel),
     phone_number: pickString(sources, "phone_number"),
     provider_api_key: pickString(sources, "api_key", "provider_api_key"),
     provider_api_secret: pickString(
@@ -678,6 +681,7 @@ export function ChannelInboxesActionPatch({
   inboxId,
 }: ChannelInboxesActionPatchProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const tenantId = user?.tenant_id ?? "";
 
@@ -700,13 +704,17 @@ export function ChannelInboxesActionPatch({
   const [savingMembers, setSavingMembers] = useState(false);
 
   const form = useForm<InboxEditFormValues>({
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      contact_capture: createDefaultContactCapture(),
+    },
   });
 
-  const { data: inboxResponse, isLoading: isLoadingInbox } = useGetTenantInbox(
-    tenantId,
-    inboxId,
-  );
+  const {
+    data: inboxResponse,
+    isPending: isInboxPending,
+    dataUpdatedAt: inboxUpdatedAt,
+  } = useGetTenantInbox(tenantId, inboxId);
   const { data: inboxesListResponse, isLoading: isLoadingList } =
     useListTenantInboxes(tenantId);
   const { data: agentsResponse, isLoading: isLoadingAgents } =
@@ -730,8 +738,40 @@ export function ChannelInboxesActionPatch({
     return enrichAgentsWithMemberThumbnails(fromAgents, inboxMemberRecords);
   }, [agentsResponse, inboxMemberRecords]);
 
+  const appliedInboxKeyRef = useRef<string>("");
+  const appliedInboxUpdatedAtRef = useRef(0);
   const watched = form.watch();
   const activeAvatarUrl = avatarPreviewUrl || avatarDisplayUrl;
+
+  const applyInboxRecord = useCallback(
+    (record: Record<string, unknown>, envelope?: unknown) => {
+      const nextValues = mapInboxToEditValues(record, envelope);
+      form.reset(nextValues, { keepDefaultValues: false, keepDirty: false });
+      setChannelKey(resolveChannelKey(record));
+      setInboxRecord(record);
+      setAvatarDisplayUrl(
+        pickString(
+          [record, (record.channel as Record<string, unknown>) ?? {}],
+          "avatar_url",
+          "thumbnail",
+        ),
+      );
+      setAvatarFile(null);
+      setAvatarPreviewUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return null;
+      });
+      setWidgetScript(
+        pickString(
+          [record, (record.channel as Record<string, unknown>) ?? {}],
+          "web_widget_script",
+        ),
+      );
+      appliedInboxKeyRef.current = inboxId;
+      setHydrated(true);
+    },
+    [form, inboxId],
+  );
 
   useEffect(() => {
     return () => {
@@ -748,58 +788,50 @@ export function ChannelInboxesActionPatch({
   };
 
   useEffect(() => {
-    if (hydrated || !tenantId || !inboxId) return;
+    appliedInboxKeyRef.current = "";
+    appliedInboxUpdatedAtRef.current = 0;
+    setHydrated(false);
+    setMembersHydrated(false);
+    setInboxRecord(null);
+  }, [inboxId, tenantId]);
 
-    let record = extractSingleRecord(inboxResponse);
-    if (!record && inboxesListResponse) {
-      record =
-        extractRecords(inboxesListResponse).find(
-          (item) => String(item.id ?? "").trim() === String(inboxId).trim(),
-        ) ?? null;
-    }
+  useEffect(() => {
+    if (!tenantId || !inboxId) return;
+    if (isInboxPending) return;
 
-    if (!record) {
-      if (isLoadingInbox || isLoadingList) return;
-      setHydrated(true);
+    const detailRecord = extractSingleRecord(inboxResponse);
+    if (detailRecord) {
+      const sameInbox = appliedInboxKeyRef.current === inboxId;
+      if (sameInbox && inboxUpdatedAt === appliedInboxUpdatedAtRef.current) {
+        return;
+      }
+      if (sameInbox && form.formState.isDirty) return;
+      applyInboxRecord(detailRecord, inboxResponse);
+      appliedInboxUpdatedAtRef.current = inboxUpdatedAt;
       return;
     }
 
-    const nextValues = mapInboxToEditValues(record);
-    nextValues.contact_capture = pickContactCapture(
-      record,
-      inboxResponse,
-      inboxesListResponse,
-    );
-    form.reset(nextValues);
-    setChannelKey(resolveChannelKey(record));
-    setInboxRecord(record);
-    setAvatarDisplayUrl(
-      pickString(
-        [record, (record.channel as Record<string, unknown>) ?? {}],
-        "avatar_url",
-        "thumbnail",
-      ),
-    );
-    setAvatarFile(null);
-    setAvatarPreviewUrl((current) => {
-      if (current) URL.revokeObjectURL(current);
-      return null;
-    });
-    setWidgetScript(
-      pickString(
-        [record, (record.channel as Record<string, unknown>) ?? {}],
-        "web_widget_script",
-      ),
-    );
+    if (isLoadingList) return;
+
+    const listRecord =
+      extractRecords(inboxesListResponse).find(
+        (item) => String(item.id ?? "").trim() === String(inboxId).trim(),
+      ) ?? null;
+
+    if (listRecord && appliedInboxKeyRef.current !== inboxId) {
+      applyInboxRecord(listRecord, inboxesListResponse);
+      return;
+    }
 
     setHydrated(true);
   }, [
-    form,
-    hydrated,
+    applyInboxRecord,
+    form.formState.isDirty,
     inboxId,
     inboxResponse,
+    inboxUpdatedAt,
     inboxesListResponse,
-    isLoadingInbox,
+    isInboxPending,
     isLoadingList,
     tenantId,
   ]);
@@ -882,6 +914,7 @@ export function ChannelInboxesActionPatch({
 
       const updatedRecord = extractSingleRecord(res);
       if (updatedRecord) {
+        applyInboxRecord(updatedRecord, res);
         const nextAvatar = pickString(
           [
             updatedRecord,
@@ -891,7 +924,15 @@ export function ChannelInboxesActionPatch({
           "thumbnail",
         );
         if (nextAvatar) setAvatarDisplayUrl(nextAvatar);
+      } else {
+        form.reset(form.getValues(), {
+          keepDefaultValues: false,
+          keepDirty: false,
+        });
       }
+      await queryClient.refetchQueries({
+        queryKey: chatwootOmniKeys.tenantInbox(tenantId, inboxId),
+      });
       if (avatarFile) {
         setAvatarFile(null);
         setAvatarPreviewUrl((current) => {
@@ -921,6 +962,7 @@ export function ChannelInboxesActionPatch({
       });
       if (!isSuccessResponse(res)) return;
 
+      const nextValues = form.getValues();
       const updatedRecord = extractSingleRecord(res);
       if (updatedRecord) {
         const nextToken = pickString(
@@ -930,8 +972,12 @@ export function ChannelInboxesActionPatch({
           ],
           "hmac_token",
         );
-        if (nextToken) form.setValue("hmac_token", nextToken);
+        if (nextToken) nextValues.hmac_token = nextToken;
       }
+      form.reset(nextValues, { keepDefaultValues: false, keepDirty: false });
+      await queryClient.refetchQueries({
+        queryKey: chatwootOmniKeys.tenantInbox(tenantId, inboxId),
+      });
     } catch {
       // toast handled by hook
     } finally {
@@ -998,7 +1044,7 @@ export function ChannelInboxesActionPatch({
 
   const isBusy = savingSettings || savingConfiguration || savingMembers;
 
-  if (!hydrated && (isLoadingInbox || isLoadingList)) {
+  if (!hydrated) {
     return (
       <div className="w-full space-y-4">
         <Skeleton className="h-8 w-48" />
@@ -1056,7 +1102,9 @@ export function ChannelInboxesActionPatch({
 
         <TabsContent
           value="settings"
-          className="mt-0 overflow-x-hidden outline-none"
+          forceMount
+          hidden={activeTab !== "settings"}
+          className="mt-0 overflow-x-hidden outline-none data-[state=inactive]:hidden"
         >
           <InboxSettingsTab
             form={form}
@@ -1100,7 +1148,9 @@ export function ChannelInboxesActionPatch({
 
         <TabsContent
           value="configuration"
-          className="mt-0 w-full overflow-x-hidden pb-6 outline-none"
+          forceMount
+          hidden={activeTab !== "configuration"}
+          className="mt-0 w-full overflow-x-hidden pb-6 outline-none data-[state=inactive]:hidden"
         >
           <InboxConfigurationTab
             form={form}

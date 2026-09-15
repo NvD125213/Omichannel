@@ -72,9 +72,8 @@ function normalizeField(
   fallbackLabel: string,
   raw: Record<string, unknown> | undefined,
 ): ContactCaptureField {
-  const enabled = typeof raw?.enabled === "boolean" ? raw.enabled : true;
-  const required =
-    typeof raw?.required === "boolean" ? raw.required : key !== "email";
+  const enabled = typeof raw?.enabled === "boolean" ? raw.enabled : false;
+  const required = typeof raw?.required === "boolean" ? raw.required : false;
   const label =
     typeof raw?.label === "string" && raw.label.trim()
       ? raw.label.trim()
@@ -83,7 +82,7 @@ function normalizeField(
     key,
     label,
     enabled,
-    required: enabled ? required : false,
+    required,
   };
 }
 
@@ -114,22 +113,36 @@ export function normalizeContactCapture(raw: unknown): ContactCaptureConfig {
   };
 }
 
-function findContactCaptureNode(value: unknown, depth = 0): unknown {
-  if (depth > 6) return null;
+const CONTACT_CAPTURE_ENVELOPE_KEYS = [
+  "messaging",
+  "data",
+  "payload",
+  "inbox",
+  "channel",
+] as const;
+
+function collectContactCaptureNodes(
+  value: unknown,
+  depth: number,
+  explicit: unknown[],
+  meta: unknown[],
+) {
+  if (depth > 6) return;
   const rec = asRecord(value);
-  if (!rec) return null;
-  if (asRecord(rec.contact_capture)) return rec.contact_capture;
+  if (!rec) return;
+
+  if (asRecord(rec.contact_capture)) {
+    explicit.push(rec.contact_capture);
+  }
 
   const options = asRecord(rec.pre_chat_form_options);
   if (asRecord(options?.omnihub_contact_capture)) {
-    return options?.omnihub_contact_capture;
+    meta.push(options?.omnihub_contact_capture);
   }
 
-  for (const key of ["data", "messaging", "payload", "inbox", "channel"]) {
-    const found = findContactCaptureNode(rec[key], depth + 1);
-    if (found) return found;
+  for (const key of CONTACT_CAPTURE_ENVELOPE_KEYS) {
+    collectContactCaptureNodes(rec[key], depth + 1, explicit, meta);
   }
-  return null;
 }
 
 /** Lấy `contact_capture` từ GET inbox / GET personas (nhiều envelope). */
@@ -137,9 +150,27 @@ export function pickContactCapture(
   ...sources: unknown[]
 ): ContactCaptureConfig {
   for (const source of sources) {
-    const found = findContactCaptureNode(source);
-    if (found) return normalizeContactCapture(found);
+    const rec = asRecord(source);
+    if (!rec) continue;
+    const direct = asRecord(rec.contact_capture);
+    if (direct) return normalizeContactCapture(direct);
+
+    const messaging =
+      asRecord(rec.messaging) ?? asRecord(asRecord(rec.data)?.messaging);
+    const fromMessaging = asRecord(messaging?.contact_capture);
+    if (fromMessaging) return normalizeContactCapture(fromMessaging);
+
+    const fromData = asRecord(asRecord(rec.data)?.contact_capture);
+    if (fromData) return normalizeContactCapture(fromData);
   }
+
+  const explicit: unknown[] = [];
+  const meta: unknown[] = [];
+  for (const source of sources) {
+    collectContactCaptureNodes(source, 0, explicit, meta);
+  }
+  const found = explicit[0] ?? meta[0];
+  if (found) return normalizeContactCapture(found);
   return createDefaultContactCapture();
 }
 
@@ -153,7 +184,6 @@ export function toContactCapturePayload(
     fields: normalized.fields.map((field) => ({
       ...field,
       label: field.label.trim() || field.key,
-      required: field.enabled ? field.required : false,
     })),
   };
 }

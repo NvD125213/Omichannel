@@ -360,6 +360,12 @@ export const chatwootService = {
   ): Promise<GetTenantInboxResponse> => {
     const response = await apiClient.get<GetTenantInboxResponse>(
       `${CHATWOOT_BASE}/tenants/${tenantId}/inboxes/${inboxId}`,
+      {
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      },
     );
     return response.data;
   },

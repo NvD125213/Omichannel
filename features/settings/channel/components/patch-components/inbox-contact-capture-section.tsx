@@ -1,6 +1,6 @@
 "use client";
 
-import type { UseFormReturn } from "react-hook-form";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormDescription,
@@ -20,7 +20,10 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CONTACT_CAPTURE_MODES } from "@/services/chatwoot/contact-capture";
+import {
+  CONTACT_CAPTURE_FIELD_DEFS,
+  CONTACT_CAPTURE_MODES,
+} from "@/services/chatwoot/contact-capture";
 import {
   INPUT_CLASSNAME,
   SELECT_TRIGGER_CLASSNAME,
@@ -37,7 +40,14 @@ export function InboxContactCaptureSection({
   form,
   disabled,
 }: InboxContactCaptureSectionProps) {
-  const mode = form.watch("contact_capture.mode");
+  const mode = useWatch({
+    control: form.control,
+    name: "contact_capture.mode",
+  });
+  const fields = useWatch({
+    control: form.control,
+    name: "contact_capture.fields",
+  });
   const modeHint =
     CONTACT_CAPTURE_MODES.find((item) => item.value === mode)?.hint ?? "";
 
@@ -60,7 +70,7 @@ export function InboxContactCaptureSection({
               </FormLabel>
               <FormControl>
                 <Switch
-                  checked={field.value}
+                  checked={field.value === true}
                   onCheckedChange={field.onChange}
                   disabled={disabled}
                 />
@@ -77,8 +87,9 @@ export function InboxContactCaptureSection({
           <FormItem className="gap-1.5">
             <FormLabel className="text-xs">Cách thu thập</FormLabel>
             <Select
+              key={`contact-capture-mode-${field.value}`}
               value={field.value}
-              onValueChange={(value) => field.onChange(value)}
+              onValueChange={field.onChange}
               disabled={disabled}
             >
               <FormControl>
@@ -128,7 +139,7 @@ export function InboxContactCaptureSection({
           Lưu ý: Các trường thu thập sẽ hiện trên form chat của khách hàng.
         </p>
         <div className="space-y-2">
-          {form.watch("contact_capture.fields")?.map((item, index) => (
+          {(fields ?? CONTACT_CAPTURE_FIELD_DEFS).map((item, index) => (
             <div
               key={item.key}
               className="grid gap-2 py-2 sm:grid-cols-[minmax(0,1fr)_auto]"
@@ -168,17 +179,10 @@ export function InboxContactCaptureSection({
                       </FormLabel>
                       <FormControl>
                         <Switch
-                          checked={field.value}
+                          key={`contact-capture-enabled-${item.key}-${String(field.value)}`}
+                          checked={field.value === true}
                           disabled={disabled}
-                          onCheckedChange={(checked) => {
-                            field.onChange(checked);
-                            if (!checked) {
-                              form.setValue(
-                                `contact_capture.fields.${index}.required`,
-                                false,
-                              );
-                            }
-                          }}
+                          onCheckedChange={field.onChange}
                         />
                       </FormControl>
                     </FormItem>
@@ -194,7 +198,8 @@ export function InboxContactCaptureSection({
                       </FormLabel>
                       <FormControl>
                         <Switch
-                          checked={field.value}
+                          key={`contact-capture-required-${item.key}-${String(field.value)}`}
+                          checked={field.value === true}
                           disabled={disabled || !item.enabled}
                           onCheckedChange={field.onChange}
                         />

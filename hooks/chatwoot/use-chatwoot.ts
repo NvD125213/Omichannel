@@ -1247,13 +1247,13 @@ export const useUpdateTenantInbox = () => {
       inboxId: string;
       data: UpdateTenantInboxRequestBody;
     }) => chatwootService.updateTenantInbox(tenantId, inboxId, data),
-    onSuccess: (res, variables) => {
-      if (res.status_code === 200) {
+    onSuccess: async (res, variables) => {
+      if (res.status_code === 200 || res.status_code === 201) {
         toast.success(res.message || "Cập nhật inbox thành công");
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: chatwootOmniKeys.tenantInboxes(variables.tenantId),
         });
-        queryClient.invalidateQueries({
+        await queryClient.refetchQueries({
           queryKey: chatwootOmniKeys.tenantInbox(
             variables.tenantId,
             variables.inboxId,
