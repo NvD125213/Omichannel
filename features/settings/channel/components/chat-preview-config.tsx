@@ -544,6 +544,30 @@ export function buildChatEmbedScript(
   ].join("\n");
 }
 
+/** HTML srcdoc cho iframe sandbox — trang giả lập + script widget đã chọn. */
+export function buildWidgetSandboxSrcDoc(embedScript: string) {
+  const widgetMarkup = embedScript.trim()
+    ? embedScript
+    : '<p class="hint">Chưa có script nhúng. Tải inbox hoặc chọn script khác.</p>';
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #f4f4f5; font-family: Inter, system-ui, sans-serif; }
+    body { min-height: 28rem; }
+    .hint { margin: 0; padding: 20px 24px; color: #64748b; font-size: 13px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <p class="hint">Trang giả lập website khách hàng. Mở bubble góc phải để thử widget.</p>
+  ${widgetMarkup}
+</body>
+</html>`;
+}
+
 function formatPreviewTimestamp(date = new Date()) {
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -631,8 +655,7 @@ function FselTechieChatPreview({
   const [showQuickReplies, setShowQuickReplies] = useState(true);
   const assistantName = data.assistantName || template.assistantName;
   const prePersonaIntro =
-    data.welcomeTagline?.trim() ||
-    "Chúng tôi sẵn sàng hỗ trợ bạn.";
+    data.welcomeTagline?.trim() || "Chúng tôi sẵn sàng hỗ trợ bạn.";
   const logoSrc = data.avatarUrl || template.logoPath;
   const timestamp = useMemo(() => formatPreviewTimestamp(), []);
   const quickReplyCount = template.quickReplies?.length ?? 0;
@@ -905,12 +928,12 @@ export function ChatPreviewVariantSelect({
       onValueChange={(next) => onChange(next as ChatPreviewVariantId)}
       disabled={disabled}
     >
-      <SelectTrigger className="h-8 w-full border-border/80 text-xs">
+      <SelectTrigger className="h-10 w-full border-border/80 text-sm">
         <SelectValue placeholder="Chọn khung chat" />
       </SelectTrigger>
       <SelectContent>
         {CHAT_PREVIEW_VARIANT_OPTIONS.map((item) => (
-          <SelectItem key={item.id} value={item.id}>
+          <SelectItem key={item.id} value={item.id} className="text-sm">
             {item.label}
           </SelectItem>
         ))}

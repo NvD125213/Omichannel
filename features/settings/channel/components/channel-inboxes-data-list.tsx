@@ -556,7 +556,7 @@ export default function ChannelInboxesDataList() {
                           </TooltipTrigger>
                           <TooltipContent>Xem</TooltipContent>
                         </Tooltip>
-                        {isWebWidgetChannel(inbox.channelType) ? (
+                        {/* {isWebWidgetChannel(inbox.channelType) ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button
@@ -571,7 +571,7 @@ export default function ChannelInboxesDataList() {
                             </TooltipTrigger>
                             <TooltipContent>Sandbox</TooltipContent>
                           </Tooltip>
-                        ) : null}
+                        ) : null} */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button

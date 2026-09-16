@@ -8,21 +8,42 @@ import {
 } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { ChevronDownIcon } from "lucide-react";
+import { ChevronDownIcon, FileCode2Icon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+export type WebPreviewScriptOption = {
+  id: string;
+  label: string;
+  description?: string;
+  /** Page URL for the iframe (`src`). */
+  src?: string;
+  /** Inline HTML document for the iframe (`srcDoc`). */
+  srcDoc?: string;
+};
 
 export type WebPreviewContextValue = {
   url: string;
   setUrl: (url: string) => void;
   consoleOpen: boolean;
   setConsoleOpen: (open: boolean) => void;
+  scripts: WebPreviewScriptOption[];
+  scriptId: string;
+  setScriptId: (id: string) => void;
+  selectedScript: WebPreviewScriptOption | null;
 };
 
 const WebPreviewContext = createContext<WebPreviewContextValue | null>(null);
@@ -38,6 +59,9 @@ const useWebPreview = () => {
 export type WebPreviewProps = ComponentProps<"div"> & {
   defaultUrl?: string;
   onUrlChange?: (url: string) => void;
+  scripts?: WebPreviewScriptOption[];
+  defaultScriptId?: string;
+  onScriptChange?: (id: string) => void;
 };
 
 export const WebPreview = ({
@@ -45,21 +69,48 @@ export const WebPreview = ({
   children,
   defaultUrl = "",
   onUrlChange,
+  scripts = [],
+  defaultScriptId = "",
+  onScriptChange,
   ...props
 }: WebPreviewProps) => {
   const [url, setUrl] = useState(defaultUrl);
   const [consoleOpen, setConsoleOpen] = useState(false);
+  const [scriptId, setScriptIdState] = useState(
+    defaultScriptId || scripts[0]?.id || "",
+  );
 
   const handleUrlChange = (newUrl: string) => {
     setUrl(newUrl);
     onUrlChange?.(newUrl);
   };
 
+  const setScriptId = (id: string) => {
+    setScriptIdState(id);
+    onScriptChange?.(id);
+  };
+
+  useEffect(() => {
+    if (!defaultScriptId) return;
+    setScriptIdState((current) =>
+      current === defaultScriptId ? current : defaultScriptId,
+    );
+  }, [defaultScriptId]);
+
+  const selectedScript = useMemo(
+    () => scripts.find((item) => item.id === scriptId) ?? scripts[0] ?? null,
+    [scriptId, scripts],
+  );
+
   const contextValue: WebPreviewContextValue = {
     url,
     setUrl: handleUrlChange,
     consoleOpen,
     setConsoleOpen,
+    scripts,
+    scriptId: selectedScript?.id ?? scriptId,
+    setScriptId,
+    selectedScript,
   };
 
   return (
@@ -67,7 +118,7 @@ export const WebPreview = ({
       <div
         className={cn(
           "flex size-full flex-col rounded-lg border bg-card",
-          className
+          className,
         )}
         {...props}
       >
@@ -85,7 +136,7 @@ export const WebPreviewNavigation = ({
   ...props
 }: WebPreviewNavigationProps) => (
   <div
-    className={cn("flex items-center gap-1 border-b p-2", className)}
+    className={cn("flex w-full items-center gap-1 border-b p-2", className)}
     {...props}
   >
     {children}
@@ -123,6 +174,46 @@ export const WebPreviewNavigationButton = ({
     </Tooltip>
   </TooltipProvider>
 );
+
+export type WebPreviewScriptProps = ComponentProps<typeof SelectTrigger> & {
+  placeholder?: string;
+};
+
+export const WebPreviewScript = ({
+  className,
+  placeholder = "Select script",
+  ...props
+}: WebPreviewScriptProps) => {
+  const { scripts, scriptId, setScriptId } = useWebPreview();
+
+  if (!scripts.length) return null;
+
+  return (
+    <Select value={scriptId || undefined} onValueChange={setScriptId}>
+      <SelectTrigger
+        className={cn("h-10 w-full min-w-0 flex-1 text-sm", className)}
+        {...props}
+      >
+        <FileCode2Icon className="size-4 shrink-0 text-muted-foreground" />
+        <SelectValue placeholder={placeholder} />
+      </SelectTrigger>
+      <SelectContent>
+        {scripts.map((item) => (
+          <SelectItem key={item.id} value={item.id} textValue={item.label}>
+            <span className="flex min-w-0 flex-col gap-0.5 py-0.5">
+              <span className="text-sm font-medium">{item.label}</span>
+              {item.description ? (
+                <span className="text-xs font-normal text-muted-foreground">
+                  {item.description}
+                </span>
+              ) : null}
+            </span>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+};
 
 export type WebPreviewUrlProps = ComponentProps<typeof Input>;
 
@@ -173,16 +264,23 @@ export const WebPreviewBody = ({
   className,
   loading,
   src,
+  srcDoc,
   ...props
 }: WebPreviewBodyProps) => {
-  const { url } = useWebPreview();
+  const { url, selectedScript } = useWebPreview();
+  const iframeSrcDoc = srcDoc ?? selectedScript?.srcDoc;
+  const iframeSrc = iframeSrcDoc
+    ? undefined
+    : (src ?? selectedScript?.src ?? url) || undefined;
 
   return (
-    <div className="flex-1">
+    <div className="relative min-h-0 flex-1">
       <iframe
+        key={selectedScript?.id ?? iframeSrc ?? iframeSrcDoc}
         className={cn("size-full", className)}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
-        src={(src ?? url) || undefined}
+        src={iframeSrc}
+        srcDoc={iframeSrcDoc}
         title="Preview"
         {...props}
       />
@@ -209,7 +307,7 @@ export const WebPreviewConsole = ({
 
   return (
     <Collapsible
-      className={cn("border-t bg-muted/50 font-mono text-sm", className)}
+      className={cn("border-t bg-muted/50 text-sm", className)}
       onOpenChange={setConsoleOpen}
       open={consoleOpen}
       {...props}
@@ -223,7 +321,7 @@ export const WebPreviewConsole = ({
           <ChevronDownIcon
             className={cn(
               "size-4 transition-transform duration-200",
-              consoleOpen && "rotate-180"
+              consoleOpen && "rotate-180",
             )}
           />
         </Button>
@@ -231,7 +329,7 @@ export const WebPreviewConsole = ({
       <CollapsibleContent
         className={cn(
           "px-4 pb-4",
-          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in"
+          "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 outline-none data-[state=closed]:animate-out data-[state=open]:animate-in",
         )}
       >
         <div className="max-h-48 space-y-1 overflow-y-auto">
@@ -244,7 +342,7 @@ export const WebPreviewConsole = ({
                   "text-xs",
                   log.level === "error" && "text-destructive",
                   log.level === "warn" && "text-yellow-600",
-                  log.level === "log" && "text-foreground"
+                  log.level === "log" && "text-foreground",
                 )}
                 key={`${log.timestamp.getTime()}-${index}`}
               >

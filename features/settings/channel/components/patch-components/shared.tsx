@@ -2,24 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import {
-  Check,
-  Copy,
-  MessageSquare,
-  Plus,
-  X,
-} from "lucide-react";
+import { Check, Copy, MessageSquare, Plus, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  WebPreview,
+  WebPreviewBody,
+  WebPreviewNavigation,
+  WebPreviewScript,
+} from "@/components/ai-elements/web-preview";
 import { cn } from "@/lib/utils";
 import type { ContactCaptureConfig } from "@/services/chatwoot/interface";
 import {
   buildChatEmbedScript,
-  ChatPreviewFrame,
-  ChatPreviewVariantSelect,
+  buildWidgetSandboxSrcDoc,
+  CHAT_PREVIEW_VARIANT_OPTIONS,
   getEmbedScriptFileName,
   resolveChatPreviewFromInbox,
   resolveChatPreviewTemplate,
@@ -245,11 +245,7 @@ export function AllowedDomainsTagsInput({
               commitDraft();
               return;
             }
-            if (
-              event.key === "Backspace" &&
-              !draft &&
-              domains.length > 0
-            ) {
+            if (event.key === "Backspace" && !draft && domains.length > 0) {
               removeDomain(domains[domains.length - 1]!);
             }
           }}
@@ -389,6 +385,24 @@ export function WebsiteChatPreview({
   const scriptLines = useMemo(() => scriptText.split("\n"), [scriptText]);
   const scriptFileName = getEmbedScriptFileName(previewVariant);
 
+  const sandboxScripts = useMemo(
+    () =>
+      CHAT_PREVIEW_VARIANT_OPTIONS.map((item) => ({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        srcDoc: buildWidgetSandboxSrcDoc(
+          buildChatEmbedScript(item.id, {
+            baseScript: script,
+            template: resolveChatPreviewTemplate(item.id, inboxRecord),
+            data: previewData,
+            widgetAssetsOrigin,
+          }),
+        ),
+      })),
+    [inboxRecord, previewData, script, widgetAssetsOrigin],
+  );
+
   const handleCopy = async () => {
     if (!embedScript.trim()) {
       toast.error("Chưa có script nhúng");
@@ -416,8 +430,8 @@ export function WebsiteChatPreview({
             <div className="mb-3 space-y-0.5">
               <h3 className="text-sm font-medium">Widget & nhúng</h3>
               <p className="text-xs text-muted-foreground">
-                Một đoạn script duy nhất — copy dán vào website là đủ (không tách
-                config / loader).
+                Một đoạn script duy nhất — copy dán vào website là đủ (không
+                tách config / loader).
               </p>
             </div>
             <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b-0 bg-transparent p-0">
@@ -437,22 +451,22 @@ export function WebsiteChatPreview({
           </div>
 
           <TabsContent value="widget" className="mt-0 flex-1 p-4 outline-none">
-            <div className="space-y-3 rounded-xl bg-[#f4f4f5] p-4">
-              <div className="space-y-1.5">
-                <p className="text-xs font-medium text-foreground/90">
-                  Khung chat tuỳ chỉnh
-                </p>
-                <ChatPreviewVariantSelect
-                  value={previewVariant}
-                  onChange={setPreviewVariant}
+            <WebPreview
+              className="min-h-128 overflow-hidden rounded-xl"
+              scripts={sandboxScripts}
+              defaultScriptId={previewVariant}
+              onScriptChange={(id) =>
+                setPreviewVariant(id as ChatPreviewVariantId)
+              }
+            >
+              <WebPreviewNavigation className="gap-2 p-3">
+                <WebPreviewScript
+                  className="w-full"
+                  placeholder="Chọn script widget"
                 />
-                <p className="text-[11px] text-muted-foreground">
-                  {previewTemplate.description}
-                </p>
-              </div>
-
-              <ChatPreviewFrame variantId={previewVariant} data={previewData} />
-            </div>
+              </WebPreviewNavigation>
+              <WebPreviewBody className="min-h-112 bg-[#f4f4f5]" />
+            </WebPreview>
           </TabsContent>
 
           <TabsContent
@@ -465,7 +479,7 @@ export function WebsiteChatPreview({
                   <span className="size-2.5 shrink-0 rounded-full bg-[#ff5f57]" />
                   <span className="size-2.5 shrink-0 rounded-full bg-[#febc2e]" />
                   <span className="size-2.5 shrink-0 rounded-full bg-[#28c840]" />
-                  <span className="ml-1 truncate font-mono text-[11px] text-[#cccccc]">
+                  <span className="ml-1 truncate text-xs text-[#cccccc]">
                     {scriptFileName}
                   </span>
                 </div>
@@ -487,12 +501,12 @@ export function WebsiteChatPreview({
               </div>
 
               <div className="flex min-h-0 flex-1 overflow-auto">
-                <div className="sticky left-0 shrink-0 border-r border-[#2b2b2b] bg-[#1e1e1e] px-3 py-3 text-right font-mono text-[11px] leading-5 text-[#858585] select-none">
+                <div className="sticky left-0 shrink-0 border-r border-[#2b2b2b] bg-[#1e1e1e] px-3 py-3 text-right text-xs leading-5 text-[#858585] select-none">
                   {scriptLines.map((_, index) => (
                     <div key={index}>{index + 1}</div>
                   ))}
                 </div>
-                <pre className="min-w-0 flex-1 overflow-x-auto p-3 font-mono text-[11px] leading-5 text-[#d4d4d4]">
+                <pre className="min-w-0 flex-1 overflow-x-auto p-3 text-xs leading-5 text-[#d4d4d4]">
                   <code>{scriptText}</code>
                 </pre>
               </div>
