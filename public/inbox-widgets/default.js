@@ -57,6 +57,8 @@
     error: "",
     cableConnected: false,
     showEmojiPanel: false,
+    /** Chỉ hiện typing khi biết inbox/conversation có bot trả lời. */
+    botReplyEnabled: false,
     /** [{ id, label }] — ưu tiên từ GET personas */
     quickReplies: Array.isArray(config.quickReplies)
       ? config.quickReplies
@@ -156,6 +158,7 @@
           hasConversation: !!state.hasConversation,
           pubsubToken: state.pubsubToken || "",
           accountId: state.accountId,
+          botReplyEnabled: !!state.botReplyEnabled,
         }),
       );
     } catch (error) {
@@ -183,6 +186,7 @@
       state.hasConversation = !!saved.hasConversation;
       state.pubsubToken = saved.pubsubToken || "";
       if (saved.accountId != null) state.accountId = saved.accountId;
+      state.botReplyEnabled = !!saved.botReplyEnabled;
       state.authToken = sessionStorage.getItem(AUTH_KEY) || "";
       if (state.chatReady) {
         state.showQuickReplies = false;
@@ -220,6 +224,7 @@
     state.submittedContact = { name: "", email: "", phone: "" };
     state.selectedPersonaId = "";
     state.sessionRestored = false;
+    state.botReplyEnabled = false;
     state._clientSessionId = "";
     try {
       sessionStorage.removeItem(AUTH_KEY);
@@ -685,6 +690,7 @@
         if (captureNode) {
           state.contactCapture = normalizeContactCapture(captureNode);
         }
+        applyBotReplyFromPayload(body);
         state.loadingPersonas = false;
         return state.quickReplies;
       })
@@ -1232,8 +1238,128 @@
     };
   }
 
-  /** Bật indicator "đang suy nghĩ" — tự tắt sau 60s nếu bot không trả lời. */
+  function looksLikeBotType(value) {
+    var type = String(value || "").toLowerCase();
+    return (
+      type === "bot" || type === "agent_bot" || type.indexOf("agent_bot") !== -1
+    );
+  }
+
+  function isBotSender(raw) {
+    if (!raw || typeof raw !== "object") return false;
+    if (looksLikeBotType(raw.sender_type)) {
+      return true;
+    }
+    var sender = raw.sender;
+    if (sender && typeof sender === "object") {
+      if (
+        looksLikeBotType(sender.type) ||
+        looksLikeBotType(sender.sender_type) ||
+        sender.bot === true ||
+        sender.agent_bot === true
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * true = có bot trả lời, false = chắc chắn không, null = không rõ.
+   * Typing chỉ hiện khi true.
+   */
+  function detectBotReplyEnabled(value, depth) {
+    if (depth > 6 || !value || typeof value !== "object") return null;
+    if (Array.isArray(value)) {
+      for (var i = 0; i < value.length; i++) {
+        if (detectBotReplyEnabled(value[i], depth + 1) === true) return true;
+      }
+      return null;
+    }
+
+    var rec = value;
+    var flagKeys = [
+      "bot_reply_enabled",
+      "botReplyEnabled",
+      "chatbot_enabled",
+      "chatbotEnabled",
+      "bot_enabled",
+      "botEnabled",
+      "agent_bot_enabled",
+      "agentBotEnabled",
+    ];
+    for (var f = 0; f < flagKeys.length; f++) {
+      if (rec[flagKeys[f]] === false) return false;
+      if (isTruthyFlag(rec[flagKeys[f]])) return true;
+    }
+
+    if (rec.agent_bot === false || rec.agentBot === false) return false;
+    if (rec.agent_bot || rec.agentBot || rec.agent_bot_id || rec.agentBotId) {
+      return true;
+    }
+
+    var assignee = rec.assignee || (rec.meta && rec.meta.assignee) || null;
+    if (assignee && typeof assignee === "object") {
+      if (
+        looksLikeBotType(assignee.type) ||
+        looksLikeBotType(assignee.assignee_type)
+      ) {
+        return true;
+      }
+    }
+
+    if (isBotSender(rec)) return true;
+
+    var nestedKeys = [
+      "data",
+      "inbox",
+      "channel",
+      "messaging",
+      "meta",
+      "payload",
+      "config",
+      "website_channel_config",
+    ];
+    for (var k = 0; k < nestedKeys.length; k++) {
+      var nested = detectBotReplyEnabled(rec[nestedKeys[k]], depth + 1);
+      if (nested === true) return true;
+    }
+    return null;
+  }
+
+  function applyBotReplyFromPayload(data) {
+    var detected = detectBotReplyEnabled(data, 0);
+    if (detected === true && !state.botReplyEnabled) {
+      state.botReplyEnabled = true;
+      persistTabSession();
+      dlog("Bot trả lời: BẬT", data);
+    }
+  }
+
+  function shouldAwaitBotReply() {
+    if (
+      config.botReplyEnabled === false ||
+      config.chatbotEnabled === false ||
+      config.chatbot_enabled === false
+    ) {
+      return false;
+    }
+    if (
+      isTruthyFlag(config.botReplyEnabled) ||
+      isTruthyFlag(config.chatbotEnabled) ||
+      isTruthyFlag(config.chatbot_enabled)
+    ) {
+      return true;
+    }
+    return state.botReplyEnabled === true;
+  }
+
+  /** Bật indicator "đang suy nghĩ" — chỉ khi bot được kích hoạt trả lời. */
   function startAwaitingReply() {
+    if (!shouldAwaitBotReply()) {
+      stopAwaitingReply();
+      return;
+    }
     state.awaitingReply = true;
     if (awaitingReplyTimer) window.clearTimeout(awaitingReplyTimer);
     awaitingReplyTimer = window.setTimeout(function () {
@@ -1263,6 +1389,7 @@
       map[String(item.id)] = item;
     });
     (list || []).forEach(function (item) {
+      if (isBotSender(item)) applyBotReplyFromPayload(item);
       var normalized = normalizeMessage(item);
       if (!normalized) return;
       map[String(normalized.id)] = normalized;
@@ -1360,6 +1487,7 @@
       var fromMsg = extractAccountId(data.messages[0]);
       if (fromMsg != null) state.accountId = fromMsg;
     }
+    applyBotReplyFromPayload(data);
     persistTabSession();
   }
 
@@ -2624,6 +2752,7 @@
     if (!restored) {
       resetSessionForNewVisit();
     }
+    applyBotReplyFromPayload(config);
 
     var root = document.createElement("div");
     root.id = ROOT_ID;

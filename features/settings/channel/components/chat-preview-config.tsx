@@ -59,7 +59,8 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
   "fsel-techie": {
     id: "fsel-techie",
     label: "FSEL · Trợ lý Techie",
-    description: "Khung chat tuỳ chỉnh cho FSEL với quick reply và quota.",
+    description:
+      "Khung chat tuỳ chỉnh cho FSEL với phản hồi nhanh và giới hạn sử dụng.",
     client: "FSEL",
     assistantName: "Trợ lý Techie",
     greetingMessage: "👋 Chào bạn, mình là Techie - Trợ lý ảo của FSEL.",
@@ -75,7 +76,7 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
     id: "omni-default",
     label: "Omni mặc định",
     description:
-      "Widget overlay chung: persona auto-select, form contact_capture, giữ phiên khi reload.",
+      "Widget phủ chung: tự động chọn tác nhân, thu thập thông tin liên hệ.",
     assistantName: "Hỗ trợ",
     greetingMessage: "Xin chào! Chúng tôi có thể giúp gì cho bạn?",
     inputPlaceholder: "Nhập tin nhắn...",
@@ -87,8 +88,8 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
   },
   "chatwoot-default": {
     id: "chatwoot-default",
-    label: "Chatwoot mặc định",
-    description: "Widget chat chuẩn từ script Chatwoot.",
+    label: "Widget mặc định",
+    description: "Widget mặc định ban đầu với các tính năng cơ bản.",
     assistantName: "Hỗ trợ",
     greetingMessage: "Xin chào! Chúng tôi có thể giúp gì cho bạn?",
     inputPlaceholder: "Nhập tin nhắn...",
@@ -97,7 +98,8 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
   },
 };
 
-export const DEFAULT_CHAT_PREVIEW_VARIANT: ChatPreviewVariantId = "fsel-techie";
+export const DEFAULT_CHAT_PREVIEW_VARIANT: ChatPreviewVariantId =
+  "omni-default";
 
 /** Màu thương hiệu FSEL — đồng bộ logo (#6E85FA, #AAB9FD). */
 const FSEL_THEME = {

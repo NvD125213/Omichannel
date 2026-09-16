@@ -120,7 +120,10 @@ function ConversationListStatusBadge({
               style.border,
             )}
           >
-            <span className={cn("size-1.5 rounded-full", style.dot)} aria-hidden />
+            <span
+              className={cn("size-1.5 rounded-full", style.dot)}
+              aria-hidden
+            />
             {conversationStatusLabel(value)}
           </span>
         );
@@ -809,12 +812,7 @@ export function Chat() {
         teamId: sidebarTeamId,
         label: sidebarLabel,
       }),
-    [
-      sidebarConversationAssignee,
-      sidebarInboxId,
-      sidebarTeamId,
-      sidebarLabel,
-    ],
+    [sidebarConversationAssignee, sidebarInboxId, sidebarTeamId, sidebarLabel],
   );
 
   const listFilterRequest = useMemo((): FilterConversationsRequest => {
@@ -1538,7 +1536,7 @@ export function Chat() {
                   tenantId={tenantId}
                   conversationId={selectedConversation}
                   onSendMessage={handleSendMessage}
-                  placeholder={`Message ${currentConversation?.name || ""}...`}
+                  placeholder={`Nhắn tin cho ${currentConversation?.name || ""}...`}
                   replyDraft={replyDraft}
                   onClearReply={() => setReplyDraft(null)}
                   onBeforeSend={handleBeforeSend}

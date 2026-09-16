@@ -2,14 +2,15 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
   Form,
   FormControl,
@@ -20,9 +21,9 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
 import type { Customer } from "@/services/customer/service";
 import {
   useCreateCustomer,
@@ -35,6 +36,8 @@ import {
   CustomerFormValues,
   customerDefaultValues,
   customerFormSchema,
+  metadataEntriesToRecord,
+  metadataRecordToEntries,
 } from "../utils/schema";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -51,6 +54,9 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useGetTags } from "@/hooks/tag/use-tag-ticket";
+
+const FIELD_CLASS =
+  "h-9 rounded-md border-neutral-300 bg-background text-foreground shadow-none placeholder:text-neutral-400";
 
 interface CustomerFormDialogProps {
   customer?: Customer | null;
@@ -75,7 +81,6 @@ export function CustomerFormDialog({
   const updateCustomerMutation = useUpdateCustomer();
   const removeCustomerTagMutation = useRemoveCustomerTag();
 
-  // Lấy thông tin user hiện tại để auto-fill tenant_id
   const { data: currentUser } = useMe();
 
   const [tagPopoverOpen, setTagPopoverOpen] = useState(false);
@@ -86,14 +91,17 @@ export function CustomerFormDialog({
     defaultValues: customerDefaultValues,
   });
 
-  // Auto-populate tenant_id khi tạo mới
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "metadata_entries",
+  });
+
   useEffect(() => {
     if (currentUser?.tenant_id && !isEditMode && open) {
       form.setValue("tenant_id", currentUser.tenant_id);
     }
   }, [currentUser, form, isEditMode, open]);
 
-  // Populate form khi edit
   useEffect(() => {
     if (customer && open) {
       const formData: CustomerFormValues = {
@@ -103,6 +111,7 @@ export function CustomerFormDialog({
         phone: customer.phone,
         tenant_id: customer.tenant_id,
         tag_ids: customer.tag_ids ?? [],
+        metadata_entries: metadataRecordToEntries(customer.meta_data),
       };
       form.reset(formData);
       setInitialTagIds(customer.tag_ids ?? []);
@@ -110,14 +119,20 @@ export function CustomerFormDialog({
       form.reset({
         ...customerDefaultValues,
         tenant_id: currentUser?.tenant_id || "",
+        metadata_entries: [{ key: "", value: "" }],
       });
       setInitialTagIds([]);
     }
   }, [customer, open, form, currentUser]);
 
   function onSubmit(data: CustomerFormValues) {
-    const cleaned = removeEmptyFields(data) as CustomerFormValues;
-    const { id, ...payload } = cleaned;
+    const { id, metadata_entries, ...rest } = data;
+    const payload = removeEmptyFields({
+      ...rest,
+      meta_data: metadataEntriesToRecord(metadata_entries),
+    }) as Omit<CustomerFormValues, "id" | "metadata_entries"> & {
+      meta_data: Record<string, string>;
+    };
 
     if (isEditMode && (customer?.id || id)) {
       const targetId = customer?.id || id!;
@@ -146,45 +161,58 @@ export function CustomerFormDialog({
     }
   }
 
-  // Get tags
   const { data: tagCustomerData } = useGetTags({
     tag_type: "customer",
   });
   const availableTags = tagCustomerData?.data.tags ?? [];
+  const isPending = isEditMode
+    ? updateCustomerMutation.isPending
+    : createCustomerMutation.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {/* Only show trigger button when not controlled */}
+    <Sheet open={open} onOpenChange={setOpen}>
       {!isControlled && (
-        <DialogTrigger asChild>
+        <SheetTrigger asChild>
           <Button className="cursor-pointer">
             <Plus className="size-4" />
             Thêm khách hàng
           </Button>
-        </DialogTrigger>
+        </SheetTrigger>
       )}
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>
+      <SheetContent
+        side="right"
+        className="gap-0 bg-background p-0 shadow-none sm:max-w-xl"
+      >
+        <SheetHeader className="border-b border-neutral-200 px-4 py-4 text-left">
+          <SheetTitle className="text-foreground">
             {isEditMode ? "Sửa khách hàng" : "Thêm khách hàng"}
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription className="text-neutral-600">
             {isEditMode
-              ? "Cập nhật thông tin khách hàng. Nhấn lưu khi hoàn tất."
-              : "Tạo khách hàng mới. Nhấn lưu khi hoàn tất."}
-          </DialogDescription>
-        </DialogHeader>
+              ? "Cập nhật thông tin và metadata khách hàng."
+              : "Tạo khách hàng mới kèm các trường chi tiết (key / value)."}
+          </SheetDescription>
+        </SheetHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="flex-1 space-y-4 overflow-y-auto p-4">
               <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tên khách hàng</FormLabel>
+                    <FormLabel className="text-foreground">
+                      Tên khách hàng
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Nhập tên khách hàng" {...field} />
+                      <Input
+                        placeholder="Nhập tên khách hàng"
+                        className={FIELD_CLASS}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -195,25 +223,32 @@ export function CustomerFormDialog({
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-foreground">Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Nhập email khách hàng" {...field} />
+                      <Input
+                        placeholder="Nhập email khách hàng"
+                        className={FIELD_CLASS}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số điện thoại</FormLabel>
+                    <FormLabel className="text-foreground">
+                      Số điện thoại
+                    </FormLabel>
                     <FormControl>
-                      <Input placeholder="Nhập số điện thoại" {...field} />
+                      <Input
+                        placeholder="Nhập số điện thoại"
+                        className={FIELD_CLASS}
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -227,7 +262,7 @@ export function CustomerFormDialog({
 
                   return (
                     <FormItem className="space-y-2">
-                      <FormLabel>Tags</FormLabel>
+                      <FormLabel className="text-foreground">Tags</FormLabel>
 
                       <Popover
                         open={tagPopoverOpen}
@@ -240,7 +275,7 @@ export function CustomerFormDialog({
                                 variant="outline"
                                 role="combobox"
                                 type="button"
-                                className="w-full justify-between font-normal"
+                                className="w-full justify-between border-neutral-300 bg-background font-normal text-foreground shadow-none"
                               >
                                 {selectedIds.length === 0
                                   ? "Chọn tags"
@@ -254,7 +289,7 @@ export function CustomerFormDialog({
                         <PopoverContent
                           align="start"
                           sideOffset={4}
-                          className="w-full p-0"
+                          className="w-(--radix-popover-trigger-width) p-0"
                         >
                           <Command>
                             <CommandInput placeholder="Tìm tag..." />
@@ -322,7 +357,6 @@ export function CustomerFormDialog({
                           </Command>
                         </PopoverContent>
                       </Popover>
-                      {/* selected tags */}
                       {selectedIds.length > 0 && (
                         <div className="flex flex-wrap gap-2 pt-1">
                           {selectedIds.map((tagId) => {
@@ -336,7 +370,6 @@ export function CustomerFormDialog({
                                 (id) => id !== tagId,
                               );
 
-                              // Chỉ gọi API xóa tag khi đang edit và tag tồn tại ban đầu
                               if (
                                 isEditMode &&
                                 customer?.id &&
@@ -396,30 +429,120 @@ export function CustomerFormDialog({
                   );
                 }}
               />
+
+              <section className="space-y-3">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-medium text-foreground">
+                    Thông tin chi tiết
+                  </h3>
+                  <p className="text-xs text-neutral-600">
+                    Lưu customer detail vào metadata (chỉ key và value). Không
+                    thêm thông tin nhạy cảm.
+                  </p>
+                </div>
+                <div className="grid grid-cols-[3fr_7fr_auto] items-center gap-2 text-xs font-medium text-neutral-600">
+                  <span>Trường thông tin</span>
+                  <span>Giá trị</span>
+                  <span className="w-8" />
+                </div>
+                {fields.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="grid grid-cols-[3fr_7fr_auto] items-start gap-2"
+                  >
+                    <FormField
+                      control={form.control}
+                      name={`metadata_entries.${index}.key`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Ví dụ: Nghể nghiệp"
+                              className={FIELD_CLASS}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`metadata_entries.${index}.value`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Ví dụ: Lập trình viên"
+                              className={FIELD_CLASS}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-9 shrink-0 text-neutral-500 hover:text-destructive"
+                      onClick={() => {
+                        if (fields.length === 1) {
+                          form.setValue("metadata_entries", [
+                            { key: "", value: "" },
+                          ]);
+                          return;
+                        }
+                        remove(index);
+                      }}
+                      aria-label="Xóa trường"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-neutral-300 bg-background shadow-none"
+                  onClick={() => append({ key: "", value: "" })}
+                >
+                  <Plus className="size-4" />
+                  Thêm trường
+                </Button>
+                {form.formState.errors.metadata_entries?.message ? (
+                  <p className="text-xs text-destructive">
+                    {form.formState.errors.metadata_entries.message}
+                  </p>
+                ) : null}
+              </section>
             </div>
 
-            <DialogFooter>
-              <Button
-                type="submit"
-                className="cursor-pointer"
-                disabled={
-                  isEditMode
-                    ? updateCustomerMutation.isPending
-                    : createCustomerMutation.isPending
-                }
-              >
+            <SheetFooter className="mt-0 flex-row justify-end border-t border-neutral-200">
+              <SheetClose asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-neutral-300 bg-background shadow-none"
+                >
+                  Hủy
+                </Button>
+              </SheetClose>
+              <Button type="submit" disabled={isPending}>
                 {isEditMode
-                  ? updateCustomerMutation.isPending
+                  ? isPending
                     ? "Đang cập nhật..."
-                    : "Cập nhật khách hàng"
-                  : createCustomerMutation.isPending
+                    : "Cập nhật"
+                  : isPending
                     ? "Đang lưu..."
-                    : "Lưu khách hàng"}
+                    : "Lưu"}
               </Button>
-            </DialogFooter>
+            </SheetFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

@@ -82,8 +82,7 @@ export function ChatContactUpsertDialog({
         <DialogHeader>
           <DialogTitle>Cập nhật thông tin liên hệ</DialogTitle>
           <DialogDescription>
-            Ghi name / email / SĐT lên Contact Chatwoot. List chat đọc tên
-            thật từ Contact, không lưu nhãn giả phía FE.
+            Thông tin được lấy từ form đăng nhập của người dùng
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -93,7 +92,7 @@ export function ChatContactUpsertDialog({
               id="contact-upsert-name"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="Nguyễn Văn A"
+              placeholder="Chưa có"
               disabled={upsertContact.isPending}
             />
           </div>
@@ -104,7 +103,7 @@ export function ChatContactUpsertDialog({
               type="tel"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
-              placeholder="0901234567"
+              placeholder="Chưa có"
               disabled={upsertContact.isPending}
             />
           </div>
@@ -115,7 +114,7 @@ export function ChatContactUpsertDialog({
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="email@example.com"
+              placeholder="Chưa có"
               disabled={upsertContact.isPending}
             />
           </div>
@@ -128,7 +127,10 @@ export function ChatContactUpsertDialog({
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={upsertContact.isPending || !tenantId}>
+            <Button
+              type="submit"
+              disabled={upsertContact.isPending || !tenantId}
+            >
               {upsertContact.isPending ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
