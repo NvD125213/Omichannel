@@ -375,9 +375,9 @@
   function normalizeContactCapture(raw) {
     var rec = asRecord(raw);
     var fieldDefs = [
-      { key: "name", label: "Họ và tên", required: true },
-      { key: "phone", label: "Số điện thoại", required: true },
-      { key: "email", label: "Email", required: false },
+      { key: "name", label: "Họ và tên" },
+      { key: "phone", label: "Số điện thoại" },
+      { key: "email", label: "Email" },
     ];
     var byKey = {};
     var list = rec && Array.isArray(rec.fields) ? rec.fields : [];
@@ -405,12 +405,8 @@
           : "Vui lòng để lại thông tin để chúng tôi hỗ trợ bạn tốt hơn.",
       fields: fieldDefs.map(function (item) {
         var row = byKey[item.key];
-        var enabled =
-          row && typeof row.enabled === "boolean" ? row.enabled : true;
-        var required =
-          row && typeof row.required === "boolean"
-            ? row.required
-            : item.required;
+        var enabled = Boolean(row) && row.enabled !== false;
+        var required = enabled && row && row.required === true;
         return {
           key: item.key,
           label:
@@ -418,7 +414,7 @@
               ? row.label.trim()
               : item.label,
           enabled: enabled,
-          required: enabled ? required : false,
+          required: required,
         };
       }),
     };
@@ -448,7 +444,27 @@
     });
   }
 
-  /** Chỉ hiện form overlay khi contact_capture.enabled === true. */
+  function hasContactValues(values) {
+    var v = values || {};
+    return Boolean(
+      String(v.name || "").trim() ||
+      String(v.email || "").trim() ||
+      String(v.phone || "").trim(),
+    );
+  }
+
+  function applySubmittedContact(values) {
+    var v = values || {};
+    state.submittedContact = {
+      name: String(v.name || "").trim(),
+      email: String(v.email || "").trim(),
+      phone: String(v.phone || "").trim(),
+    };
+    state.contactSubmitted = true;
+    persistTabSession();
+  }
+
+  /** Chỉ hiện form overlay khi bật thu thập VÀ còn ít nhất 1 trường đang hiện. */
   function overlayNeedsContactForm(policy) {
     if (!policy || policy.enabled !== true) return false;
     return enabledContactFields(policy).length > 0;
@@ -703,6 +719,12 @@
 
   /** POST /public/live-chat/:token/contact — Redis pending trước setUser. */
   function submitLiveChatContact(values) {
+    if (!hasContactValues(values)) {
+      applySubmittedContact(values);
+      dlog("B0b. Bỏ POST /contact — không có name/email/phone, vẫn vào chat");
+      return Promise.resolve(null);
+    }
+
     var base = omniApiBase();
     if (!base || !config.websiteToken) {
       return Promise.reject(
@@ -1020,6 +1042,25 @@
   }
 
   /**
+   * Chatwoot $chatwoot.setUser(id, user) bắt buộc user có ít nhất một trong
+   * [name, email, avatar_url]. Form liên hệ có thể tắt / chỉ thu SĐT → object
+   * rỗng sẽ ném lỗi đỏ trên console. Không dùng nhãn persona làm name.
+   */
+  function buildChatwootUserAttrs() {
+    var contact = state.submittedContact || {};
+    var name = String(contact.name || "").trim();
+    var email = String(contact.email || "").trim();
+    var attrs = {};
+    if (name) attrs.name = name;
+    if (email) attrs.email = email;
+    if (!attrs.name && !attrs.email) {
+      // SDK chỉ kiểm tra CÓ KEY, không bắt giá trị — không ghi tên giả lên Contact
+      attrs.avatar_url = "";
+    }
+    return attrs;
+  }
+
+  /**
    * POST select → reset phiên SDK cũ → widget ready → setUser(client_session_id)
    * → REST dùng chung token SDK (cookie cw_conversation) → mới mở chat (chatReady).
    * Đảm bảo conversation nằm trên contact có identifier = oh_sess_… (không tách 2 contact).
@@ -1100,19 +1141,13 @@
             return undefined;
           })
           .then(function () {
-            // 4) setUser với client_session_id từ response select
+            // 4) setUser — SDK bắt buộc user object có name | email | avatar_url
+            var userAttrs = buildChatwootUserAttrs();
             dlog("B5. Gọi $chatwoot.setUser", {
               identifier: sessionId,
-              name: state.submittedContact.name || "(không gửi name)",
-              email: state.submittedContact.email || "(không gửi email)",
+              name: userAttrs.name || "(không gửi name)",
+              email: userAttrs.email || "(không gửi email)",
             });
-            var userAttrs = {};
-            if (state.submittedContact.name) {
-              userAttrs.name = state.submittedContact.name;
-            }
-            if (state.submittedContact.email) {
-              userAttrs.email = state.submittedContact.email;
-            }
             window.$chatwoot.setUser(sessionId, userAttrs);
             state._clientSessionId = sessionId;
 

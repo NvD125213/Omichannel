@@ -436,8 +436,7 @@ export function CustomerFormDialog({
                     Thông tin chi tiết
                   </h3>
                   <p className="text-xs text-neutral-600">
-                    Lưu customer detail vào metadata (chỉ key và value). Không
-                    thêm thông tin nhạy cảm.
+                    Lưu thêm các trường thông tin chi tiết khách hàng.
                   </p>
                 </div>
                 <div className="grid grid-cols-[3fr_7fr_auto] items-center gap-2 text-xs font-medium text-neutral-600">
