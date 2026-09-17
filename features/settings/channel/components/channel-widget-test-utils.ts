@@ -127,3 +127,43 @@ export function injectEmbedScript(embedScript: string) {
     injectedScripts.forEach((script) => script.remove());
   };
 }
+
+/** Xóa sessionStorage / cookie Chatwoot của widget preview để test lại từ đầu. */
+export function clearWidgetPreviewSession() {
+  const shouldClear = (key: string) =>
+    key === "cw_conversation" ||
+    key.startsWith("cw_user_") ||
+    key.startsWith("cw_") ||
+    key.startsWith("omni_default_") ||
+    key.startsWith("omni_fsel");
+
+  const sweep = (store: Storage) => {
+    const keys: string[] = [];
+    for (let i = 0; i < store.length; i += 1) {
+      const key = store.key(i);
+      if (key) keys.push(key);
+    }
+    keys.forEach((key) => {
+      if (shouldClear(key)) store.removeItem(key);
+    });
+  };
+
+  try {
+    sweep(sessionStorage);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sweep(localStorage);
+  } catch {
+    /* ignore */
+  }
+
+  const expire = "expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+  document.cookie.split(";").forEach((part) => {
+    const name = part.split("=")[0]?.trim();
+    if (!name || !shouldClear(name)) return;
+    document.cookie = `${name}=;${expire}`;
+    document.cookie = `${name}=;${expire};domain=${window.location.hostname}`;
+  });
+}

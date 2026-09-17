@@ -44,6 +44,7 @@ export type WebPreviewContextValue = {
   scriptId: string;
   setScriptId: (id: string) => void;
   selectedScript: WebPreviewScriptOption | null;
+  reloadKey: string | number;
 };
 
 const WebPreviewContext = createContext<WebPreviewContextValue | null>(null);
@@ -62,6 +63,8 @@ export type WebPreviewProps = ComponentProps<"div"> & {
   scripts?: WebPreviewScriptOption[];
   defaultScriptId?: string;
   onScriptChange?: (id: string) => void;
+  /** Đổi giá trị này để iframe preview tải lại (reset phiên widget). */
+  reloadKey?: string | number;
 };
 
 export const WebPreview = ({
@@ -72,6 +75,7 @@ export const WebPreview = ({
   scripts = [],
   defaultScriptId = "",
   onScriptChange,
+  reloadKey = 0,
   ...props
 }: WebPreviewProps) => {
   const [url, setUrl] = useState(defaultUrl);
@@ -111,6 +115,7 @@ export const WebPreview = ({
     scriptId: selectedScript?.id ?? scriptId,
     setScriptId,
     selectedScript,
+    reloadKey,
   };
 
   return (
@@ -267,7 +272,7 @@ export const WebPreviewBody = ({
   srcDoc,
   ...props
 }: WebPreviewBodyProps) => {
-  const { url, selectedScript } = useWebPreview();
+  const { url, selectedScript, reloadKey } = useWebPreview();
   const iframeSrcDoc = srcDoc ?? selectedScript?.srcDoc;
   const iframeSrc = iframeSrcDoc
     ? undefined
@@ -276,7 +281,7 @@ export const WebPreviewBody = ({
   return (
     <div className="relative min-h-0 flex-1">
       <iframe
-        key={selectedScript?.id ?? iframeSrc ?? iframeSrcDoc}
+        key={`${selectedScript?.id ?? "preview"}-${reloadKey}`}
         className={cn("size-full", className)}
         sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
         src={iframeSrc}

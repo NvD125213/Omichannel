@@ -1044,10 +1044,29 @@
   }
 
   /**
-   * Chatwoot hasUserKeys = key ∈ [name, email, avatar_url] VÀ giá trị truthy.
-   * Chuỗi rỗng bị lọc → object coi như {} → ném lỗi đỏ. Luôn gửi name khác rỗng.
+   * Tên khách khi không điền form: {tên livechat} #{mã phiên}.
+   * Mã lấy từ client_session_id nên ổn định trong tab, khác nhau giữa các khách.
    */
-  var GUEST_DISPLAY_NAME = "Khách";
+  function guestDisplayName() {
+    var livechat = String(
+      config.inboxName ||
+        config.inbox_name ||
+        config.channelName ||
+        config.welcomeTitle ||
+        config.assistantName ||
+        "Livechat",
+    ).trim();
+    if (!livechat) livechat = "Livechat";
+    var session = String(getClientSessionId() || "").replace(
+      /[^a-zA-Z0-9]/g,
+      "",
+    );
+    var code = session.slice(-6).toUpperCase();
+    if (code.length < 4) {
+      code = (Date.now().toString(36) + "0000").slice(-6).toUpperCase();
+    }
+    return livechat + " #" + code;
+  }
 
   function truthyChatwootUserAttrs(raw) {
     var src = raw && typeof raw === "object" ? raw : {};
@@ -1059,7 +1078,7 @@
     if (email) attrs.email = email;
     if (avatar) attrs.avatar_url = avatar;
     if (!attrs.name && !attrs.email && !attrs.avatar_url) {
-      attrs.name = GUEST_DISPLAY_NAME;
+      attrs.name = guestDisplayName();
     }
     return attrs;
   }
@@ -1084,7 +1103,7 @@
         return original.call(api, id, attrs);
       } catch (error) {
         try {
-          return original.call(api, String(id), { name: GUEST_DISPLAY_NAME });
+          return original.call(api, String(id), { name: guestDisplayName() });
         } catch (retryError) {
           console.warn("[omni-default] setUser:", retryError);
         }
@@ -1888,9 +1907,12 @@
       x_auth_token: maskToken(state.authToken),
       contact_identifier_gui_len: getClientSessionId(),
     });
+    var contactName = String(
+      (state.submittedContact && state.submittedContact.name) || "",
+    ).trim();
     return request("POST", "/api/v1/widget/conversations", {
       contact: {
-        name: (state.submittedContact && state.submittedContact.name) || "",
+        name: contactName || guestDisplayName(),
         identifier: getClientSessionId(),
       },
       message: {

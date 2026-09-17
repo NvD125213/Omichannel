@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Check, Copy, MessageSquare, Plus, X } from "lucide-react";
+import { Check, Copy, MessageSquare, Plus, RotateCcw, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
   type ChatPreviewFormSource,
   type ChatPreviewVariantId,
 } from "../chat-preview-config";
+import { clearWidgetPreviewSession } from "../channel-widget-test-utils";
 
 export const REPLY_TIME_OPTIONS = [
   { value: "in_a_few_minutes", label: "Trong vài phút" },
@@ -346,6 +347,7 @@ export function WebsiteChatPreview({
   script: string;
 }) {
   const [previewTab, setPreviewTab] = useState("widget");
+  const [previewSession, setPreviewSession] = useState(0);
   const resolved = useMemo(
     () => resolveChatPreviewFromInbox(inboxRecord, formValues),
     [formValues, inboxRecord],
@@ -418,6 +420,12 @@ export function WebsiteChatPreview({
     }
   };
 
+  const handleResetPreviewSession = () => {
+    clearWidgetPreviewSession();
+    setPreviewSession((value) => value + 1);
+    toast.success("Đã reset phiên test widget");
+  };
+
   return (
     <aside className="flex h-full min-h-0 min-w-0 flex-col">
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border/70 bg-background">
@@ -430,8 +438,8 @@ export function WebsiteChatPreview({
             <div className="mb-3 space-y-0.5">
               <h3 className="text-sm font-medium">Widget & nhúng</h3>
               <p className="text-xs text-muted-foreground">
-                Một đoạn script duy nhất — copy dán vào website là đủ (không
-                tách config / loader).
+                Xem trước và sao chép script nhúng để thêm vào website bạn cần
+                cấu hình.
               </p>
             </div>
             <TabsList className="h-auto w-full justify-start gap-1 rounded-none border-b-0 bg-transparent p-0">
@@ -455,15 +463,26 @@ export function WebsiteChatPreview({
               className="min-h-128 overflow-hidden rounded-xl"
               scripts={sandboxScripts}
               defaultScriptId={previewVariant}
+              reloadKey={previewSession}
               onScriptChange={(id) =>
                 setPreviewVariant(id as ChatPreviewVariantId)
               }
             >
               <WebPreviewNavigation className="gap-2 p-3">
                 <WebPreviewScript
-                  className="w-full"
+                  className="min-w-0 flex-1"
                   placeholder="Chọn script widget"
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-10 shrink-0 gap-1.5 px-3"
+                  onClick={handleResetPreviewSession}
+                >
+                  <RotateCcw className="size-3.5" />
+                  Reset phiên
+                </Button>
               </WebPreviewNavigation>
               <WebPreviewBody className="min-h-112 bg-[#f4f4f5]" />
             </WebPreview>
