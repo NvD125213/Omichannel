@@ -994,13 +994,26 @@
   }
 
   /**
-   * POST select → reset phiên SDK cũ → widget ready → setUser(client_session_id)
-   * → REST dùng chung token SDK (cookie cw_conversation) → mới mở chat (chatReady).
-   * Đảm bảo conversation nằm trên contact có identifier = oh_sess_… (không tách 2 contact).
+   * POST select → load SDK lần đầu (sau form/persona) → setUser(client_session_id).
+   * Không preload SDK lúc mount: chatwootSDK.run() mint contact ẩn danh (haiku).
+   * Không reset() trên phiên vừa mint — reset() tạo thêm một contact ẩn danh nữa.
    */
   function activateChatAfterPersona(persona, selectPayload) {
     var sessionId = extractClientSessionId(selectPayload);
     dlog("B2. client_session_id dùng cho setUser:", sessionId);
+
+    var sdkAlreadyLoaded = Boolean(
+      window.$chatwoot && (window.$chatwoot.hasLoaded || state.chatwootReady),
+    );
+    if (!sdkAlreadyLoaded) {
+      var leftoverToken = readSdkAuthToken();
+      if (leftoverToken) {
+        dlog(
+          "B2. Xóa cookie SDK leftover trước khi run() — tránh resume contact ẩn danh cũ",
+        );
+        clearSdkStoredSession();
+      }
+    }
 
     return ensureChatwootSdk()
       .then(function () {
@@ -1014,10 +1027,10 @@
           throw new Error("Omni SDK chưa sẵn sàng (thiếu setUser).");
         }
 
-        // 1) Bỏ hẳn phiên REST ẩn danh cũ (nếu lỡ có) — không dùng token cũ nữa
         dlog("B3. Bỏ phiên REST cũ", {
           token_rest_cu: maskToken(state.authToken),
           da_co_conversation: state.hasConversation,
+          sdk_da_load_truoc: sdkAlreadyLoaded,
         });
         disconnectCable(true);
         clearFallbackPolls();
@@ -1027,20 +1040,22 @@
         state.hasConversation = false;
         state.messages = [];
 
-        // 2) Reset phiên SDK (xóa cw_conversation + reload iframe)
         var previousSdkToken = readSdkAuthToken();
         var didReset = false;
-        if (typeof window.$chatwoot.reset === "function") {
+        if (sdkAlreadyLoaded && typeof window.$chatwoot.reset === "function") {
           try {
             window.$chatwoot.reset();
             didReset = true;
           } catch (error) {
             console.warn("[fsel-techie] SDK reset:", error);
           }
+          clearSdkStoredSession();
         }
-        clearSdkStoredSession();
-        dlog("B4. Reset phiên SDK", {
+        dlog("B4. Phiên SDK", {
           da_goi_reset: didReset,
+          ly_do: didReset
+            ? "SDK đã chạy từ trước — reset rồi setUser"
+            : "run() lần đầu — không reset (tránh mint contact ẩn danh thứ hai)",
           token_sdk_truoc_reset: maskToken(previousSdkToken),
         });
 
@@ -2640,21 +2655,6 @@
     });
 
     render();
-
-    // Preload Omni SDK (ẩn) để sẵn sàng khi chọn persona
-    dlog("B0. Preload SDK…");
-    ensureChatwootSdk()
-      .then(function () {
-        return waitForChatwootReady(30000);
-      })
-      .then(function () {
-        dlog("B0. SDK preload xong, đã ready", {
-          cookie_cw_conversation: maskToken(readSdkAuthToken()),
-        });
-      })
-      .catch(function (error) {
-        console.warn("[fsel-techie] Omni SDK preload:", error);
-      });
 
     fetchLiveChatPersonas().then(function () {
       render();
