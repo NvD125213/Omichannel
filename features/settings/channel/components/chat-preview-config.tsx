@@ -75,8 +75,7 @@ export const CHAT_PREVIEW_TEMPLATES: Record<
   "omni-default": {
     id: "omni-default",
     label: "Omni mặc định",
-    description:
-      "Widget phủ chung: tự động chọn tác nhân, thu thập thông tin liên hệ.",
+    description: "Widget tự cấu hình với các tính năng bổ sung.",
     assistantName: "Hỗ trợ",
     greetingMessage: "Xin chào! Chúng tôi có thể giúp gì cho bạn?",
     inputPlaceholder: "Nhập tin nhắn...",

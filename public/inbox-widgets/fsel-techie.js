@@ -820,6 +820,7 @@
               baseUrl: base,
             });
           }
+          installSetUserGuard();
           resolve(window.$chatwoot || window.chatwootSDK);
         } catch (error) {
           reject(error);
@@ -885,6 +886,7 @@
         settled = true;
         window.clearTimeout(timer);
         state.chatwootReady = true;
+        installSetUserGuard();
         resolve(window.$chatwoot);
       }
 
@@ -941,22 +943,54 @@
   }
 
   /**
-   * Chatwoot $chatwoot.setUser(id, user) bắt buộc user có ít nhất một trong
-   * [name, email, avatar_url]. Form liên hệ có thể tắt / chỉ thu SĐT → object
-   * rỗng sẽ ném lỗi đỏ trên console. Không dùng nhãn persona làm name.
+   * Chatwoot hasUserKeys = key ∈ [name, email, avatar_url] VÀ giá trị truthy.
+   * Chuỗi rỗng bị lọc → object coi như {} → ném lỗi đỏ. Luôn gửi name khác rỗng.
    */
-  function buildChatwootUserAttrs() {
-    var contact = state.submittedContact || {};
-    var name = String(contact.name || "").trim();
-    var email = String(contact.email || "").trim();
+  var GUEST_DISPLAY_NAME = "Khách";
+
+  function truthyChatwootUserAttrs(raw) {
+    var src = raw && typeof raw === "object" ? raw : {};
     var attrs = {};
+    var name = String(src.name || "").trim();
+    var email = String(src.email || "").trim();
+    var avatar = String(src.avatar_url || "").trim();
     if (name) attrs.name = name;
     if (email) attrs.email = email;
-    if (!attrs.name && !attrs.email) {
-      // SDK chỉ kiểm tra CÓ KEY, không bắt giá trị — không ghi tên giả lên Contact
-      attrs.avatar_url = "";
+    if (avatar) attrs.avatar_url = avatar;
+    if (!attrs.name && !attrs.email && !attrs.avatar_url) {
+      attrs.name = GUEST_DISPLAY_NAME;
     }
     return attrs;
+  }
+
+  function buildChatwootUserAttrs() {
+    return truthyChatwootUserAttrs(state.submittedContact);
+  }
+
+  function installSetUserGuard() {
+    var api = window.$chatwoot;
+    if (!api || typeof api.setUser !== "function") return;
+    if (api.setUser.__omniPatched) return;
+    var original = api.setUser;
+    function guardedSetUser(identifier, user) {
+      var id = identifier;
+      if (typeof id !== "string" && typeof id !== "number") {
+        id = String(id == null ? getClientSessionId() : id);
+      }
+      if (id === "") id = getClientSessionId();
+      var attrs = truthyChatwootUserAttrs(user);
+      try {
+        return original.call(api, id, attrs);
+      } catch (error) {
+        try {
+          return original.call(api, String(id), { name: GUEST_DISPLAY_NAME });
+        } catch (retryError) {
+          console.warn("[fsel-techie] setUser:", retryError);
+        }
+      }
+    }
+    guardedSetUser.__omniPatched = true;
+    api.setUser = guardedSetUser;
   }
 
   /**
@@ -1040,7 +1074,8 @@
             return undefined;
           })
           .then(function () {
-            // 4) setUser — SDK bắt buộc user object có name | email | avatar_url
+            // 4) setUser — luôn có name/email/avatar_url truthy (SDK lọc chuỗi rỗng)
+            installSetUserGuard();
             var userAttrs = buildChatwootUserAttrs();
             dlog("B5. Gọi $chatwoot.setUser", {
               identifier: sessionId,
