@@ -497,28 +497,129 @@
   function readContactFormValues() {
     var root = document.getElementById(ROOT_ID);
     var form = root && root.querySelector(".omni-fsel-contact-form");
-    var values = { name: "", email: "", phone: "" };
+    var values = { name: "", email: "", phone: "", phoneCountry: "" };
     if (!form) return values;
     ["name", "email", "phone"].forEach(function (key) {
       var input = form.querySelector('[name="' + key + '"]');
       values[key] = input ? String(input.value || "").trim() : "";
     });
+    var countrySelect = form.querySelector('[name="phone_country"]');
+    values.phoneCountry = countrySelect
+      ? String(countrySelect.value || "").trim()
+      : defaultPhoneCountryCode();
     return values;
+  }
+
+  var PHONE_COUNTRY_OPTIONS = [
+    { iso: "VN", name: "Việt Nam", code: "84" },
+    { iso: "US", name: "Hoa Kỳ", code: "1" },
+    { iso: "GB", name: "Anh", code: "44" },
+    { iso: "AU", name: "Úc", code: "61" },
+    { iso: "SG", name: "Singapore", code: "65" },
+    { iso: "TH", name: "Thái Lan", code: "66" },
+    { iso: "MY", name: "Malaysia", code: "60" },
+    { iso: "ID", name: "Indonesia", code: "62" },
+    { iso: "PH", name: "Philippines", code: "63" },
+    { iso: "JP", name: "Nhật Bản", code: "81" },
+    { iso: "KR", name: "Hàn Quốc", code: "82" },
+    { iso: "CN", name: "Trung Quốc", code: "86" },
+    { iso: "IN", name: "Ấn Độ", code: "91" },
+    { iso: "FR", name: "Pháp", code: "33" },
+    { iso: "DE", name: "Đức", code: "49" },
+    { iso: "TW", name: "Đài Loan", code: "886" },
+    { iso: "HK", name: "Hồng Kông", code: "852" },
+    { iso: "LA", name: "Lào", code: "856" },
+    { iso: "KH", name: "Campuchia", code: "855" },
+    { iso: "CA", name: "Canada", code: "1" },
+  ];
+
+  /**
+   * Ghép mã vùng đã chọn + số local → E.164 trước khi gửi.
+   * https://stackoverflow.com/questions/6478875/regular-expression-matching-e-164-formatted-phone-numbers
+   */
+  var E164_PHONE_RE = /^\+[1-9]\d{1,14}$/;
+
+  function defaultPhoneCountryCode() {
+    var code = String(
+      config.phoneCountryCode || config.countryCode || "84",
+    ).replace(/\D/g, "");
+    return code || "84";
+  }
+
+  function normalizePhoneToE164(raw, dialCode) {
+    var trimmed = String(raw || "").trim();
+    if (!trimmed) return "";
+    var compact = trimmed.replace(/[\s().\-]/g, "");
+    if (compact.indexOf("00") === 0) {
+      compact = "+" + compact.slice(2);
+    }
+    var hasPlus = compact.charAt(0) === "+";
+    var digits = (hasPlus ? compact.slice(1) : compact).replace(/\D/g, "");
+    if (!digits) return "";
+
+    var cc = String(dialCode || defaultPhoneCountryCode()).replace(/\D/g, "");
+    if (!cc) cc = "84";
+
+    if (!hasPlus) {
+      if (digits.charAt(0) === "0") {
+        digits = digits.replace(/^0+/, "");
+      }
+      if (!(digits.indexOf(cc) === 0 && digits.length >= cc.length + 6)) {
+        digits = cc + digits;
+      }
+    }
+
+    var e164 = "+" + digits;
+    return E164_PHONE_RE.test(e164) ? e164 : "";
+  }
+
+  function renderPhoneCountryOptions(selectedCode) {
+    var selected = String(selectedCode || defaultPhoneCountryCode());
+    var seen = {};
+    return PHONE_COUNTRY_OPTIONS.map(function (item) {
+      var value = item.code;
+      var key = item.iso + value;
+      if (seen[key]) return "";
+      seen[key] = true;
+      return (
+        '<option value="' +
+        escapeHtml(value) +
+        '"' +
+        (value === selected ? " selected" : "") +
+        ">" +
+        escapeHtml(item.iso + " +" + value) +
+        "</option>"
+      );
+    }).join("");
   }
 
   function validateContactForm(policy, values) {
     var missing = enabledContactFields(policy).filter(function (field) {
       return field.required && !String(values[field.key] || "").trim();
     });
-    if (!missing.length) return "";
-    return (
-      "Vui lòng nhập " +
-      missing
-        .map(function (field) {
-          return field.label;
-        })
-        .join(", ")
-    );
+    if (missing.length) {
+      return (
+        "Vui lòng nhập " +
+        missing
+          .map(function (field) {
+            return field.label;
+          })
+          .join(", ")
+      );
+    }
+
+    var phoneField = enabledContactFields(policy).filter(function (field) {
+      return field.key === "phone";
+    })[0];
+    var phoneRaw = String(values.phone || "").trim();
+    if (
+      phoneField &&
+      phoneRaw &&
+      !normalizePhoneToE164(phoneRaw, values.phoneCountry)
+    ) {
+      return "Số điện thoại không hợp lệ. Hãy nhập số local, ví dụ 912 345 678";
+    }
+    return "";
   }
 
   function getCookieValue(name) {
@@ -737,7 +838,17 @@
     };
     if (values.name) payload.name = values.name;
     if (values.email) payload.email = values.email;
-    if (values.phone) payload.phone = values.phone;
+    if (values.phone) {
+      var e164Phone = normalizePhoneToE164(values.phone, values.phoneCountry);
+      if (!e164Phone) {
+        return Promise.reject(
+          new Error(
+            "Số điện thoại không hợp lệ. Hãy nhập số local, ví dụ 912 345 678",
+          ),
+        );
+      }
+      payload.phone = e164Phone;
+    }
 
     var url = personaApiUrl(
       "/public/live-chat/" +
@@ -784,7 +895,7 @@
         state.submittedContact = {
           name: values.name || "",
           email: values.email || "",
-          phone: values.phone || "",
+          phone: payload.phone || "",
         };
         state.contactSubmitted = true;
         persistTabSession();
@@ -2146,6 +2257,17 @@
       ".omni-fsel-contact-input:focus{border-color:" +
       THEME.borderStrong +
       ";box-shadow:0 0 0 3px rgba(110,133,250,.16)}" +
+      ".omni-fsel-phone-row{display:flex;gap:8px;align-items:stretch}" +
+      ".omni-fsel-contact-select{flex:0 0 7.25rem;max-width:42%;border:1px solid " +
+      THEME.border +
+      ";border-radius:10px;padding:9px 8px;font-size:13px;font-weight:600;color:" +
+      THEME.ink +
+      ";outline:none;background:#fff;cursor:pointer}" +
+      ".omni-fsel-contact-select:focus{border-color:" +
+      THEME.borderStrong +
+      ";box-shadow:0 0 0 3px rgba(110,133,250,.16)}" +
+      ".omni-fsel-phone-row .omni-fsel-contact-input{flex:1;min-width:0}" +
+      ".omni-fsel-contact-select:disabled,.omni-fsel-contact-input:disabled{opacity:.6;cursor:not-allowed}" +
       ".omni-fsel-contact-submit{border:0;border-radius:12px;padding:10px 12px;font-size:14px;font-weight:700;color:#fff;background:" +
       THEME.primary +
       ";cursor:pointer}" +
@@ -2371,18 +2493,26 @@
     if (container.getAttribute("data-policy") !== policyKey) {
       var fieldsHtml = enabledContactFields(policy)
         .map(function (field) {
-          var inputType =
-            field.key === "email"
-              ? "email"
-              : field.key === "phone"
-                ? "tel"
-                : "text";
-          var autocomplete =
-            field.key === "email"
-              ? "email"
-              : field.key === "phone"
-                ? "tel"
-                : "name";
+          if (field.key === "phone") {
+            return (
+              '<label class="omni-fsel-contact-field">' +
+              '<span class="omni-fsel-contact-label">' +
+              escapeHtml(field.label) +
+              (field.required ? "<em>*</em>" : "") +
+              "</span>" +
+              '<div class="omni-fsel-phone-row">' +
+              '<select class="omni-fsel-contact-select" name="phone_country" aria-label="Mã vùng">' +
+              renderPhoneCountryOptions(defaultPhoneCountryCode()) +
+              "</select>" +
+              '<input class="omni-fsel-contact-input" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="912 345 678"' +
+              (field.required ? " required" : "") +
+              " />" +
+              "</div>" +
+              "</label>"
+            );
+          }
+          var inputType = field.key === "email" ? "email" : "text";
+          var autocomplete = field.key === "email" ? "email" : "name";
           return (
             '<label class="omni-fsel-contact-field">' +
             '<span class="omni-fsel-contact-label">' +
@@ -2421,6 +2551,7 @@
 
     var submit = container.querySelector(".omni-fsel-contact-submit");
     var inputs = container.querySelectorAll(".omni-fsel-contact-input");
+    var selects = container.querySelectorAll(".omni-fsel-contact-select");
     var busy = state.submittingContact || state.selectingPersona;
     if (submit) {
       submit.disabled = busy;
@@ -2430,6 +2561,9 @@
     }
     inputs.forEach(function (input) {
       input.disabled = busy;
+    });
+    selects.forEach(function (select) {
+      select.disabled = busy;
     });
   }
 
@@ -2444,6 +2578,9 @@
       state.error = invalid;
       render();
       return;
+    }
+    if (values.phone) {
+      values.phone = normalizePhoneToE164(values.phone, values.phoneCountry);
     }
 
     state.submittingContact = true;
